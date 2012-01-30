@@ -1,25 +1,12 @@
-## Design
+== Design ==
 
-- Sébastien Boisvert
+* Sébastien Boisvert
+* Élénie Godzaridis
 
-## Implementation
+== Implementation ==
 
-- Sébastien Boisvert
+* Sébastien Boisvert
 
-## Mentoring:
+== Code review ==
 
-- François Laviolette
-- Jacques Corbeil
-
-## Some code reviews
-
-- Élénie Godzaridis
-
-## Some design insights for parallel programming
-
-- Élénie Godzaridis
-
-## Contributors
-
-- David Eccles (1 patch)
-
+* Élénie Godzaridis

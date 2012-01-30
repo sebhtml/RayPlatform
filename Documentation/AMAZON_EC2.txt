@@ -1,1 +1,0 @@
-see http://aws.amazon.com/ec2/hpc-applications/

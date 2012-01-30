@@ -1,1 +1,0 @@
-Ray can generate color-space assembly.
