@@ -853,7 +853,7 @@ PluginHandle ComputeCore::allocatePluginHandle(){
 	return handle;
 }
 
-SlaveMode ComputeCore::allocateSlaveModeHandle(PluginHandle plugin,SlaveMode desiredValue){
+SlaveMode ComputeCore::allocateSlaveModeHandle(PluginHandle plugin){
 
 	if(!validationPluginAllocated(plugin))
 		return INVALID_HANDLE;
@@ -891,7 +891,7 @@ SlaveMode ComputeCore::allocateSlaveModeHandle(PluginHandle plugin,SlaveMode des
 	return handle;
 }
 
-MasterMode ComputeCore::allocateMasterModeHandle(PluginHandle plugin,MasterMode desiredValue){
+MasterMode ComputeCore::allocateMasterModeHandle(PluginHandle plugin){
 
 	if(!validationPluginAllocated(plugin))
 		return INVALID_HANDLE;
@@ -928,7 +928,7 @@ MasterMode ComputeCore::allocateMasterModeHandle(PluginHandle plugin,MasterMode 
 	return handle; 
 }
 
-MessageTag ComputeCore::allocateMessageTagHandle(PluginHandle plugin,MessageTag desiredValue){
+MessageTag ComputeCore::allocateMessageTagHandle(PluginHandle plugin){
 
 	if(!validationPluginAllocated(plugin))
 		return INVALID_HANDLE;
@@ -1422,4 +1422,65 @@ void ComputeCore::setFatalError(){
 
 void ComputeCore::sendEmptyMessageToAll(MessageTag tag){
 	m_switchMan.sendToAll(&m_outbox,m_rank,tag);
+}
+
+void ComputeCore::setObjectSymbol(PluginHandle plugin,void*object,const char* symbol){
+
+	if(!validationPluginAllocated(plugin))
+		return;
+
+	if(!validationObjectSymbolNotRegistered(plugin,symbol))
+		return;
+
+	int handle=m_objects.size();
+
+	m_objects.push_back(object);
+
+	m_objectSymbols[symbol]=handle;
+
+	m_plugins[plugin].addAllocatedObject(handle);
+	m_plugins[plugin].addRegisteredObjectSymbol(handle);
+}
+
+void* ComputeCore::getObjectFromSymbol(PluginHandle plugin,const char*symbol){
+
+	if(!validationPluginAllocated(plugin))
+		return NULL;
+
+	if(!validationObjectSymbolRegistered(plugin,symbol))
+		return NULL;
+
+	int handle=m_objectSymbols[symbol];
+
+	void*object=m_objects[handle];
+
+	m_plugins[plugin].addResolvedObject(handle);
+
+	return object;
+}
+
+bool ComputeCore::validationObjectSymbolRegistered(PluginHandle plugin,const char*symbol){
+
+	string key=symbol;
+
+	if(m_objectSymbols.count(key)==0){
+		cout<<"object symbol not registered, symbol: "<<symbol<<endl;
+		setFatalError();
+		return false;
+	}
+
+	return true;
+}
+
+bool ComputeCore::validationObjectSymbolNotRegistered(PluginHandle plugin,const char*symbol){
+
+	string key=symbol;
+
+	if(m_objectSymbols.count(key)>0){
+		cout<<"object symbol already registered, symbol: "<<symbol<<endl;
+		setFatalError();
+		return false;
+	}
+
+	return true;
 }

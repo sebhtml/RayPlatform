@@ -63,9 +63,12 @@ class ComputeCore{
 
 	vector<CorePlugin*> m_listOfPlugins;
 
+	vector<void*> m_objects;
+
 	map<string,MasterMode> m_masterModeSymbols;
 	map<string,SlaveMode> m_slaveModeSymbols;
 	map<string,MessageTag> m_messageTagSymbols;
+	map<string,int> m_objectSymbols;
 
 	set<SlaveMode> m_allocatedSlaveModes;
 	set<MasterMode> m_allocatedMasterModes;
@@ -171,6 +174,9 @@ class ComputeCore{
 	bool validationSlaveModeRange(PluginHandle p, SlaveMode i);
 	bool validationMessageTagRange(PluginHandle p,MessageTag i);
 
+	bool validationObjectSymbolNotRegistered(PluginHandle plugin,const char*symbol);
+	bool validationObjectSymbolRegistered(PluginHandle plugin,const char*symbol);
+
 	void setFatalError();
 
 public:
@@ -238,7 +244,7 @@ public:
 
 
 /** allocate a master mode **/
-	MasterMode allocateMasterModeHandle(PluginHandle plugin,MasterMode desiredValue);
+	MasterMode allocateMasterModeHandle(PluginHandle plugin);
 
 /** sets the symbol for a master mode **/
 	void setMasterModeSymbol(PluginHandle plugin,MasterMode mode,const char*symbol);
@@ -269,7 +275,7 @@ Not all master modes have yet been ported to that list.
 
 
 /** allocate a slave mode for a handle **/
-	SlaveMode allocateSlaveModeHandle(PluginHandle plugin,SlaveMode desiredValue);
+	SlaveMode allocateSlaveModeHandle(PluginHandle plugin);
 
 /** sets the symbol for a slave mode **/
 	void setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const char*symbol);
@@ -283,7 +289,7 @@ Not all master modes have yet been ported to that list.
 
 
 /** allocate a handle for a message tag **/
-	MessageTag allocateMessageTagHandle(PluginHandle plugin, MessageTag desiredValue);
+	MessageTag allocateMessageTagHandle(PluginHandle plugin);
 	
 /** set the symbol for a message tag **/
 	void setMessageTagSymbol(PluginHandle plugin,MessageTag mode,const char*symbol);
@@ -305,6 +311,13 @@ Not all master modes have yet been ported to that list.
 	void setMessageTagSize(PluginHandle plugin,MessageTag tag,int size);
 
 	string getRayPlatformVersion();
+
+
+/** set object that can be shared between plugins **/
+	void setObjectSymbol(PluginHandle plugin,void*object,const char* symbol);
+
+/** get shared object from its symbol **/
+	void* getObjectFromSymbol(PluginHandle plugin,const char*symbol);
 };
 
 #endif

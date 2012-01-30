@@ -304,13 +304,13 @@ void SwitchMan::registerPlugin(ComputeCore*core){
 	core->setPluginAuthors(m_plugin,"Sébastien Boisvert");
 	core->setPluginLicense(m_plugin,"GNU Lesser General License version 3");
 
-	RAY_SLAVE_MODE_DO_NOTHING=core->allocateSlaveModeHandle(m_plugin,RAY_SLAVE_MODE_DO_NOTHING);
+	RAY_SLAVE_MODE_DO_NOTHING=core->allocateSlaveModeHandle(m_plugin);
 	core->setSlaveModeSymbol(m_plugin,RAY_SLAVE_MODE_DO_NOTHING,"RAY_SLAVE_MODE_DO_NOTHING");
 
-	RAY_MASTER_MODE_DO_NOTHING=core->allocateMasterModeHandle(m_plugin,RAY_MASTER_MODE_DO_NOTHING);
+	RAY_MASTER_MODE_DO_NOTHING=core->allocateMasterModeHandle(m_plugin);
 	core->setMasterModeSymbol(m_plugin,RAY_MASTER_MODE_DO_NOTHING,"RAY_MASTER_MODE_DO_NOTHING");
 
-	RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL=core->allocateMessageTagHandle(m_plugin,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
+	RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL=core->allocateMessageTagHandle(m_plugin);
 	m_adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL.setObject(this);
 	core->setMessageTagObjectHandler(m_plugin,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL, &m_adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
 	core->setMessageTagSymbol(m_plugin,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL,"RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL");

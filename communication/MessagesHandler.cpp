@@ -562,7 +562,7 @@ void MessagesHandler::registerPlugin(ComputeCore*core){
 	core->setPluginAuthors(m_plugin,"Sébastien Boisvert");
 	core->setPluginLicense(m_plugin,"GNU Lesser General License version 3");
 
-	RAY_MPI_TAG_DUMMY=core->allocateMessageTagHandle(m_plugin,RAY_MPI_TAG_DUMMY);
+	RAY_MPI_TAG_DUMMY=core->allocateMessageTagHandle(m_plugin);
 	core->setMessageTagSymbol(m_plugin,RAY_MPI_TAG_DUMMY,"RAY_MPI_TAG_DUMMY");
 
 	createBuffers();

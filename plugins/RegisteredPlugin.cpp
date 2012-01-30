@@ -122,13 +122,17 @@ void RegisteredPlugin::print(ostream*stream){
 	(*stream)<<"   -> with a registered size: "<<m_registeredMessageTagSizes.size()<<endl;
 	(*stream)<<endl;
 
+	(*stream)<<"-> Allocated object handles: "<<m_allocatedObjects.size()<<endl;
+	(*stream)<<"   -> with a registered symbol: "<<m_registeredObjectSymbols.size()<<endl;
+	(*stream)<<endl;
+
 	(*stream)<<"Resolved symbols"<<endl;
 
 	(*stream)<<endl;
 	(*stream)<<"-> Resolved MasterMode symbols: "<<m_resolvedMasterModes.size()<<endl;
 	(*stream)<<"-> Resolved SlaveMode symbols: "<<m_resolvedSlaveModes.size()<<endl;
 	(*stream)<<"-> Resolved MessageTag symbols: "<<m_resolvedMessageTags.size()<<endl;
-
+	(*stream)<<"-> Resolved object symbols: "<<m_resolvedObjects.size()<<endl;
 	(*stream)<<endl;
 }
 
@@ -190,4 +194,16 @@ void RegisteredPlugin::addRegisteredMasterModeNextMasterMode(MasterMode mode){
 
 void RegisteredPlugin::addRegisteredFirstMasterMode(MasterMode mode){
 	m_registeredFirstMasterModes.insert(mode);
+}
+
+void RegisteredPlugin::addAllocatedObject(int i){
+	m_allocatedObjects.insert(i);
+}
+
+void RegisteredPlugin::addRegisteredObjectSymbol(int i){
+	m_registeredObjectSymbols.insert(i);
+}
+
+void RegisteredPlugin::addResolvedObject(int i){
+	m_resolvedObjects.insert(i);
 }
