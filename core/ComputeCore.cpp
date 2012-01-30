@@ -1420,3 +1420,6 @@ void ComputeCore::setFatalError(){
 	m_hasFatalErrors=true;
 }
 
+void ComputeCore::sendEmptyMessageToAll(MessageTag tag){
+	m_switchMan.sendToAll(&m_outbox,m_rank,tag);
+}

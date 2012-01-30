@@ -194,6 +194,8 @@ public:
 	StaticVector*getInbox();
 	MessageRouter*getRouter();
 
+	void sendEmptyMessageToAll(MessageTag tag);
+
 	RingAllocator*getOutboxAllocator();
 	RingAllocator*getInboxAllocator();
 
