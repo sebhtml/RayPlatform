@@ -1282,7 +1282,7 @@ void ComputeCore::setFirstMasterMode(PluginHandle plugin,MasterMode mode){
 string ComputeCore::getRayPlatformVersion(){
 
 #ifndef RAYPLATFORM_VERSION
-#define RAYPLATFORM_VERSION "Unknown-RayPlatform-Version
+#define RAYPLATFORM_VERSION "Unknown-RayPlatform-Version"
 #endif
 
 	return RAYPLATFORM_VERSION;
