@@ -31,3 +31,12 @@ void Adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL::call(Message*m){
 }
 
 
+void Adapter_RAY_SLAVE_MODE_STOP::setObject(SwitchMan*object){
+	m_object=object;
+}
+
+void Adapter_RAY_SLAVE_MODE_STOP::call(){
+	m_object->call_RAY_SLAVE_MODE_STOP();
+}
+
+

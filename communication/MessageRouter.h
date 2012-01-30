@@ -53,10 +53,6 @@ using namespace std;
  */
 class MessageRouter: public CorePlugin {
 
-	MessageTag RAY_MPI_TAG_ACTIVATE_RELAY_CHECKER_REPLY;
-	MessageTag RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON;
-	MessageTag RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY;
-
 /**
  * Number of relayed messages if the relay checker is activated.
  */

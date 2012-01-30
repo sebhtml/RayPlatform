@@ -83,6 +83,9 @@ MasterMode SwitchMan::getNextMasterMode(MasterMode currentMode){
 	assert(m_switches.count(currentMode)>0);
 	#endif
 
+	if(m_switches.count(currentMode)==0)
+		cout<<"Error, there is no master mode after "<<MASTER_MODES[currentMode]<<endl;
+
 	return m_switches[currentMode];
 }
 
@@ -166,6 +169,9 @@ void SwitchMan::closeMasterMode(){
 	#ifdef CONFIG_SWITCHMAN_VERBOSITY
 	cout<<"[SwitchMan::closeMasterMode] Current master mode -> "<<MASTER_MODES[currentMasterMode]<<endl;
 	#endif
+
+	if(m_switches.count(currentMasterMode)==0)
+		return;
 
 	MasterMode nextMode=getNextMasterMode(currentMasterMode);
 
@@ -283,9 +289,15 @@ void SwitchMan::call_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL(Message*message){
 	closeSlaveMode(message->getSource());
 }
 
+void SwitchMan::call_RAY_SLAVE_MODE_STOP(){
+
+	m_core->stop();
+
+	setSlaveMode(RAY_SLAVE_MODE_DO_NOTHING);
+}
+
 void SwitchMan::registerPlugin(ComputeCore*core){
 	m_plugin=core->allocatePluginHandle();
-	PluginHandle plugin=m_plugin;
 
 	core->setPluginName(m_plugin,"SwitchMan");
 	core->setPluginDescription(m_plugin,"Parallel coordinator (bundled with RayPlatform)");
@@ -303,34 +315,21 @@ void SwitchMan::registerPlugin(ComputeCore*core){
 	core->setMessageTagObjectHandler(m_plugin,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL, &m_adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
 	core->setMessageTagSymbol(m_plugin,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL,"RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL");
 
-	RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON=core->allocateMessageTagHandle(plugin,RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON);
-	core->setMessageTagSymbol(plugin,RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON,"RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON");
-
-	RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY=core->allocateMessageTagHandle(plugin,RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY);
-	core->setMessageTagSymbol(plugin,RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY,"RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY");
-
 	// set default modes
 	// these symbols are resolved already
 	
 	setMasterMode(RAY_MASTER_MODE_DO_NOTHING); 
 	setSlaveMode(RAY_SLAVE_MODE_DO_NOTHING);
 
+	m_core=core;
 }
 
 void SwitchMan::resolveSymbols(ComputeCore*core){
 	RAY_SLAVE_MODE_DO_NOTHING=core->getSlaveModeFromSymbol(m_plugin,"RAY_SLAVE_MODE_DO_NOTHING");
-	RAY_SLAVE_MODE_DIE=core->getSlaveModeFromSymbol(m_plugin,"RAY_SLAVE_MODE_DIE");
 
 	RAY_MASTER_MODE_DO_NOTHING=core->getMasterModeFromSymbol(m_plugin,"RAY_MASTER_MODE_DO_NOTHING");
 
 	RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL");
-	RAY_MPI_TAG_DUMMY=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_DUMMY");
-
-	RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON");
-	RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY");
-
-	core->setMessageTagToSlaveModeSwitch(m_plugin,RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON, RAY_SLAVE_MODE_DIE );
-
 }
 
 

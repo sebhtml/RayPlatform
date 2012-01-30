@@ -41,6 +41,9 @@ void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,S
 	if(!validationPluginAllocated(plugin))
 		return;
 
+	if(!validationSlaveModeRange(plugin,mode))
+		return;
+
 	if(!validationSlaveModeOwnership(plugin,mode)){
 		cout<<"was trying to set object handler for mode "<<mode<<endl;
 		return;
@@ -64,6 +67,9 @@ void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode
 	if(!validationPluginAllocated(plugin))
 		return;
 
+	if(!validationMasterModeRange(plugin,mode))
+		return;
+
 	if(!validationMasterModeOwnership(plugin,mode))
 		return;
 
@@ -83,6 +89,9 @@ void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode
 
 void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler*object){
 	if(!validationPluginAllocated(plugin))
+		return;
+
+	if(!validationMessageTagRange(plugin,tag))
 		return;
 
 	if(!validationMessageTagOwnership(plugin,tag))
@@ -108,6 +117,14 @@ void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,
  * otherwise, run runVanilla()
  */
 void ComputeCore::run(){
+
+	if(!m_resolvedSymbols)
+		resolveSymbols();
+
+	if(m_hasFatalErrors){
+		cout<<"Exiting because of previously reported errors."<<endl;
+		return;
+	}
 
 	m_startingTimeMicroseconds = getMicroseconds();
 
@@ -517,6 +534,10 @@ void ComputeCore::processData(){
 
 void ComputeCore::constructor(int*argc,char***argv){
 
+	m_resolvedSymbols=false;
+
+	m_hasFatalErrors=false;
+
 	m_firstRegistration=true;
 
 	m_hasFirstMode=false;
@@ -673,13 +694,17 @@ void ComputeCore::registerPlugin(CorePlugin*plugin){
 }
 
 void ComputeCore::resolveSymbols(){
-	
+	if(m_resolvedSymbols)
+		return;
+
 	registerPlugin(&m_messagesHandler); // must be the last registered
 
 	for(int i=0;i<(int)m_listOfPlugins.size();i++){
 		CorePlugin*plugin=m_listOfPlugins[i];
 		plugin->resolveSymbols(this);
 	}
+
+	m_resolvedSymbols=true;
 }
 
 void ComputeCore::destructor(){
@@ -694,6 +719,9 @@ void ComputeCore::setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const ch
 	if(!validationPluginAllocated(plugin))
 		return;
 	
+	if(!validationSlaveModeRange(plugin,mode))
+		return;
+
 	if(!validationSlaveModeOwnership(plugin,mode)){
 		cout<<"was trying to set symbol "<<symbol<<" to mode "<<mode<<endl;
 		return;
@@ -704,6 +732,9 @@ void ComputeCore::setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const ch
 	}
 
 	if(!validationSlaveModeSymbolNotRegistered(plugin,mode))
+		return;
+
+	if(!validationSlaveModeRange(plugin,mode))
 		return;
 
 	#ifdef ASSERT
@@ -734,6 +765,8 @@ void ComputeCore::setMasterModeSymbol(PluginHandle plugin,MasterMode mode,const 
 	if(!validationPluginAllocated(plugin))
 		return;
 
+	if(!validationMasterModeRange(plugin,mode))
+		return;
 
 	if(!validationMasterModeOwnership(plugin,mode))
 		return;
@@ -743,6 +776,9 @@ void ComputeCore::setMasterModeSymbol(PluginHandle plugin,MasterMode mode,const 
 	}
 
 	if(!validationMasterModeSymbolNotRegistered(plugin,mode))
+		return;
+
+	if(!validationMasterModeRange(plugin,mode))
 		return;
 
 	#ifdef ASSERT
@@ -769,6 +805,8 @@ void ComputeCore::setMessageTagSymbol(PluginHandle plugin,MessageTag tag,const c
 	if(!validationPluginAllocated(plugin))
 		return;
 
+	if(!validationMessageTagRange(plugin,tag))
+		return;
 
 	if(!validationMessageTagOwnership(plugin,tag))
 		return;
@@ -777,6 +815,9 @@ void ComputeCore::setMessageTagSymbol(PluginHandle plugin,MessageTag tag,const c
 		return;
 
 	if(!validationMessageTagSymbolNotRegistered(plugin,tag))
+		return;
+
+	if(!validationMessageTagRange(plugin,tag))
 		return;
 
 	#ifdef ASSERT
@@ -822,11 +863,17 @@ SlaveMode ComputeCore::allocateSlaveModeHandle(PluginHandle plugin,SlaveMode des
 	assert(m_plugins.count(plugin)>0);
 	#endif
 
-	SlaveMode handle=desiredValue;
+	SlaveMode handle=m_currentSlaveModeToAllocate;
+
+	if(!(0<=handle && handle<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS))
+		handle=m_currentSlaveModeToAllocate;
 
 	while(m_allocatedSlaveModes.count(handle)>0){
 		handle=m_currentSlaveModeToAllocate++;
 	}
+
+	if(!validationSlaveModeRange(plugin,handle))
+		return INVALID_HANDLE;
 
 	#ifdef ASSERT
 	assert(m_allocatedSlaveModes.count(handle)==0);
@@ -849,16 +896,21 @@ MasterMode ComputeCore::allocateMasterModeHandle(PluginHandle plugin,MasterMode 
 	if(!validationPluginAllocated(plugin))
 		return INVALID_HANDLE;
 
-
 	#ifdef ASSERT
 	assert(m_plugins.count(plugin)>0);
 	#endif
 
-	MasterMode handle=desiredValue;
+	MasterMode handle=m_currentMasterModeToAllocate;
+
+	if(!(0<=handle && handle<MAXIMUM_NUMBER_OF_MASTER_HANDLERS))
+		handle=m_currentMasterModeToAllocate;
 
 	while(m_allocatedMasterModes.count(handle)>0){
 		handle=m_currentMasterModeToAllocate++;
 	}
+
+	if(!validationMasterModeRange(plugin,handle))
+		return INVALID_HANDLE;
 
 	#ifdef ASSERT
 	assert(m_allocatedMasterModes.count(handle)==0);
@@ -885,11 +937,17 @@ MessageTag ComputeCore::allocateMessageTagHandle(PluginHandle plugin,MessageTag 
 	assert(m_plugins.count(plugin)>0);
 	#endif
 
-	MessageTag handle=desiredValue;
+	MessageTag handle=m_currentMessageTagToAllocate;
+
+	if(!(0<=handle && handle < MAXIMUM_NUMBER_OF_TAG_HANDLERS))
+		handle=m_currentMessageTagToAllocate;
 
 	while(m_allocatedMessageTags.count(handle)>0){
 		handle=m_currentMessageTagToAllocate++;
 	}
+
+	if(!validationMessageTagRange(plugin,handle))
+		return INVALID_HANDLE;
 
 	#ifdef ASSERT
 	assert(m_allocatedMessageTags.count(handle)==0);
@@ -916,6 +974,7 @@ PluginHandle ComputeCore::generatePluginHandle(){
 bool ComputeCore::validationPluginAllocated(PluginHandle plugin){
 	if(!m_plugins.count(plugin)>0){
 		cout<<"Error, plugin "<<plugin<<" is not allocated"<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -925,6 +984,7 @@ bool ComputeCore::validationPluginAllocated(PluginHandle plugin){
 bool ComputeCore::validationSlaveModeOwnership(PluginHandle plugin,SlaveMode handle){
 	if(!m_plugins[plugin].hasSlaveMode(handle)){
 		cout<<"Error, plugin "<<m_plugins[plugin].getPluginName();
+		setFatalError();
 		cout<<" ("<<plugin<<") has no ownership on slave mode "<<handle<<endl;
 		return false;
 	}
@@ -937,6 +997,7 @@ bool ComputeCore::validationMasterModeOwnership(PluginHandle plugin,MasterMode h
 		cout<<"Error, plugin "<<m_plugins[plugin].getPluginName();
 		cout<<" ("<<plugin<<") has no ownership on master mode "<<handle<<endl;
 		cout<<" public symbol is "<<MASTER_MODES[handle]<<endl;
+		setFatalError();
 
 		return false;
 	}
@@ -948,6 +1009,7 @@ bool ComputeCore::validationMessageTagOwnership(PluginHandle plugin,MessageTag h
 	if(!m_plugins[plugin].hasMessageTag(handle)){
 		cout<<"Error, plugin "<<m_plugins[plugin].getPluginName();
 		cout<<" ("<<plugin<<") has no ownership on message tag mode "<<handle<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -959,8 +1021,6 @@ void ComputeCore::setPluginName(PluginHandle plugin,const char*name){
 		return;
 
 	m_plugins[plugin].setPluginName(name);
-
-	cout<<"Rank "<<m_rank<<" loaded plugin "<<m_plugins[plugin].getPluginName()<<", handle is "<<plugin<<endl;
 }
 
 void ComputeCore::printPlugins(string directory){
@@ -1014,6 +1074,7 @@ SlaveMode ComputeCore::getSlaveModeFromSymbol(PluginHandle plugin,const char*sym
 		return handle;
 	}
 
+	cout<<"Invalid handle returned!"<<endl;
 	return INVALID_HANDLE;
 }
 
@@ -1072,6 +1133,7 @@ bool ComputeCore::validationMessageTagSymbolAvailable(PluginHandle plugin,const 
 
 	if(m_messageTagSymbols.count(key)>0){
 		cout<<"Error, plugin "<<plugin<<" can not register symbol "<<symbol<<" because it is already registered."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1084,6 +1146,7 @@ bool ComputeCore::validationSlaveModeSymbolAvailable(PluginHandle plugin,const c
 
 	if(m_slaveModeSymbols.count(key)>0){
 		cout<<"Error, plugin "<<plugin<<" can not register symbol "<<symbol<<" because it is already registered."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1097,6 +1160,7 @@ bool ComputeCore::validationMasterModeSymbolAvailable(PluginHandle plugin,const 
 
 	if(m_masterModeSymbols.count(key)>0){
 		cout<<"Error, plugin "<<plugin<<" can not register symbol "<<symbol<<" because it is already registered."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1108,6 +1172,7 @@ bool ComputeCore::validationMessageTagSymbolRegistered(PluginHandle plugin,const
 
 	if(m_messageTagSymbols.count(key)==0){
 		cout<<"Error, plugin "<<plugin<<" (name: "<<m_plugins[plugin].getPluginName()<<") can not fetch symbol "<<symbol<<" because it is not registered."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1120,6 +1185,7 @@ bool ComputeCore::validationSlaveModeSymbolRegistered(PluginHandle plugin,const 
 
 	if(m_slaveModeSymbols.count(key)==0){
 		cout<<"Error, plugin "<<plugin<<" (name: "<<m_plugins[plugin].getPluginName()<<") can not fetch symbol "<<symbol<<" because it is not registered."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1133,6 +1199,7 @@ bool ComputeCore::validationMasterModeSymbolRegistered(PluginHandle plugin,const
 
 	if(m_masterModeSymbols.count(key)==0){
 		cout<<"Error, plugin "<<plugin<<" (name: "<<m_plugins[plugin].getPluginName()<<") can not fetch symbol "<<symbol<<" because it is not registered."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1143,6 +1210,7 @@ bool ComputeCore::validationMessageTagSymbolNotRegistered(PluginHandle plugin,Me
 
 	if(m_registeredMessageTagSymbols.count(handle)>0){
 		cout<<"Error, plugin "<<plugin<<" can not register symbol for message tag "<<handle <<" because it already has a symbol."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1153,6 +1221,7 @@ bool ComputeCore::validationSlaveModeSymbolNotRegistered(PluginHandle plugin,Sla
 
 	if(m_registeredSlaveModeSymbols.count(handle)>0){
 		cout<<"Error, plugin "<<plugin<<" can not register symbol for slave mode "<<handle <<" because it already has a symbol."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1164,6 +1233,7 @@ bool ComputeCore::validationMasterModeSymbolNotRegistered(PluginHandle plugin,Ma
 
 	if(m_registeredMasterModeSymbols.count(handle)>0){
 		cout<<"Error, plugin "<<plugin<<" can not register symbol for master mode "<<handle <<" because it already has a symbol."<<endl;
+		setFatalError();
 		return false;
 	}
 
@@ -1180,6 +1250,9 @@ void ComputeCore::setPluginDescription(PluginHandle plugin,const char*a){
 
 void ComputeCore::setMasterModeToMessageTagSwitch(PluginHandle plugin,MasterMode mode,MessageTag tag){
 	if(!validationPluginAllocated(plugin))
+		return;
+
+	if(!validationMasterModeRange(plugin,mode))
 		return;
 
 	if(!validationMasterModeOwnership(plugin,mode))
@@ -1209,6 +1282,9 @@ void ComputeCore::setMessageTagToSlaveModeSwitch(PluginHandle plugin,MessageTag 
 	if(!validationPluginAllocated(plugin))
 		return;
 
+	if(!validationMessageTagRange(plugin,tag))
+		return;
+
 	if(!validationMessageTagOwnership(plugin,tag))
 		return;
 
@@ -1220,6 +1296,12 @@ void ComputeCore::setMessageTagToSlaveModeSwitch(PluginHandle plugin,MessageTag 
 
 void ComputeCore::setMessageTagReplyMessageTag(PluginHandle plugin,MessageTag tag,MessageTag reply){
 	if(!validationPluginAllocated(plugin))
+		return;
+
+	if(!validationMessageTagRange(plugin,tag))
+		return;
+
+	if(!validationMessageTagRange(plugin,reply))
 		return;
 
 	if(!validationMessageTagOwnership(plugin,tag))
@@ -1234,6 +1316,9 @@ void ComputeCore::setMessageTagSize(PluginHandle plugin,MessageTag tag,int size)
 	if(!validationPluginAllocated(plugin))
 		return;
 
+	if(!validationMessageTagRange(plugin,tag))
+		return;
+
 	if(!validationMessageTagOwnership(plugin,tag))
 		return;
 
@@ -1245,6 +1330,12 @@ void ComputeCore::setMessageTagSize(PluginHandle plugin,MessageTag tag,int size)
 void ComputeCore::setMasterModeNextMasterMode(PluginHandle plugin,MasterMode current,MasterMode next){
 
 	if(!validationPluginAllocated(plugin))
+		return;
+
+	if(!validationMasterModeRange(plugin,current))
+		return;
+
+	if(!validationMasterModeRange(plugin,next))
 		return;
 
 	if(!validationMasterModeOwnership(plugin,current))
@@ -1261,6 +1352,9 @@ void ComputeCore::setMasterModeNextMasterMode(PluginHandle plugin,MasterMode cur
 
 void ComputeCore::setFirstMasterMode(PluginHandle plugin,MasterMode mode){
 	if(!validationPluginAllocated(plugin))
+		return;
+
+	if(!validationMasterModeRange(plugin,mode))
 		return;
 
 	if(!validationMasterModeOwnership(plugin,mode))
@@ -1287,3 +1381,42 @@ string ComputeCore::getRayPlatformVersion(){
 
 	return RAYPLATFORM_VERSION;
 }
+
+bool ComputeCore::validationMasterModeRange(PluginHandle plugin,MasterMode mode){
+	if(!(0<= mode && mode < MAXIMUM_NUMBER_OF_MASTER_HANDLERS)){
+		cout<<"Error, master mode "<<mode<<" is not in the allowed range."<<endl;
+		cout<<"MAXIMUM_NUMBER_OF_MASTER_HANDLERS= "<<MAXIMUM_NUMBER_OF_MASTER_HANDLERS<<endl;
+		setFatalError();
+		return false;
+	}
+
+	return true;
+}
+
+bool ComputeCore::validationSlaveModeRange(PluginHandle plugin,SlaveMode mode){
+	if(!(0<= mode && mode < MAXIMUM_NUMBER_OF_SLAVE_HANDLERS)){
+		cout<<"Error, slave mode "<<mode<<" is not in the allowed range."<<endl;
+		cout<<"MAXIMUM_NUMBER_OF_SLAVE_HANDLERS= "<<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS<<endl;
+		setFatalError();
+		return false;
+	}
+
+	return true;
+}
+
+bool ComputeCore::validationMessageTagRange(PluginHandle plugin,MessageTag tag){
+	if(!(0<= tag && tag < MAXIMUM_NUMBER_OF_TAG_HANDLERS)){
+		cout<<"Error, message tag "<<tag<<" is not in the allowed range."<<endl;
+		cout<<"MAXIMUM_NUMBER_OF_TAG_HANDLERS= "<<MAXIMUM_NUMBER_OF_TAG_HANDLERS<<endl;
+		setFatalError();
+		return false;
+	}
+
+	return true;
+}
+
+void ComputeCore::setFatalError(){
+	cout<<"A fatal error occurred !"<<endl;
+	m_hasFatalErrors=true;
+}
+

@@ -23,6 +23,7 @@
 #define _SwitchMan_adapters_h
 
 #include <handlers/MessageTagHandler.h>
+#include <handlers/SlaveModeHandler.h>
 
 class SwitchMan;
 
@@ -32,6 +33,15 @@ class Adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL: public MessageTagHandler{
 public:
 	void setObject(SwitchMan*object);
 	void call(Message*message);
+};
+
+
+class Adapter_RAY_SLAVE_MODE_STOP: public SlaveModeHandler{
+	SwitchMan*m_object;
+
+public:
+	void setObject(SwitchMan*object);
+	void call();
 };
 
 

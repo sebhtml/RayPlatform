@@ -43,17 +43,18 @@ class ComputeCore;
  * \date 2012-01-02
  */
 class SwitchMan: public CorePlugin {
+	
+	ComputeCore*m_core;
 
 	Adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL m_adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL ;
+	Adapter_RAY_SLAVE_MODE_STOP m_adapter_RAY_SLAVE_MODE_STOP;
 
-	MessageTag RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON;
-	MessageTag RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY;
-	MessageTag RAY_MPI_TAG_DUMMY;
 	MessageTag RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL;
 
 	MasterMode RAY_MASTER_MODE_DO_NOTHING;
 	SlaveMode RAY_SLAVE_MODE_DO_NOTHING;
 	SlaveMode RAY_SLAVE_MODE_DIE;
+	SlaveMode RAY_SLAVE_MODE_STOP;
 
 /** the current slave mode of the rank */
 	SlaveMode m_slaveMode;
@@ -172,6 +173,8 @@ public:
 	void addDummy(ComputeCore*core);
 
 	void call_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL(Message*message);
+
+	void call_RAY_SLAVE_MODE_STOP();
 };
 
 #endif

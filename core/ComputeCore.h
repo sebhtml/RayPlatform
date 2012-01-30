@@ -54,6 +54,9 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class ComputeCore{
+
+	bool m_resolvedSymbols;
+	bool m_hasFatalErrors;
 	
 	bool m_hasFirstMode;
 	bool m_firstRegistration;
@@ -163,6 +166,12 @@ class ComputeCore{
 	bool validationMessageTagSymbolNotRegistered(PluginHandle plugin,MessageTag handle);
 	bool validationSlaveModeSymbolNotRegistered(PluginHandle plugin,SlaveMode handle);
 	bool validationMasterModeSymbolNotRegistered(PluginHandle plugin,MasterMode handle);
+
+	bool validationMasterModeRange(PluginHandle plugin,MasterMode i);
+	bool validationSlaveModeRange(PluginHandle p, SlaveMode i);
+	bool validationMessageTagRange(PluginHandle p,MessageTag i);
+
+	void setFatalError();
 
 public:
 	/** this is the main method */

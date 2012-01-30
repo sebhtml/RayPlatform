@@ -369,24 +369,13 @@ ConnectionGraph*MessageRouter::getGraph(){
 
 void MessageRouter::registerPlugin(ComputeCore*core){
 	m_plugin=core->allocatePluginHandle();
-	PluginHandle plugin=m_plugin;
 
 	core->setPluginName(m_plugin,"MessageRouter");
 	core->setPluginDescription(m_plugin,"message router for large jobs (bundled with RayPlatform)");
 	core->setPluginAuthors(m_plugin,"Sébastien Boisvert");
 	core->setPluginLicense(m_plugin,"GNU Lesser General License version 3");
 
-	RAY_MPI_TAG_ACTIVATE_RELAY_CHECKER_REPLY=core->allocateMessageTagHandle(plugin,RAY_MPI_TAG_ACTIVATE_RELAY_CHECKER_REPLY);
-	core->setMessageTagSymbol(plugin,RAY_MPI_TAG_ACTIVATE_RELAY_CHECKER_REPLY,"RAY_MPI_TAG_ACTIVATE_RELAY_CHECKER_REPLY");
-
 }
 
 void MessageRouter::resolveSymbols(ComputeCore*core){
-	RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON");
-	RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY");
-	RAY_MPI_TAG_ACTIVATE_RELAY_CHECKER_REPLY=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_ACTIVATE_RELAY_CHECKER_REPLY");
-
-	// terminal control messages can not be routed.
-	addTagToCheckForRelayFrom0(RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON);
-	addTagToCheckForRelayTo0(RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY);
 }
