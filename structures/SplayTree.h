@@ -24,7 +24,6 @@
 #include<structures/MyStack.h>
 #include<vector>
 #include<stdlib.h>
-#include<core/common_functions.h>
 #include<structures/SplayNode.h>
 #include<iostream>
 #include<memory/MyAllocator.h>
