@@ -54,7 +54,7 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class ComputeCore{
-
+	
 	bool m_hasFirstMode;
 	bool m_firstRegistration;
 
@@ -292,6 +292,8 @@ Not all master modes have yet been ported to that list.
 
 /** sets the number of elements for a message tag **/
 	void setMessageTagSize(PluginHandle plugin,MessageTag tag,int size);
+
+	string getRayPlatformVersion();
 };
 
 #endif
