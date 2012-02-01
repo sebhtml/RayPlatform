@@ -21,11 +21,13 @@
 #ifndef _TickLogger_h
 #define _TickLogger_h
 
-#include <stdint.h>
-#include <vector>
 #include <core/master_modes.h>
 #include <core/slave_modes.h>
+
+#include <time.h>
 #include <fstream>
+#include <stdint.h>
+#include <vector>
 using namespace std;
 
 /** this class writes these files:
@@ -46,19 +48,32 @@ using namespace std;
 class TickLogger{
 	vector<uint64_t> m_slaveCounts;
 	vector<SlaveMode> m_slaveModes;
+	vector<uint64_t> m_slaveStarts;
+	vector<uint64_t> m_slaveEnds;
+	vector<uint64_t> m_receivedMessageCounts;
+	vector<uint64_t> m_sentMessageCounts;
+
 	SlaveMode m_lastSlaveMode;
 	uint64_t m_slaveCount;
+	uint64_t m_receivedMessageCount;
+	uint64_t m_sentMessageCount;
 
 	vector<uint64_t> m_masterCounts;
 	vector<MasterMode> m_masterModes;
+	vector<uint64_t> m_masterStarts;
+	vector<uint64_t> m_masterEnds;
 	MasterMode m_lastMasterMode;
 	uint64_t m_masterCount;
+
+	uint64_t getTheTime();
 public:
 
 	TickLogger();
 
 	void logSlaveTick(SlaveMode i);
 	void logMasterTick(MasterMode i);
+	void logReceivedMessage(MessageTag i);
+	void logSendMessage(MessageTag i);
 
 	void printSlaveTicks(ofstream*file);
 	void printMasterTicks(ofstream*file);

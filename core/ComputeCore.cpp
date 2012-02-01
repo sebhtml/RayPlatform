@@ -463,6 +463,10 @@ void ComputeCore::sendMessages(){
 		}
 	}
 
+	for(int i=0;i<(int)m_outbox.size();i++){
+		m_tickLogger.logSendMessage(INVALID_HANDLE);
+	}
+
 	// finally, send the messages
 	m_messagesHandler.sendMessages(&m_outbox);
 }
@@ -475,6 +479,10 @@ void ComputeCore::sendMessages(){
 void ComputeCore::receiveMessages(){
 	m_inbox.clear();
 	m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
+
+	for(int i=0;i<(int)m_inbox.size();i++){
+		m_tickLogger.logReceivedMessage(INVALID_HANDLE);
+	}
 
 	#ifdef ASSERT
 	int receivedMessages=m_inbox.size();
