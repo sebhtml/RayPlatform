@@ -9,6 +9,8 @@ and some structures.
 
 The main class is ComputeCore.
 
+It can be compiled as libRayPlatform.a, libRayPlatform.so or libRayPlatform.dll
+using GNU Make or CMake.
 
 Parallel software architecture:
 
@@ -19,7 +21,6 @@ Parallel software architecture:
 - a system of callbacks for slave modes (handlers/SlaveModeHandler.h);
 - a system for master switches (scheduling/Switchman.h)
 - a system for slave switches (scheduling/Switchman.h)
-- based on a set of application-specific list of items (directory RAY_APPLICATION_SCRIPTS.
 
 Communication:
 
