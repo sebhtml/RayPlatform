@@ -31,4 +31,8 @@ double getStandardDeviation(vector<int>*x);
 
 int getMode(vector<int>*x);
 
+
+int getDeviationFromFrequencies(vector<int>*data,vector<int>*frequencies);
+int getAverageFromFrequencies(vector<int>*data,vector<int>*frequencies);
+
 #endif

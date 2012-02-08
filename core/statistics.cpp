@@ -82,3 +82,37 @@ int getMode(vector<int>*x){
 
 	return best;
 }
+
+int getAverageFromFrequencies(vector<int>*data,vector<int>*frequencies){
+	uint64_t sum=0;
+	int count=0;
+	for(int i=0;i<(int)data->size();i++){
+		sum+=data->at(i)*frequencies->at(i);
+		count+=frequencies->at(i);
+	}
+
+	uint64_t average=sum;
+	if(count>0)
+		average/=count;
+
+	return average;
+}
+
+int getDeviationFromFrequencies(vector<int>*data,vector<int>*frequencies){
+	int average=getAverageFromFrequencies(data,frequencies);
+
+	uint64_t sum=0;
+	int count=0;
+	for(int i=0;i<(int)data->size();i++){
+		int difference=average-data->at(i);
+		sum+=(difference*difference)*frequencies->at(i);
+		count+=frequencies->at(i);
+	}
+
+	uint64_t deviation=sum;
+
+	if(count>0)
+		deviation/=count;
+
+	return (int)sqrt(0.0+deviation);
+}
