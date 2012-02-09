@@ -82,7 +82,9 @@ class ComputeCore{
 
 /** the maximum number of messages with a non-NULL buffers in
  * the outbox */
-	int m_maximumAllocatedOutputBuffers;
+	int m_maximumAllocatedOutboxBuffers;
+	int m_maximumAllocatedInboxBuffers;
+
 
 /** the maximum number of messages in the outbox */
 	int m_maximumNumberOfOutboxMessages;
@@ -141,6 +143,8 @@ class ComputeCore{
 	MasterMode m_currentMasterModeToAllocate;
 	MessageTag m_currentMessageTagToAllocate;
 
+	bool m_hasMaximumNumberOfOutboxBuffers;
+
 /** is the program alive ? */
 	bool m_alive;
 
@@ -179,6 +183,11 @@ class ComputeCore{
 
 	void setFatalError();
 
+	int getMaximumNumberOfAllocatedInboxMessages();
+	int getMaximumNumberOfAllocatedOutboxMessages();
+	int getMaximumNumberOfAllocatedInboxBuffers();
+	int getMaximumNumberOfAllocatedOutboxBuffers();
+
 public:
 	/** this is the main method */
 	void run();
@@ -212,8 +221,6 @@ public:
 	VirtualProcessor*getVirtualProcessor();
 	VirtualCommunicator*getVirtualCommunicator();
 
-	int getMaximumNumberOfAllocatedInboxMessages();
-	int getMaximumNumberOfAllocatedOutboxMessages();
 	void setMaximumNumberOfOutboxBuffers(int maxNumberOfBuffers);
 	
 	void registerPlugin(CorePlugin*plugin);
@@ -318,6 +325,8 @@ Not all master modes have yet been ported to that list.
 
 /** get shared object from its symbol **/
 	void* getObjectFromSymbol(PluginHandle plugin,const char*symbol);
+
+	ComputeCore();
 };
 
 #endif

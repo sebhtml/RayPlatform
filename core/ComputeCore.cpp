@@ -37,6 +37,10 @@ using namespace std;
 //#define CONFIG_DEBUG_processData
 //#define CONFIG_DEBUG_CORE
 
+ComputeCore::ComputeCore(){
+	m_hasMaximumNumberOfOutboxBuffers=false;
+}
+
 void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler*object){
 	if(!validationPluginAllocated(plugin))
 		return;
@@ -419,14 +423,14 @@ void ComputeCore::processMessages(){
 void ComputeCore::sendMessages(){
 	// assert that we did not overflow the ring
 	#ifdef ASSERT
-	if(m_outboxAllocator.getCount() > m_maximumAllocatedOutputBuffers){
+	if(m_outboxAllocator.getCount() > m_maximumAllocatedOutboxBuffers){
 		cout<<"Rank "<<m_rank<<" Error, allocated "<<m_outboxAllocator.getCount()<<" buffers, but maximum is ";
-		cout<<m_maximumAllocatedOutputBuffers<<endl;
+		cout<<m_maximumAllocatedOutboxBuffers<<endl;
 		cout<<" outboxSize= "<<m_outbox.size()<<endl;
 		cout<<"This means that too many messages were created in this time slice."<<endl;
 	}
 
-	assert(m_outboxAllocator.getCount()<=m_maximumAllocatedOutputBuffers);
+	assert(m_outboxAllocator.getCount()<=m_maximumAllocatedOutboxBuffers);
 	m_outboxAllocator.resetCount();
 	int messagesToSend=m_outbox.size();
 	if(messagesToSend>m_maximumNumberOfOutboxMessages){
@@ -575,6 +579,13 @@ void ComputeCore::constructor(int*argc,char***argv){
 
 	m_maximumNumberOfOutboxMessages=m_size;
 	m_maximumNumberOfInboxMessages=1;
+	
+	if(!m_hasMaximumNumberOfOutboxBuffers){
+		m_maximumAllocatedOutboxBuffers=m_size;
+		m_hasMaximumNumberOfOutboxBuffers=true;
+	}
+
+	m_maximumAllocatedInboxBuffers=1;
 
 
 	// configure the switchman
@@ -582,10 +593,10 @@ void ComputeCore::constructor(int*argc,char***argv){
 	getInbox()->constructor(getMaximumNumberOfAllocatedInboxMessages(),"RAY_MALLOC_TYPE_INBOX_VECTOR",false);
 	getOutbox()->constructor(getMaximumNumberOfAllocatedOutboxMessages(),"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
 
-	m_inboxAllocator.constructor(getMaximumNumberOfAllocatedInboxMessages(),MAXIMUM_MESSAGE_SIZE_IN_BYTES,
+	m_inboxAllocator.constructor(getMaximumNumberOfAllocatedInboxBuffers(),MAXIMUM_MESSAGE_SIZE_IN_BYTES,
 		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
 
-	m_outboxAllocator.constructor(getMaximumNumberOfAllocatedOutboxMessages(),MAXIMUM_MESSAGE_SIZE_IN_BYTES,
+	m_outboxAllocator.constructor(getMaximumNumberOfAllocatedOutboxBuffers(),MAXIMUM_MESSAGE_SIZE_IN_BYTES,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
 
 
@@ -665,20 +676,25 @@ VirtualCommunicator*ComputeCore::getVirtualCommunicator(){
 	return &m_virtualCommunicator;
 }
 
-int ComputeCore::getMaximumNumberOfAllocatedOutboxMessages(){
-	return m_maximumNumberOfOutboxMessages;
+int ComputeCore::getMaximumNumberOfAllocatedOutboxBuffers(){
+	return m_maximumAllocatedOutboxBuffers;
+}
+
+int ComputeCore::getMaximumNumberOfAllocatedInboxBuffers(){
+	return m_maximumAllocatedInboxBuffers;
 }
 
 int ComputeCore::getMaximumNumberOfAllocatedInboxMessages(){
 	return m_maximumNumberOfInboxMessages;
 }
 
-void ComputeCore::setMaximumNumberOfOutboxBuffers(int maxNumberOfBuffers){
-	m_maximumAllocatedOutputBuffers=maxNumberOfBuffers;
+int ComputeCore::getMaximumNumberOfAllocatedOutboxMessages(){
+	return m_maximumNumberOfOutboxMessages;
+}
 
-	// we need more buffers
-	if(m_maximumNumberOfOutboxMessages < m_maximumAllocatedOutputBuffers)
-		m_maximumNumberOfOutboxMessages=m_maximumAllocatedOutputBuffers;
+void ComputeCore::setMaximumNumberOfOutboxBuffers(int maxNumberOfBuffers){
+	m_maximumAllocatedOutboxBuffers=maxNumberOfBuffers;
+	m_hasMaximumNumberOfOutboxBuffers=true;
 }
 
 void ComputeCore::registerPlugin(CorePlugin*plugin){

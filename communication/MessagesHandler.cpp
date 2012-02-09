@@ -407,7 +407,9 @@ void MessagesHandler::constructor(int*argc,char***argv){
 	m_sentMessages=0;
 	m_receivedMessages=0;
 	m_datatype=MPI_UNSIGNED_LONG_LONG;
+
 	MPI_Init(argc,argv);
+
 	char serverName[1000];
 	int len;
 
