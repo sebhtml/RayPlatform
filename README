@@ -1,16 +1,18 @@
 Ray Platform is a message-passing-interface programming framework.
+Plugins can be added on a parallel compute engine called ComputeCore.
 
 It was developped initially for the parallel Ray assembler but now
 can be utilised for any parallel needs.
+
+See the sister project RayPlatform-example for a quick overview.
 
 The framework provides facilities for parallel software architecture,
 communication, memory management, profiling, thread pools 
 and some structures.
 
-The main class is ComputeCore.
-
 It can be compiled as libRayPlatform.a, libRayPlatform.so or libRayPlatform.dll
 using GNU Make or CMake.
+
 
 Parallel software architecture:
 

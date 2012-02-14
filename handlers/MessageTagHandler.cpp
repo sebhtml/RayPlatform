@@ -48,3 +48,8 @@ void MessageTagHandler::setObjectHandler(MessageTag messageTag,MessageTagHandler
 
 void MessageTagHandler::call(Message*message){
 }
+
+MessageTagHandler::~MessageTagHandler(){
+}
+
+

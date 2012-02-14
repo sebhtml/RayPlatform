@@ -47,6 +47,8 @@ public:
 /** initialise default object and method handlers */
 	MasterModeHandler();
 
+	~MasterModeHandler();
+
 };
 
 #endif

@@ -52,3 +52,6 @@ void MasterModeHandler::setObjectHandler(MasterMode mode,MasterModeHandler*objec
 void MasterModeHandler::call(){
 }
 
+MasterModeHandler::~MasterModeHandler(){
+}
+

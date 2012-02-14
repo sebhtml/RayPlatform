@@ -46,6 +46,8 @@ public:
 
 /** set the object to call for a slave mode */
 	void setObjectHandler(SlaveMode mode,SlaveModeHandler*object);
+
+	~SlaveModeHandler();
 };
 
 #endif

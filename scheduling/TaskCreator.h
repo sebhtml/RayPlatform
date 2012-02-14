@@ -56,7 +56,7 @@ public:
 	/** destroy a worker */
 	virtual void destroyWorker(Worker*worker) = 0;
 
-	virtual ~TaskCreator(){}
+	virtual ~TaskCreator();
 };
 
 #endif

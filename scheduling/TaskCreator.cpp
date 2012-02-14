@@ -94,3 +94,6 @@ void TaskCreator::mainLoop(){
 
 	}
 }
+
+TaskCreator::~TaskCreator(){
+}

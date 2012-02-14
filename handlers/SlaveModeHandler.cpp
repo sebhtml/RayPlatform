@@ -48,3 +48,6 @@ void SlaveModeHandler::setObjectHandler(SlaveMode mode,SlaveModeHandler*object){
 void SlaveModeHandler::call(){
 }
 
+SlaveModeHandler::~SlaveModeHandler(){
+}
+

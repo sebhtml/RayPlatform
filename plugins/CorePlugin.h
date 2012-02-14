@@ -44,6 +44,8 @@ public:
 
 /** resolve the symbols **/
 	virtual void resolveSymbols(ComputeCore*core);
+
+	virtual ~CorePlugin();
 };
 
 #endif
