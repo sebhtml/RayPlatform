@@ -39,7 +39,7 @@ int Derivative::getLastSlope(){
 
 	int n=m_xValues.size();
 
-	int slope=1000*1000*(m_xValues[n-1]-m_xValues[n-2]+0.0)/(m_timeValues[n-1]-m_timeValues[n-2]+0.0);
+	int slope=(int)(1000*1000*(m_xValues[n-1]-m_xValues[n-2]+0.0)/(m_timeValues[n-1]-m_timeValues[n-2]+0.0));
 
 	if(slope<0)
 		return 0;
@@ -75,7 +75,7 @@ void Derivative::printEstimatedTime(int total){
 
 	double slope=getLastSlope();
 
-	int remainingSeconds=remaining/slope;
+	int remainingSeconds=(int)(remaining/slope);
 
 	cout<<"Estimated remaining time for this step: ";
 
@@ -87,7 +87,7 @@ void Derivative::printEstimatedTime(int total){
 void Derivative::writeFile(ostream*f){
 	for(map<int,vector<int> >::iterator i=m_data.begin();
 		i!=m_data.end();i++){
-		int average=getAverage(&(i->second));
+		int average=(int)getAverage(&(i->second));
 		*f<<"AverageSpeed "<<SLAVE_MODES[i->first]<<"	"<<average<<" units/second"<<endl;
 	}
 }
