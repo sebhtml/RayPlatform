@@ -18,24 +18,35 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _MessageTagHandler_h
-#define _MessageTagHandler_h
 
+
+#ifndef _MessageTagExecutor_h
+#define _MessageTagExecutor_h
+
+#include <handlers/MessageTagHandler.h>
 #include <communication/Message.h>
 #include <core/types.h>
 #include <communication/mpi_tags.h>
 
-/**
- * base class for handling message tags
- * \author Sébastien Boisvert
- * with help from Élénie Godzaridis for the design
- */
-class MessageTagHandler{
+
+class MessageTagExecutor{
+
+
+/** table of object handlers */
+	MessageTagHandler*m_objects[MAXIMUM_NUMBER_OF_TAG_HANDLERS];
+
 public:
 
-	virtual void call(Message*message) = 0;
+	/** call the correct handler for a tag on a message */
+	void callHandler(MessageTag messageTag,Message*message);
 
-	virtual ~MessageTagHandler();
+/** set the object to call for a given tag */
+	void setObjectHandler(MessageTag messageTag,MessageTagHandler*object);
+
+/** set default object and method handlers */
+	MessageTagExecutor();
+
+
 };
 
 #endif

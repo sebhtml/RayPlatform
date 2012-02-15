@@ -110,7 +110,7 @@ void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,
 	assert(m_plugins[plugin].hasMessageTag(tag));
 	#endif
 
-	m_messageTagHandler.setObjectHandler(tag,object);
+	m_messageTagExecutor.setObjectHandler(tag,object);
 
 	m_plugins[plugin].addRegisteredMessageTagHandler(tag);
 }
@@ -417,7 +417,7 @@ void ComputeCore::processMessages(){
 	// check if the tag is in the list of slave switches
 	m_switchMan.openSlaveModeLocally(messageTag,m_rank);
 
-	m_messageTagHandler.callHandler(messageTag,message);
+	m_messageTagExecutor.callHandler(messageTag,message);
 }
 
 void ComputeCore::sendMessages(){

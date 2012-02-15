@@ -23,6 +23,7 @@
 #define _ComputeCore_h
 
 #include <handlers/MessageTagHandler.h>
+#include <handlers/MessageTagExecutor.h>
 #include <handlers/SlaveModeHandler.h>
 #include <handlers/MasterModeHandler.h>
 #include <handlers/MasterModeExecutor.h>
@@ -127,7 +128,7 @@ class ComputeCore{
 	MessagesHandler m_messagesHandler;
 
 /** this object handles messages */
-	MessageTagHandler m_messageTagHandler;
+	MessageTagExecutor m_messageTagExecutor;
 
 /** this object handles master modes */
 	MasterModeExecutor m_masterModeExecutor;

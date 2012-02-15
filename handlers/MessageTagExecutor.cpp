@@ -19,6 +19,7 @@
 */
 
 #include <handlers/MessageTagHandler.h>
+#include <handlers/MessageTagExecutor.h>
 #include <communication/mpi_tags.h>
 #ifdef ASSERT
 #include <assert.h>
@@ -26,8 +27,30 @@
 #include <stdlib.h> /* for NULL */
 
 
+void MessageTagExecutor::callHandler(MessageTag messageTag,Message*message){
+	MessageTagHandler*handlerObject=m_objects[messageTag];
 
-MessageTagHandler::~MessageTagHandler(){
+	// it is useless to call base implementations
+	// because they are empty
+	if(handlerObject==NULL)
+		return;
+
+	handlerObject->call(message);
 }
 
+MessageTagExecutor::MessageTagExecutor(){
+	for(int i=0;i<MAXIMUM_NUMBER_OF_TAG_HANDLERS;i++){
+		m_objects[i]=NULL;
+	}
+}
+
+void MessageTagExecutor::setObjectHandler(MessageTag messageTag,MessageTagHandler*object){
+
+	#ifdef ASSERT
+	assert(messageTag>=0);
+	assert(messageTag < MAXIMUM_NUMBER_OF_TAG_HANDLERS);
+	#endif
+
+	m_objects[messageTag]=object;
+}
 
