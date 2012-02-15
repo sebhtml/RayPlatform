@@ -86,7 +86,7 @@ void GraphImplementationExperimental::configureGraph(int n){
 	// let's see if we can find a match.
 	
 	bool found=false;
-	for(int degree=2;degree<10;degree++){
+	for(int degree=2;degree<=1024;degree++){
 		for(int zone=3;zone<5;zone++){
 			for(int diameter=zone;diameter<10;diameter++){
 				int vertices=1;

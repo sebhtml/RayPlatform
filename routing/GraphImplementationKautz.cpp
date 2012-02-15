@@ -71,7 +71,7 @@ void GraphImplementationKautz::configureGraph(int n){
 	// let's see if we can find a match.
 	
 	bool found=false;
-	for(int degree=2;degree<10;degree++){
+	for(int degree=2;degree<=1024;degree++){
 		for(int diameter=2;diameter<10;diameter++){
 			int vertices=(degree+1)*getPower(degree,diameter-1);
 			if(vertices==n){

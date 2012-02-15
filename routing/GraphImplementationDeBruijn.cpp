@@ -56,7 +56,7 @@ bool GraphImplementationDeBruijn::isAPowerOf(int n,int base){
 void GraphImplementationDeBruijn::configureGraph(int n){
 	int base=-1;
 
-	int maxBase=32;
+	int maxBase=1024;
 
 
 	// use the user-provided degree, if any
