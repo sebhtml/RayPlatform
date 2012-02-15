@@ -18,8 +18,29 @@
 	see <http://www.gnu.org/licenses/>
 */
 
+#ifndef _MasterModeExecutor_h
+#define _MasterModeExecutor_h
+
+#include <core/types.h>
+#include <core/master_modes.h>
 #include <handlers/MasterModeHandler.h>
 
-MasterModeHandler::~MasterModeHandler(){
-}
+class MasterModeExecutor{
+
+/** a list of objects to use for calling methods */
+	MasterModeHandler*m_objects[MAXIMUM_NUMBER_OF_MASTER_HANDLERS];
+
+public:
+	/** call the handler */
+	void callHandler(MasterMode mode);
+
+/** set the correct object to call for a given master mode */
+	void setObjectHandler(MasterMode mode, MasterModeHandler*object);
+
+/** initialise default object and method handlers */
+	MasterModeExecutor();
+
+};
+
+#endif
 

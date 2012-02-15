@@ -31,21 +31,9 @@
  */
 class MasterModeHandler{
 
-/** a list of objects to use for calling methods */
-	MasterModeHandler*m_objects[MAXIMUM_NUMBER_OF_MASTER_HANDLERS];
-
 public:
 
-	virtual void call();
-
-	/** call the handler */
-	void callHandler(MasterMode mode);
-
-/** set the correct object to call for a given master mode */
-	void setObjectHandler(MasterMode mode, MasterModeHandler*object);
-
-/** initialise default object and method handlers */
-	MasterModeHandler();
+	virtual void call() = 0;
 
 	virtual ~MasterModeHandler();
 };

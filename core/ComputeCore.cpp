@@ -86,7 +86,7 @@ void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode
 	assert(m_plugins[plugin].hasMasterMode(mode));
 	#endif
 
-	m_masterModeHandler.setObjectHandler(mode,object);
+	m_masterModeExecutor.setObjectHandler(mode,object);
 
 	m_plugins[plugin].addRegisteredMasterModeHandler(mode);
 }
@@ -522,7 +522,7 @@ void ComputeCore::processData(){
 	cout<<"master mode -> "<<MASTER_MODES[master]<<" handle is "<<master<<endl;
 	#endif
 
-	m_masterModeHandler.callHandler(master);
+	m_masterModeExecutor.callHandler(master);
 	m_tickLogger.logMasterTick(master);
 
 	// then call the slave method

@@ -18,8 +18,42 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <handlers/MasterModeHandler.h>
 
-MasterModeHandler::~MasterModeHandler(){
+
+#include <handlers/MasterModeExecutor.h>
+#include <core/types.h>
+#include <stdlib.h> /* for NULL */
+
+#ifdef ASSERT
+#include <assert.h>
+#endif
+
+void MasterModeExecutor::callHandler(MasterMode mode){
+	MasterModeHandler*object=m_objects[mode];
+
+	// don't do it if it is NULL because it does nothing
+	if(object==NULL)
+		return;
+
+	/** otherwise, fetch the method and call it*/
+
+	object->call();
 }
+
+MasterModeExecutor::MasterModeExecutor(){
+	for(int i=0;i<MAXIMUM_NUMBER_OF_MASTER_HANDLERS;i++){
+		m_objects[i]=NULL;
+	}
+}
+
+void MasterModeExecutor::setObjectHandler(MasterMode mode,MasterModeHandler*object){
+
+	#ifdef ASSERT
+	assert(mode>=0);
+	assert(mode < MAXIMUM_NUMBER_OF_MASTER_HANDLERS);
+	#endif
+
+	m_objects[mode]=object;
+}
+
 

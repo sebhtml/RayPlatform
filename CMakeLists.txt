@@ -10,6 +10,7 @@ set( source_files
 handlers/MessageTagHandler.cpp
 handlers/SlaveModeHandler.cpp
 handlers/MasterModeHandler.cpp
+handlers/MasterModeExecutor.cpp
 core/master_modes.cpp
 core/ComputeCore.cpp
 core/slave_modes.cpp
