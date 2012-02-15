@@ -18,25 +18,33 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _SlaveModeHandler_h
-#define _SlaveModeHandler_h
 
+
+
+#ifndef _SlaveModeExecutor_h
+#define _SlaveModeExecutor_h
+
+#include <handlers/SlaveModeHandler.h>
 #include <core/slave_modes.h>
 #include <core/types.h>
 
-/**
- * base class for handling slave modes 
- * \author Sébastien Boisvert
- * with help from Élénie Godzaridis for the design
- */
-class SlaveModeHandler{
+class SlaveModeExecutor{
+
+/** table of slave objects */
+	SlaveModeHandler*m_objects[MAXIMUM_NUMBER_OF_SLAVE_HANDLERS];
 
 public:
 
-	virtual void call() = 0;
+/** call the handler for a given slave mode */
+	void callHandler(SlaveMode mode);
 
+/** initialise default object and method handlers */
+	SlaveModeExecutor();
 
-	virtual ~SlaveModeHandler();
+/** set the object to call for a slave mode */
+	void setObjectHandler(SlaveMode mode,SlaveModeHandler*object);
+
 };
 
 #endif
+

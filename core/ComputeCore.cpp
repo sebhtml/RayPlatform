@@ -62,7 +62,7 @@ void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,S
 	assert(m_plugins[plugin].hasSlaveMode(mode));
 	#endif
 
-	m_slaveModeHandler.setObjectHandler(mode,object);
+	m_slaveModeExecutor.setObjectHandler(mode,object);
 
 	m_plugins[plugin].addRegisteredSlaveModeHandler(mode);
 }
@@ -540,7 +540,7 @@ void ComputeCore::processData(){
 	cout<<"slave mode -> "<<SLAVE_MODES[slave]<<" handle is "<<slave<<endl;
 	#endif
 
-	m_slaveModeHandler.callHandler(slave);
+	m_slaveModeExecutor.callHandler(slave);
 	m_tickLogger.logSlaveTick(slave);
 }
 

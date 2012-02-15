@@ -26,6 +26,7 @@
 #include <handlers/SlaveModeHandler.h>
 #include <handlers/MasterModeHandler.h>
 #include <handlers/MasterModeExecutor.h>
+#include <handlers/SlaveModeExecutor.h>
 #include <communication/MessagesHandler.h>
 #include <profiling/Profiler.h>
 #include <structures/StaticVector.h>
@@ -132,7 +133,7 @@ class ComputeCore{
 	MasterModeExecutor m_masterModeExecutor;
 
 /* this object handles slave modes */
-	SlaveModeHandler m_slaveModeHandler;
+	SlaveModeExecutor m_slaveModeExecutor;
 
 	// allocator for outgoing messages
 	RingAllocator m_outboxAllocator;

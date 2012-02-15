@@ -18,25 +18,39 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#ifndef _SlaveModeHandler_h
-#define _SlaveModeHandler_h
+#include <handlers/SlaveModeExecutor.h>
 
-#include <core/slave_modes.h>
-#include <core/types.h>
-
-/**
- * base class for handling slave modes 
- * \author Sébastien Boisvert
- * with help from Élénie Godzaridis for the design
- */
-class SlaveModeHandler{
-
-public:
-
-	virtual void call() = 0;
-
-
-	virtual ~SlaveModeHandler();
-};
-
+#ifdef ASSERT
+#include <assert.h>
 #endif
+#include <stdlib.h> /* for NULL */
+
+void SlaveModeExecutor::callHandler(SlaveMode mode){
+	SlaveModeHandler*object=m_objects[mode];
+
+	// don't call it if it is NULL
+	if(object==NULL)
+		return;
+
+	// call it
+	object->call();
+}
+
+SlaveModeExecutor::SlaveModeExecutor(){
+	for(int i=0;i<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS;i++){
+		m_objects[i]=NULL;
+	}
+}
+
+void SlaveModeExecutor::setObjectHandler(SlaveMode mode,SlaveModeHandler*object){
+
+	#ifdef ASSERT
+	assert(mode>=0);
+	assert(mode<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS);
+	#endif
+
+	m_objects[mode]=object;
+}
+
+
+

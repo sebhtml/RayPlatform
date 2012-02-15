@@ -11,6 +11,7 @@ handlers/MessageTagHandler.cpp
 handlers/SlaveModeHandler.cpp
 handlers/MasterModeHandler.cpp
 handlers/MasterModeExecutor.cpp
+handlers/SlaveModeExecutor.cpp
 core/master_modes.cpp
 core/ComputeCore.cpp
 core/slave_modes.cpp

@@ -19,34 +19,6 @@
 */
 
 #include <handlers/SlaveModeHandler.h>
-#ifdef ASSERT
-#include <assert.h>
-#endif
-#include <stdlib.h> /* for NULL */
-
-void SlaveModeHandler::callHandler(SlaveMode mode){
-	SlaveModeHandler*object=m_objects[mode];
-
-	// don't call it if it is NULL
-	if(object==NULL)
-		return;
-
-	// call it
-	object->call();
-}
-
-SlaveModeHandler::SlaveModeHandler(){
-	for(int i=0;i<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS;i++){
-		m_objects[i]=NULL;
-	}
-}
-
-void SlaveModeHandler::setObjectHandler(SlaveMode mode,SlaveModeHandler*object){
-	m_objects[mode]=object;
-}
-
-void SlaveModeHandler::call(){
-}
 
 SlaveModeHandler::~SlaveModeHandler(){
 }
