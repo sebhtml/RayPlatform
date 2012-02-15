@@ -48,7 +48,7 @@ public:
 /** set default object and method handlers */
 	MessageTagHandler();
 
-	~MessageTagHandler();
+	virtual ~MessageTagHandler();
 };
 
 #endif
