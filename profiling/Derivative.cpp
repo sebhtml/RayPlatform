@@ -24,6 +24,8 @@
 #include <core/slave_modes.h>
 #include <core/OperatingSystem.h>
 
+#include <iostream>
+using namespace std;
 
 Derivative::Derivative(){
 }
