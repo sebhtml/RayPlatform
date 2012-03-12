@@ -26,6 +26,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h> /* for strcpy */
 using namespace std;
 
 /**
