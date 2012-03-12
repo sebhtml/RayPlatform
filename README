@@ -1,10 +1,19 @@
-Ray Platform is a message-passing-interface programming framework.
-Plugins can be added on a parallel compute engine called ComputeCore.
+RayPlatform is a development framework to ease the creation of 
+massively distributed high performance computing applications.
 
-It was developped initially for the parallel Ray assembler but now
-can be utilised for any parallel needs.
+Content creation is done by creating plugins that can be 
+added on the RayPlatform compute engine.
 
-See the sister project RayPlatform-example for a quick overview.
+It uses the message-passing interface for interprocess communication, but this is
+transparent to the developer.
+
+
+Projects using RayPlatform:
+
+- The Ray genome assembler
+- RayPlatform example
+- A latency test (part of the Ray assembler)
+
 
 The framework provides facilities for parallel software architecture,
 communication, memory management, profiling, thread pools 
