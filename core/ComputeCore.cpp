@@ -23,6 +23,7 @@
 #include <core/OperatingSystem.h>
 #include <cryptography/crypto.h>
 #include <stdlib.h>
+#include <string.h> /* for strcpy */
 
 #ifdef ASSERT
 #include <assert.h>
