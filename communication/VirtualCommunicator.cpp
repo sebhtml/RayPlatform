@@ -261,7 +261,8 @@ void VirtualCommunicator::constructor(int rank,int size,RingAllocator*outboxAllo
 	if(m_debug)
 		cout<<"Rank "<<rank<<" Initializing VirtualCommunicator"<<endl;
 
-	m_pushedMessages=0;
+	resetCounters();
+
 	m_rank=rank;
 	m_size=size;
 	m_outboxAllocator=outboxAllocator;
@@ -271,6 +272,13 @@ void VirtualCommunicator::constructor(int rank,int size,RingAllocator*outboxAllo
 
 	resetLocalPushedMessageStatus();
 	resetGlobalPushedMessageStatus();
+}
+
+void VirtualCommunicator::resetCounters(){
+	m_pushedMessages=0;
+	m_flushedMessages=0;
+
+
 }
 
 void VirtualCommunicator::processInbox(vector<uint64_t>*activeWorkers){

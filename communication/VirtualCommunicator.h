@@ -207,7 +207,10 @@ public:
 	bool hasMessagesToFlush();
 
 	bool nextIsAlmostFull();
+
 	void printStatistics();
+	void resetCounters();
+
 	void setDebug();
 
 	int getReplyType(int tag);
