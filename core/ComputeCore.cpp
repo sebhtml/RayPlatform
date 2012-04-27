@@ -547,6 +547,9 @@ void ComputeCore::processData(){
 
 void ComputeCore::constructor(int*argc,char***argv){
 
+	m_argumentCount=*argc;
+	m_argumentValues=*argv;
+
 	m_resolvedSymbols=false;
 
 	m_hasFatalErrors=false;
@@ -1508,4 +1511,12 @@ bool ComputeCore::validationObjectSymbolNotRegistered(PluginHandle plugin,const 
 	}
 
 	return true;
+}
+
+int ComputeCore::getNumberOfArguments(){
+	return m_argumentCount;
+}
+
+char**ComputeCore::getArgumentValues(){
+	return m_argumentValues;
 }

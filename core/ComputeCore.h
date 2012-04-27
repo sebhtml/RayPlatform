@@ -58,6 +58,9 @@ using namespace std;
  */
 class ComputeCore{
 
+	int m_argumentCount;
+	char**m_argumentValues;
+
 	bool m_resolvedSymbols;
 	bool m_hasFatalErrors;
 	
@@ -330,6 +333,9 @@ Not all master modes have yet been ported to that list.
 	void* getObjectFromSymbol(PluginHandle plugin,const char*symbol);
 
 	ComputeCore();
+
+	int getNumberOfArguments();
+	char**getArgumentValues();
 };
 
 #endif
