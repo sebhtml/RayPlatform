@@ -21,6 +21,28 @@
 #ifndef _MasterModeHandler_h
 #define _MasterModeHandler_h
 
+/* this is a macro to create the header code for an adapter */
+#define ____CreateMasterModeAdapterDeclaration(corePlugin,handle) \
+class Adapter_ ## handle : public MasterModeHandler{ \
+	corePlugin *m_object; \
+public: \
+	void setObject(corePlugin *object); \
+	void call(); \
+};
+
+/* this is a macro to create the cpp code for an adapter */
+#define ____CreateMasterModeAdapterImplementation(corePlugin,handle)\
+void Adapter_ ## handle ::setObject( corePlugin *object){ \
+	m_object=object; \
+} \
+ \
+void Adapter_ ## handle ::call(){ \
+	m_object->call_ ## handle(); \
+}
+
+
+
+
 #include <core/types.h>
 #include <core/master_modes.h>
 

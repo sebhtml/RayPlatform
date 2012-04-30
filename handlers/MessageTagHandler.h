@@ -21,6 +21,27 @@
 #ifndef _MessageTagHandler_h
 #define _MessageTagHandler_h
 
+/* this is a macro to create the header code for an adapter */
+#define ____CreateMessageTagAdapterDeclaration(corePlugin,handle) \
+class Adapter_ ## handle : public MessageTagHandler{ \
+	corePlugin *m_object; \
+public: \
+	void setObject(corePlugin *object); \
+	void call(Message*message); \
+};
+
+/* this is a macro to create the cpp code for an adapter */
+#define ____CreateMessageTagAdapterImplementation(corePlugin,handle)\
+void Adapter_ ## handle ::setObject( corePlugin *object){ \
+	m_object=object; \
+} \
+ \
+void Adapter_ ## handle ::call(Message*message){ \
+	m_object->call_ ## handle(message); \
+}
+
+
+
 #include <communication/Message.h>
 #include <core/types.h>
 #include <communication/mpi_tags.h>
