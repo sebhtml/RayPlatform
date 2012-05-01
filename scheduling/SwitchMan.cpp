@@ -28,6 +28,10 @@ using namespace std;
 
 //#define CONFIG_SWITCHMAN_VERBOSITY
 
+____CreateMessageTagAdapterImplementation(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
+____CreateSlaveModeAdapterImplementation(SwitchMan,RAY_SLAVE_MODE_STOP);
+
+
 void SwitchMan::constructor(Rank rank,int numberOfCores){
 	m_rank=rank;
 	m_size=numberOfCores;

@@ -26,7 +26,6 @@ routing/GraphImplementationGroup.cpp
 routing/GraphImplementationComplete.cpp
 routing/GraphImplementationDeBruijn.cpp
 routing/GraphImplementationRandom.cpp
-scheduling/SwitchMan_adapters.cpp
 scheduling/TaskCreator.cpp
 scheduling/SwitchMan.cpp
 scheduling/VirtualProcessor.cpp

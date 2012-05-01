@@ -28,13 +28,18 @@
 #include <core/master_modes.h>
 #include <plugins/CorePlugin.h>
 #include <handlers/MessageTagHandler.h>
-#include <scheduling/SwitchMan_adapters.h>
+#include <handlers/SlaveModeHandler.h>
 
 #include <map>
 #include <vector>
 using namespace std;
 
 class ComputeCore;
+class SwitchMan;
+
+____CreateMessageTagAdapterDeclaration(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
+____CreateSlaveModeAdapterDeclaration(SwitchMan,RAY_SLAVE_MODE_STOP);
+
 
 /**
  * the switchman controls the workflow on all ranks
