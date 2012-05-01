@@ -8,12 +8,30 @@ It uses the message-passing interface for interprocess communication, but this i
 transparent to the developer.
 
 
-Projects using RayPlatform:
+== Projects using RayPlatform ==
 
 - The Ray genome assembler
 - RayPlatform example
 - A latency test (part of the Ray assembler)
 
+
+== RayPlatform example ==
+
+git://github.com/sebhtml/RayPlatform-example.git
+git://github.com/sebhtml/RayPlatform.git
+
+See the README of RayPlatform-example
+
+== The Ray genome assembler ==
+
+Ray is built on top of RayPlatform and makes heavy use of the RayPlatform API.
+
+See git://github.com/sebhtml/ray.git
+
+
+== Description ==
+
+There is some documentation in Documentation/
 
 The framework provides facilities for parallel software architecture,
 communication, memory management, profiling, thread pools 
