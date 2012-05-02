@@ -439,7 +439,11 @@ bool VirtualCommunicator::nextIsAlmostFull(){
 }
 
 void VirtualCommunicator::printStatistics(){
-	double ratio=100.0*m_flushedMessages/m_pushedMessages;
+	double ratio=100.0*m_flushedMessages;
+
+	if(m_pushedMessages!=0){
+		ratio/=m_pushedMessages;
+	}
 
 	cout<<"Rank "<<m_rank<<" : VirtualCommunicator (service provided by VirtualCommunicator): "<<m_pushedMessages;
 	cout<<" virtual messages generated "<<m_flushedMessages;
