@@ -86,22 +86,22 @@ work()
 */
 class VirtualProcessor: public CorePlugin{
 
-	uint64_t m_currentWorker;
+	WorkerHandle m_currentWorker;
 
 	bool m_moreTasksAreComing;
 
 	bool m_initiatedIterator;
-	set<uint64_t> m_activeWorkers;
-	set<uint64_t>::iterator m_activeWorkerIterator;
+	set<WorkerHandle> m_activeWorkers;
+	set<WorkerHandle>::iterator m_activeWorkerIterator;
 	int m_completedJobs;
 	int m_maximumAliveWorkers;
 	int m_maximumWorkers;
 	bool m_communicatorWasTriggered;
-	vector<uint64_t> m_workersDone;
-	vector<uint64_t> m_waitingWorkers;
-	vector<uint64_t> m_activeWorkersToRestore;
+	vector<WorkerHandle> m_workersDone;
+	vector<WorkerHandle> m_waitingWorkers;
+	vector<WorkerHandle> m_activeWorkersToRestore;
 
-	map<uint64_t,Worker*> m_aliveWorkers;
+	map<WorkerHandle,Worker*> m_aliveWorkers;
 
 	StaticVector*m_inbox;
 	StaticVector*m_outbox;

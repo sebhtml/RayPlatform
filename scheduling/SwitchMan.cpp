@@ -191,7 +191,7 @@ void SwitchMan::sendEmptyMessage(StaticVector*outbox,Rank source,Rank destinatio
 	sendMessage(NULL,0,outbox,source,destination,tag);
 }
 
-void SwitchMan::sendMessage(uint64_t*buffer,int count,StaticVector*outbox,Rank source,Rank destination,MessageTag tag){
+void SwitchMan::sendMessage(MessageUnit*buffer,int count,StaticVector*outbox,Rank source,Rank destination,MessageTag tag){
 	// send a message
 	Message aMessage(buffer,count,destination,tag,source);
 	outbox->push_back(aMessage);
@@ -201,7 +201,7 @@ void SwitchMan::sendToAll(StaticVector*outbox,Rank source,MessageTag tag){
 	sendMessageToAll(NULL,0,outbox,source,tag);
 }
 
-void SwitchMan::sendMessageToAll(uint64_t*buffer,int count,StaticVector*outbox,Rank source,MessageTag tag){
+void SwitchMan::sendMessageToAll(MessageUnit*buffer,int count,StaticVector*outbox,Rank source,MessageTag tag){
 	for(int i=0;i<m_size;i++){
 		sendMessage(buffer,count,outbox,source,i,tag);
 	}

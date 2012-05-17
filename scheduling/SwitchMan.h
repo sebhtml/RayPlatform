@@ -138,7 +138,7 @@ public:
 	void sendEmptyMessage(StaticVector*outbox,Rank source,Rank destination,MessageTag tag);
 
 /** sends a message with a full list of parameters */
-	void sendMessage(uint64_t*buffer,int count,StaticVector*outbox,Rank source,Rank destination,MessageTag tag);
+	void sendMessage(MessageUnit*buffer,int count,StaticVector*outbox,Rank source,Rank destination,MessageTag tag);
 
 /** get the current slave mode */
 	SlaveMode getSlaveMode();
@@ -162,7 +162,7 @@ public:
 	void sendToAll(StaticVector*outbox,Rank source,MessageTag tag);
 
 /** send a message to all MPI ranks, possibly with data */
-	void sendMessageToAll(uint64_t*buffer,int count,StaticVector*outbox,Rank source,MessageTag tag);
+	void sendMessageToAll(MessageUnit*buffer,int count,StaticVector*outbox,Rank source,MessageTag tag);
 
 	void addMasterMode(MasterMode masterMode);
 

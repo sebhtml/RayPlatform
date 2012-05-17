@@ -46,7 +46,7 @@ void BufferedData::constructor(int numberOfRanks,int capacity,const char*type,bo
 	#endif
 
 	m_sizes=(int*)__Malloc(sizeof(int)*numberOfRanks,m_type,m_show);
-	m_data=(uint64_t*)__Malloc(sizeof(uint64_t)*capacity*numberOfRanks,m_type,m_show);
+	m_data=(MessageUnit*)__Malloc(sizeof(MessageUnit)*capacity*numberOfRanks,m_type,m_show);
 	for(int i=0;i<(int)numberOfRanks;i++){
 		m_sizes[i]=0;
 	}
@@ -79,11 +79,11 @@ int BufferedData::size(int i)const{
 	return m_sizes[i];
 }
 
-uint64_t BufferedData::getAt(int i,int j){
+MessageUnit BufferedData::getAt(int i,int j){
 	return m_data[i*m_capacity+j];
 }
 
-void BufferedData::addAt(int i,uint64_t k){
+void BufferedData::addAt(int i,MessageUnit k){
 	int j=size(i);
 	m_data[i*m_capacity+j]=k;
 	m_sizes[i]++;
@@ -170,7 +170,7 @@ bool BufferedData::flush(int destination,int period,int tag,RingAllocator*outbox
 	assert(force || amount<=threshold);
 	#endif
 
-	uint64_t*message=(uint64_t*)outboxAllocator->allocate(amount*sizeof(uint64_t));
+	MessageUnit*message=(MessageUnit*)outboxAllocator->allocate(amount*sizeof(MessageUnit));
 	for(int i=0;i<amount;i++){
 		message[i]=getAt(destination,i);
 	}

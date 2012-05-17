@@ -81,7 +81,7 @@ int VirtualCommunicator::getReplyType(int tag){
  * this may trigger an actual message being flushed in the
  * message-passing interface stack 
  */
-void VirtualCommunicator::pushMessage(uint64_t workerId,Message*message){
+void VirtualCommunicator::pushMessage(WorkerHandle workerId,Message*message){
 	int tag=message->getTag();
 
 	#ifdef ASSERT
@@ -144,9 +144,9 @@ void VirtualCommunicator::pushMessage(uint64_t workerId,Message*message){
 	assert(count>0);
 	#endif
 
-	uint64_t*buffer=(uint64_t*)message->getBuffer();
+	MessageUnit*buffer=(MessageUnit*)message->getBuffer();
 	for(int i=0;i<count;i++){// count is probably 1...
-		uint64_t element=buffer[i];
+		MessageUnit element=buffer[i];
 		m_messageContent[tag][destination].push_back(element);
 	}
 
@@ -165,15 +165,15 @@ void VirtualCommunicator::pushMessage(uint64_t workerId,Message*message){
 	/*
  *	maximum number of pushed messages
  */
-	int threshold=MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(uint64_t)/period;
+	int threshold=MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)/period;
 
 	/** this whole block makes sure that the communicator is not overloaded */
 	#ifdef ASSERT
 	assert(m_elementSizes.count(tag)>0);
 	assert(period>=1);
-	assert(threshold<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(uint64_t)));
+	assert(threshold<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
 	if(currentSize>threshold){
-		cout<<"Fatal: too much bits, tag= "<<MESSAGE_TAGS[tag]<<" Threshold= "<<threshold<<" pushed messages; Actual= "<<currentSize<<" pushed messages; Period= "<<period<<" uint64_t/message; Count= "<<count<<" Priority= "<<newPriority<<" Destination: "<<destination<<endl;
+		cout<<"Fatal: too much bits, tag= "<<MESSAGE_TAGS[tag]<<" Threshold= "<<threshold<<" pushed messages; Actual= "<<currentSize<<" pushed messages; Period= "<<period<<" MessageUnit/message; Count= "<<count<<" Priority= "<<newPriority<<" Destination: "<<destination<<endl;
 		cout<<"This usually means that you did not use the VirtualCommunicator API correctly."<<endl;
 		cout<<"Be careful not to push too many messages if the VirtualCommunicator is not ready."<<endl;
 		cout<<"IMPORTANT: did you add entries for reply tags.txt and tag sizes ?"<<endl;
@@ -215,11 +215,11 @@ void VirtualCommunicator::flushMessage(int tag,int destination){
 		cout<<"Cannot flush empty buffer!"<<endl;
 	}
 	assert(currentSize>0);
-	int requiredResponseLength=m_workerCurrentIdentifiers[tag][destination].size()*m_elementSizes[tag]*sizeof(uint64_t);
+	int requiredResponseLength=m_workerCurrentIdentifiers[tag][destination].size()*m_elementSizes[tag]*sizeof(MessageUnit);
 	assert(requiredResponseLength<=MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 	#endif
 
-	uint64_t*messageContent=(uint64_t*)m_outboxAllocator->allocate(currentSize*sizeof(uint64_t));
+	MessageUnit*messageContent=(MessageUnit*)m_outboxAllocator->allocate(currentSize*sizeof(MessageUnit));
 
 	for(int j=0;j<currentSize;j++){
 		messageContent[j]=m_messageContent[tag][destination][j];
@@ -236,11 +236,11 @@ void VirtualCommunicator::flushMessage(int tag,int destination){
 	m_pendingMessages++;
 }
 
-bool VirtualCommunicator::isMessageProcessed(uint64_t workerId){
+bool VirtualCommunicator::isMessageProcessed(WorkerHandle workerId){
 	return m_elementsForWorkers.count(workerId)>0;
 }
 
-void VirtualCommunicator::getMessageResponseElements(uint64_t workerId,vector<uint64_t>*out){
+void VirtualCommunicator::getMessageResponseElements(WorkerHandle workerId,vector<MessageUnit>*out){
 	#ifdef ASSERT
 	assert(isMessageProcessed(workerId));
 	#endif
@@ -281,7 +281,7 @@ void VirtualCommunicator::resetCounters(){
 
 }
 
-void VirtualCommunicator::processInbox(vector<uint64_t>*activeWorkers){
+void VirtualCommunicator::processInbox(vector<WorkerHandle>*activeWorkers){
 	if(m_pendingMessages>0&&m_inbox->size()>0){// we have mail
 		Message*message=m_inbox->at(0);// there is 0 or 1 message in the inbox
 		int incomingTag=message->getTag();
@@ -302,14 +302,14 @@ void VirtualCommunicator::processInbox(vector<uint64_t>*activeWorkers){
 
 			m_pendingMessages--;
 			cout.flush();
-			uint64_t*buffer=(uint64_t*)message->getBuffer();
+			MessageUnit*buffer=(MessageUnit*)message->getBuffer();
 
 			#ifdef ASSERT
 			assert(m_elementSizes.count(queryTag)>0);
 			#endif
 
 			int elementsPerWorker=m_elementSizes[queryTag];
-			vector<uint64_t> workers=m_workerCurrentIdentifiers[m_activeTag][m_activeDestination];
+			vector<WorkerHandle> workers=m_workerCurrentIdentifiers[m_activeTag][m_activeDestination];
 			m_workerCurrentIdentifiers[m_activeTag][m_activeDestination].clear();
 			
 			#ifdef ASSERT
@@ -329,7 +329,7 @@ void VirtualCommunicator::processInbox(vector<uint64_t>*activeWorkers){
 			// add the workers to a list
 			// so they can be activated again
 			for(int i=0;i<(int)workers.size();i++){
-				uint64_t workerId=workers[i];
+				WorkerHandle workerId=workers[i];
 				activeWorkers->push_back(workerId);
 				if(m_debug){
 					cout<<"Reactivating "<<workerId<<" tag="<<queryTag<<endl;
@@ -455,7 +455,7 @@ void VirtualCommunicator::setDebug(){
 	m_debug=true;
 }
 
-uint64_t VirtualCommunicator::getMessageUniqueId(int destination ,int tag){
+uint64_t VirtualCommunicator::getMessageUniqueId(Rank destination ,int tag){
 	uint64_t a=tag;
 	a=a*MAX_NUMBER_OF_MPI_PROCESSES+destination;
 	return a;
@@ -465,7 +465,7 @@ int VirtualCommunicator::getTagFromMessageUniqueId(uint64_t a){
 	return a/MAX_NUMBER_OF_MPI_PROCESSES;
 }
 
-int VirtualCommunicator::getDestinationFromMessageUniqueId(uint64_t a){
+Rank VirtualCommunicator::getDestinationFromMessageUniqueId(uint64_t a){
 	int rank=a%MAX_NUMBER_OF_MPI_PROCESSES;
 	return rank;
 }

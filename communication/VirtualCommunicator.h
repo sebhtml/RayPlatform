@@ -64,16 +64,16 @@ class VirtualCommunicator: public CorePlugin{
 	map<int,int> m_elementSizes;
 
 	// indicates to who belongs each elements to communicate, grouped according to m_elementSizes
-	map<int,map<int,vector<uint64_t> > > m_workerCurrentIdentifiers;
+	map<int,map<int,vector<WorkerHandle> > > m_workerCurrentIdentifiers;
 
 	// the message contents
 	// first key: MPI tag
 	// second key: MPI destination
 	// vector: contains elements to communicate
-	map<int,map<int,vector<uint64_t> > > m_messageContent;
+	map<int,map<int,vector<MessageUnit> > > m_messageContent;
 
 	// response to give to workers
-	map<uint64_t,vector<uint64_t> > m_elementsForWorkers;
+	map<WorkerHandle,vector<MessageUnit> > m_elementsForWorkers;
 
 	// reply types.
 	map<int,int> m_replyTagToQueryTag;
@@ -95,9 +95,9 @@ class VirtualCommunicator: public CorePlugin{
 	void flushMessage(int tag,int destination);
 
 
-	int getDestinationFromMessageUniqueId(uint64_t a);
+	Rank getDestinationFromMessageUniqueId(uint64_t a);
 	int getTagFromMessageUniqueId(uint64_t a);
-	uint64_t getMessageUniqueId(int destination,int tag);
+	uint64_t getMessageUniqueId(Rank destination,int tag);
 
 public:
 	/**
@@ -133,7 +133,7 @@ public:
  * it will fetch messages from inbox according to ongoing queries.
  * time complexity: linear in the number of workers to set active (in general about one hundred
  */
-	void processInbox(vector<uint64_t>*activeWorkers);
+	void processInbox(vector<WorkerHandle>*activeWorkers);
 
 	/**
  * push a worker message
@@ -147,13 +147,13 @@ public:
  * time complexity: log (number of tags) + log(number of MPI ranks)
  */
 	
-	void pushMessage(uint64_t workerId,Message*message);
+	void pushMessage(WorkerHandle workerId,Message*message);
 
 	/**
  * return true if the response is ready to be read
  * time complexity: log(number of workers)
  */
-	bool isMessageProcessed(uint64_t workerId);
+	bool isMessageProcessed(WorkerHandle workerId);
 	
 	/**
  *
@@ -164,7 +164,7 @@ public:
  * the current object
  * time complexity: log(number of workers)
  */
-	void getMessageResponseElements(uint64_t workerId,vector<uint64_t>*out);
+	void getMessageResponseElements(WorkerHandle workerId,vector<MessageUnit>*out);
 	
 /**
  * if all workers are awaiting responses and 

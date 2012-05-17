@@ -39,7 +39,7 @@ using namespace std;
 void MessagesHandler::sendMessages(StaticVector*outbox){
 	for(int i=0;i<(int)outbox->size();i++){
 		Message*aMessage=((*outbox)[i]);
-		int destination=aMessage->getDestination();
+		Rank destination=aMessage->getDestination();
 		void*buffer=aMessage->getBuffer();
 		int count=aMessage->getCount();
 		int tag=aMessage->getTag();
@@ -51,7 +51,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox){
 		}
 		assert(destination<m_size);
 		assert(!(buffer==NULL && count>0));
-		assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(uint64_t)));
+		assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
 		#endif
 
 		MPI_Request request;
@@ -115,13 +115,13 @@ void MessagesHandler::pumpMessageFromPersistentRing(){
 		int source=status.MPI_SOURCE;
 		int count;
 		MPI_Get_count(&status,m_datatype,&count);
-		uint64_t*filledBuffer=(uint64_t*)m_buffers+m_head*MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(uint64_t);
+		MessageUnit*filledBuffer=(MessageUnit*)m_buffers+m_head*MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit);
 
 		// copy it in a safe buffer
 		// internal buffers are all of length MAXIMUM_MESSAGE_SIZE_IN_BYTES
-		uint64_t*incoming=(uint64_t*)m_internalBufferAllocator.allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+		MessageUnit*incoming=(MessageUnit*)m_internalBufferAllocator.allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 
-		memcpy(incoming,filledBuffer,count*sizeof(uint64_t));
+		memcpy(incoming,filledBuffer,count*sizeof(MessageUnit));
 
 		// the request can start again
 		MPI_Start(m_ring+m_head);
@@ -251,10 +251,10 @@ void MessagesHandler::roundRobinReception_persistent(){
 		int count = selectedMessage->getCount();
 
 		// allocate the buffer using the ring buffer for that
-		uint64_t*incoming=(uint64_t*)inboxAllocator->allocate(count*sizeof(uint64_t));
+		MessageUnit*incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
 	
 		// copy the data
-		memcpy(incoming,selectedMessage->getBuffer(),count*sizeof(uint64_t));
+		memcpy(incoming,selectedMessage->getBuffer(),count*sizeof(MessageUnit));
 
 		// recycle the old buffer
 		// all internal buffers are MAXIMUM_MESSAGE_SIZE_IN_BYTES bytes, not count 
@@ -327,7 +327,7 @@ void MessagesHandler::probeAndRead(int source,int tag,StaticVector*inbox,RingAll
 	if(flag){
 		MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
 		int tag=status.MPI_TAG;
-		int source=status.MPI_SOURCE;
+		Rank source=status.MPI_SOURCE;
 		int count=-1;
 		MPI_Get_count(&status,datatype,&count);
 	
@@ -335,9 +335,9 @@ void MessagesHandler::probeAndRead(int source,int tag,StaticVector*inbox,RingAll
 		assert(count >= 0);
 		#endif
 	
-		uint64_t*incoming=NULL;
+		MessageUnit*incoming=NULL;
 		if(count > 0){
-			incoming=(uint64_t*)inboxAllocator->allocate(count*sizeof(uint64_t));
+			incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
 		}
 
 		MPI_Recv(incoming,count,datatype,source,tag,MPI_COMM_WORLD,&status);
@@ -365,7 +365,7 @@ void MessagesHandler::initialiseMembers(){
 	// post a few receives.
 	for(int i=0;i<m_ringSize;i++){
 		uint8_t*buffer=m_buffers+i*MAXIMUM_MESSAGE_SIZE_IN_BYTES;
-		MPI_Recv_init(buffer,MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(uint64_t),m_datatype,
+		MPI_Recv_init(buffer,MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit),m_datatype,
 			MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,m_ring+i);
 		MPI_Start(m_ring+i);
 	}

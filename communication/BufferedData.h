@@ -52,7 +52,7 @@ class BufferedData{
 
 	// the capacity is measured in uint64_t
 	int m_capacity;
-	uint64_t *m_data;
+	MessageUnit*m_data;
 public:
 	/**
  *	the is numberOfRanks MPI ranks, and messages have a capacity of capacity.
@@ -67,11 +67,11 @@ public:
 /**
  * Get the element j to send to MPI rank i
  */
-	uint64_t getAt(int i,int j);
+	MessageUnit getAt(int i,int j);
 /**
  * add an element to send to MPI rank i.
  */
-	void addAt(int i,uint64_t k);
+	void addAt(int i,MessageUnit k);
 /**
  * Clear output buffer for MPI rank i
  */

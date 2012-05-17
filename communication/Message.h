@@ -37,7 +37,7 @@
 class Message{
 	/** the message body, contains data
  * 	if NULL, m_count must be 0 */
-	uint64_t*m_buffer;
+	MessageUnit*m_buffer;
 
 	/** the number of uint64_t that the m_buffer contains 
  * 	can be 0 regardless of m_buffer value
@@ -59,8 +59,8 @@ class Message{
 	Rank m_source;
 public:
 	Message();
-	Message(uint64_t*b,int c,Rank dest,MessageTag tag,Rank source);
-	uint64_t*getBuffer();
+	Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source);
+	MessageUnit*getBuffer();
 	int getCount();
 /**
  * Returns the destination MPI rank
@@ -78,7 +78,7 @@ public:
 
 	void print();
 
-	void setBuffer(uint64_t*buffer);
+	void setBuffer(MessageUnit*buffer);
 
 	void setTag(MessageTag tag);
 

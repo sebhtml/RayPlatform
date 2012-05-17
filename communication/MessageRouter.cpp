@@ -189,9 +189,9 @@ void MessageRouter::relayMessage(Message*message,Rank destination){
 
 	// allocate a buffer from the ring
 	if(count>0){
-		uint64_t*outgoingMessage=(uint64_t*)m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+		MessageUnit*outgoingMessage=(MessageUnit*)m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 		// copy the data into the new buffer
-		memcpy(outgoingMessage,message->getBuffer(),count*sizeof(uint64_t));
+		memcpy(outgoingMessage,message->getBuffer(),count*sizeof(MessageUnit));
 		message->setBuffer(outgoingMessage);
 	}
 
@@ -314,7 +314,7 @@ int MessageRouter::getTag(int tag){
 
 /**
  */
-int MessageRouter::getSource(int tag){
+Rank MessageRouter::getSource(int tag){
 	uint64_t data=tag;
 	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_SOURCE_OFFSET+RAY_ROUTING_TAG_SOURCE_SIZE));
 	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_SOURCE_SIZE);
@@ -323,7 +323,7 @@ int MessageRouter::getSource(int tag){
 
 /**
  */
-int MessageRouter::getDestination(int tag){
+Rank MessageRouter::getDestination(int tag){
 	uint64_t data=tag;
 	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_DESTINATION_OFFSET+RAY_ROUTING_TAG_DESTINATION_SIZE));
 	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_DESTINATION_SIZE);

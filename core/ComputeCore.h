@@ -106,7 +106,7 @@ class ComputeCore{
 
 	uint64_t m_startingTimeMicroseconds;
 
-	int m_rank;
+	Rank m_rank;
 	int m_size;
 	bool m_showCommunicationEvents;
 	bool m_profilerVerbose;

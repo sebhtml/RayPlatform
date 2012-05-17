@@ -37,7 +37,7 @@ void VirtualProcessor::updateStates(){
 
 	// erase completed jobs
 	for(int i=0;i<(int)m_workersDone.size();i++){
-		uint64_t workerId=m_workersDone[i];
+		WorkerHandle workerId=m_workersDone[i];
 
 		#ifdef ASSERT
 		assert(m_activeWorkers.count(workerId)>0);
@@ -57,7 +57,7 @@ void VirtualProcessor::updateStates(){
 
 	/** make some worker sleep */
 	for(int i=0;i<(int)m_waitingWorkers.size();i++){
-		uint64_t workerId=m_waitingWorkers[i];
+		WorkerHandle workerId=m_waitingWorkers[i];
 
 		#ifdef ASSERT
 		assert(m_activeWorkers.count(workerId)>0);
@@ -73,7 +73,7 @@ void VirtualProcessor::updateStates(){
 
 	/** wake up some workers */
 	for(int i=0;i<(int)m_activeWorkersToRestore.size();i++){
-		uint64_t workerId=m_activeWorkersToRestore[i];
+		WorkerHandle workerId=m_activeWorkersToRestore[i];
 		m_activeWorkers.insert(workerId);
 	}
 
@@ -127,7 +127,7 @@ bool VirtualProcessor::run(){
 
 	/** make the current worker work */
 	if(m_activeWorkerIterator!=m_activeWorkers.end()){
-		uint64_t workerId=*m_activeWorkerIterator;
+		WorkerHandle workerId=*m_activeWorkerIterator;
 
 		/** save the current worker identifier */
 		m_currentWorker=workerId;
@@ -218,7 +218,7 @@ void VirtualProcessor::addWorker(Worker*worker){
 	assert(worker != NULL);
 	#endif
 
-	uint64_t workerId=worker->getWorkerIdentifier();
+	WorkerHandle workerId=worker->getWorkerIdentifier();
 
 	#ifdef ASSERT
 	if(m_aliveWorkers.count(workerId)>0)

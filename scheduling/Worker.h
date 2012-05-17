@@ -41,7 +41,7 @@ public:
 	virtual bool isDone() = 0;
 
 	/** get the worker number */
-	virtual uint64_t getWorkerIdentifier() = 0 ;
+	virtual WorkerHandle getWorkerIdentifier() = 0 ;
 
 	virtual ~Worker(){}
 };
