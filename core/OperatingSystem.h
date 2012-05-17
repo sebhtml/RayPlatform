@@ -38,16 +38,6 @@
  *
  */
 
-#define MAXIMUM_MESSAGE_SIZE_IN_BYTES 4000
-
-#define MASTER_RANK 0
-
-/* the maximum of processes is utilized to construct unique hyperfusions IDs */
-// with routing enabled, MAX_NUMBER_OF_MPI_PROCESSES is 4096
-#define MAX_NUMBER_OF_MPI_PROCESSES 1000000
-#define INVALID_RANK MAX_NUMBER_OF_MPI_PROCESSES
-
-
 
 /** only this file knows the operating system */
 #include <string>

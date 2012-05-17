@@ -47,8 +47,22 @@ typedef uint64_t PluginHandle;
 /* an handle for a worker */
 typedef uint64_t WorkerHandle;
 
+/*************************************************/
+/* compile-time configuration of RayPlatform */
+
+// the maximum number of tags
+#define MAXIMUM_NUMBER_OF_TAGS 256
+
 /* a basic unit for message buffers */
 typedef uint64_t MessageUnit;
 
+#define MAXIMUM_MESSAGE_SIZE_IN_BYTES 4000
+
+#define MASTER_RANK 0
+
+/* the maximum of processes is utilized to construct unique hyperfusions IDs */
+// with routing enabled, MAX_NUMBER_OF_MPI_PROCESSES is 4096
+#define MAX_NUMBER_OF_MPI_PROCESSES 1000000
+#define INVALID_RANK MAX_NUMBER_OF_MPI_PROCESSES
 
 #endif
