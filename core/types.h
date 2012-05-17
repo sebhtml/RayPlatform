@@ -44,4 +44,11 @@ typedef uint64_t PluginHandle;
 
 #define INVALID_HANDLE -9876
 
+/* an handle for a worker */
+typedef uint64_t WorkerHandle;
+
+/* a basic unit for message buffers */
+typedef uint64_t MessageUnit;
+
+
 #endif
