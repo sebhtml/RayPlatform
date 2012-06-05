@@ -589,6 +589,18 @@ void ComputeCore::constructor(int*argc,char***argv){
 		m_hasMaximumNumberOfOutboxBuffers=true;
 	}
 
+	// we need more outbox messages
+	// this case will occur when the number of processor cores is < the number of requested outbox buffers
+	if(m_maximumNumberOfOutboxMessages < m_maximumAllocatedOutboxBuffers){
+		m_maximumNumberOfOutboxMessages = m_maximumAllocatedOutboxBuffers;
+	}
+
+	// broadcasting messages
+	// this case will occur when the number of requested outbox buffers is < the number of processor cores.
+	if(m_maximumNumberOfOutboxMessages < m_size){
+		m_maximumNumberOfOutboxMessages = m_size;
+	}
+
 	m_maximumAllocatedInboxBuffers=1;
 
 
