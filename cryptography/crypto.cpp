@@ -58,6 +58,46 @@ uint64_t uniform_hashing_function_2_64_64(uint64_t key){
 	return key;
 }
 
+// enable this if you have sse4_2
+//   'grep sse4_2 /proc/cpuinfo' will tell you if you have it in Linux.
+//#define CONFIG_SSE_4_2
+
+#ifdef CONFIG_SSE_4_2
+
+/**
+ * this code is from the Internet.
+ * \see http://byteworm.com/2010/10/13/crc32/
+ */
+uint32_t computeCyclicRedundancyCode32(uint8_t*str, uint32_t len) {
+	uint32_t q=len/sizeof(uint32_t),
+		r=len%sizeof(uint32_t),
+		*p=(uint32_t*)str, crc;
+
+	crc=0;
+	while (q--) {
+		__asm__ __volatile__(
+			".byte 0xf2, 0xf, 0x38, 0xf1, 0xf1;"
+			:"=S"(crc)
+			:"0"(crc), "c"(*p)
+		);
+		p++;
+	}
+
+	str=(uint8_t*)p;
+	while (r--) {
+		__asm__ __volatile__(
+			".byte 0xf2, 0xf, 0x38, 0xf0, 0xf1"
+			:"=S"(crc)
+			:"0"(crc), "c"(*str)
+		);
+		str++;
+	}
+
+	return crc;
+}
+
+#else
+
 // This table is from http://www.arturocampos.com/ac_crc32.html
 uint32_t crc_table[256] =
   {
@@ -119,7 +159,7 @@ uint32_t crc_table[256] =
  * \see http://www.arturocampos.com/ac_crc32.html
  * \see http://arsene.perez-mas.pagesperso-orange.fr/langc/operateurs/operateurs.htm
  */
-uint32_t computeCyclicRedundancyCode32(uint8_t*bytes,int numberOfBytes){
+uint32_t computeCyclicRedundancyCode32(uint8_t*bytes,uint32_t numberOfBytes){
 
 	uint32_t checksum=0xffffffff;
 
@@ -145,3 +185,5 @@ uint32_t computeCyclicRedundancyCode32(uint8_t*bytes,int numberOfBytes){
 	return checksum;
 
 }
+
+#endif

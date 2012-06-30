@@ -644,7 +644,14 @@ void ComputeCore::constructor(int*argc,char***argv){
 
 	// checksum calculation is only tested
 	// for cases with sizeof(MessageUnit)>=4 bytes
-	m_doChecksum=true;
+
+	const char verifyMessages[]="-verify-message-integrity";
+
+	for(int i=0;i<(*argc);i++){
+		if(strcmp( ((*argv)[i]), verifyMessages) == 0){
+			m_doChecksum=true;
+		}
+	}
 
 	m_argumentCount=*argc;
 	m_argumentValues=*argv;
@@ -672,7 +679,7 @@ void ComputeCore::constructor(int*argc,char***argv){
 	m_size=m_messagesHandler.getSize();
 
 	if(m_doChecksum){
-		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message."<<endl;
+		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message."<<" ("<<verifyMessages<<")"<<endl;
 	}
 
 	m_switchMan.constructor(m_rank,m_size);

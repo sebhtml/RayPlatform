@@ -1,0 +1,16 @@
+
+Adding the option -verify-message-integrity will add a verification
+for any non-empty message.
+
+The CRC32 algorithm is used.
+
+If you have a processor that supports SSE 4.2, then you can compile with
+CONFIG_SSE_4_2 (just add -D CONFIG_SSE_4_2 in the Makefile, for
+example) to do the CRC32 on the hardware for more speedy results.
+
+The hardware-accelerated code for CRC32 was written by Benjamin Kittridge
+and is distributed on his blog at http://byteworm.com/2010/10/13/crc32/
+
+
+
+

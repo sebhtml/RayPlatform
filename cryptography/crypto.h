@@ -27,6 +27,6 @@
 uint64_t uniform_hashing_function_1_64_64(uint64_t key);
 uint64_t uniform_hashing_function_2_64_64(uint64_t key);
 
-uint32_t computeCyclicRedundancyCode32(uint8_t*bytes,int numberOfBytes);
+uint32_t computeCyclicRedundancyCode32(uint8_t*bytes,uint32_t numberOfBytes);
 
 #endif
