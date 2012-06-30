@@ -1,6 +1,6 @@
 /*
- 	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+ 	RayPlatform
+    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -26,5 +26,7 @@
 
 uint64_t uniform_hashing_function_1_64_64(uint64_t key);
 uint64_t uniform_hashing_function_2_64_64(uint64_t key);
+
+uint32_t computeCyclicRedundancyCode32(uint8_t*bytes,int numberOfBytes);
 
 #endif

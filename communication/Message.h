@@ -85,6 +85,8 @@ public:
 	void setSource(Rank source);
 
 	void setDestination(Rank destination);
+
+	void setCount(int count);
 };
 
 #endif

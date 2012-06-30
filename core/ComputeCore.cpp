@@ -472,8 +472,96 @@ void ComputeCore::sendMessages(){
 		m_tickLogger.logSendMessage(INVALID_HANDLE);
 	}
 
+	// add checksums if necessary
+	if(m_doChecksum){
+		addMessageChecksums();
+	}
+
 	// finally, send the messages
 	m_messagesHandler.sendMessages(&m_outbox);
+}
+
+void ComputeCore::addMessageChecksums(){
+
+	int count=m_outbox.size();
+	for(int i=0;i<count;i++){
+		MessageUnit*data=m_outbox.at(i)->getBuffer();
+		int numberOfUnits=m_outbox.at(i)->getCount();
+
+		// don't compute checksum for empty messages
+		if(numberOfUnits==0){
+			continue;
+		}
+
+		int numberOfBytes=sizeof(MessageUnit)*numberOfUnits;
+
+		uint8_t*bytes=(uint8_t*)data;
+
+		uint32_t crc32=computeCyclicRedundancyCode32(bytes,numberOfBytes);
+
+		data[numberOfUnits]=crc32;
+
+		m_outbox.at(i)->setCount(numberOfUnits+1);
+	}
+
+}
+
+void ComputeCore::verifyMessageChecksums(){
+
+	int count=m_inbox.size();
+	for(int i=0;i<count;i++){
+		MessageUnit*data=m_inbox.at(i)->getBuffer();
+
+		// this contains the checksum unit too.
+		int numberOfUnits=m_inbox.at(i)->getCount();
+
+		// don't compute checksum for empty messages
+		if(numberOfUnits==0){
+			continue;
+		}
+
+		// the last MessageUnit contains the crc32.
+		// note that the CRC32 feature only works for MessageUnit at least
+		// 32 bits.
+		int numberOfBytes=sizeof(MessageUnit)*(numberOfUnits-1);
+
+		uint8_t*bytes=(uint8_t*)data;
+
+		// compute the checksum, excluding the reference checksum
+		// from the data
+		uint32_t crc32=computeCyclicRedundancyCode32(bytes,numberOfBytes);
+
+		uint32_t expectedChecksum=data[numberOfUnits-1];
+
+		#ifdef CONFIG_SHOW_CHECKSUM
+		cout<<" Expected checksum (CRC32): "<<hex<<expectedChecksum<<endl;
+		cout<<" Actual checksum (CRC32): "<<hex<<crc32<<dec<<endl;
+		#endif
+
+		if(crc32 != expectedChecksum){
+			Message*message=m_inbox.at(i);
+			cout<<"Error: RayPlatform detected a message corruption !"<<endl;
+			cout<<" Tag: "<<MESSAGE_TAGS[message->getTag()]<<endl;
+			cout<<" Source: "<<message->getSource()<<endl;
+			cout<<" Destination: "<<message->getDestination()<<endl;
+			cout<<" sizeof(MessageUnit): "<<sizeof(MessageUnit)<<endl;
+			cout<<" Count (excluding checksum): "<<numberOfUnits-1<<endl;
+			cout<<" Expected checksum (CRC32): "<<hex<<expectedChecksum<<endl;
+			cout<<" Actual checksum (CRC32): "<<hex<<crc32<<dec<<endl;
+		}
+
+		#ifdef ASSERT
+		assert(numberOfUnits>=2);
+		#endif
+
+		// remove the checksum
+		m_inbox.at(i)->setCount(numberOfUnits-1);
+
+		#ifdef ASSERT
+		assert(numberOfUnits>=1);
+		#endif
+	}
+
 }
 
 /**
@@ -484,6 +572,11 @@ void ComputeCore::sendMessages(){
 void ComputeCore::receiveMessages(){
 	m_inbox.clear();
 	m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
+
+	// verify checksums and remove them
+	if(m_doChecksum){
+		verifyMessageChecksums();
+	}
 
 	for(int i=0;i<(int)m_inbox.size();i++){
 		m_tickLogger.logReceivedMessage(INVALID_HANDLE);
@@ -547,6 +640,12 @@ void ComputeCore::processData(){
 
 void ComputeCore::constructor(int*argc,char***argv){
 
+	m_doChecksum=false;
+
+	// checksum calculation is only tested
+	// for cases with sizeof(MessageUnit)>=4 bytes
+	m_doChecksum=true;
+
 	m_argumentCount=*argc;
 	m_argumentValues=*argv;
 
@@ -571,6 +670,10 @@ void ComputeCore::constructor(int*argc,char***argv){
 
 	m_rank=m_messagesHandler.getRank();
 	m_size=m_messagesHandler.getSize();
+
+	if(m_doChecksum){
+		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message."<<endl;
+	}
 
 	m_switchMan.constructor(m_rank,m_size);
 
@@ -609,12 +712,27 @@ void ComputeCore::constructor(int*argc,char***argv){
 	getInbox()->constructor(getMaximumNumberOfAllocatedInboxMessages(),"RAY_MALLOC_TYPE_INBOX_VECTOR",false);
 	getOutbox()->constructor(getMaximumNumberOfAllocatedOutboxMessages(),"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
 
-	m_inboxAllocator.constructor(getMaximumNumberOfAllocatedInboxBuffers(),MAXIMUM_MESSAGE_SIZE_IN_BYTES,
-		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
+	int maximumMessageSizeInByte=MAXIMUM_MESSAGE_SIZE_IN_BYTES;
 
-	m_outboxAllocator.constructor(getMaximumNumberOfAllocatedOutboxBuffers(),MAXIMUM_MESSAGE_SIZE_IN_BYTES,
+	// add a message unit to store the checksum
+	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
+	if(m_doChecksum){
+		if(sizeof(MessageUnit)>=4){
+			maximumMessageSizeInByte+=sizeof(MessageUnit);
+		}else if(sizeof(MessageUnit)>=2){
+			maximumMessageSizeInByte+=2*sizeof(MessageUnit);
+		}else{
+			maximumMessageSizeInByte+=4*sizeof(MessageUnit);
+		}
+	}
+
+	m_outboxAllocator.constructor(getMaximumNumberOfAllocatedOutboxBuffers(),
+		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
 
+	m_inboxAllocator.constructor(getMaximumNumberOfAllocatedInboxBuffers(),
+		maximumMessageSizeInByte,
+		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
 
 	for(int i=0;i<MAXIMUM_NUMBER_OF_MASTER_HANDLERS;i++){
 		strcpy(MASTER_MODES[i],"UnnamedMasterMode");

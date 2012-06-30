@@ -72,6 +72,10 @@ void Message::setTag(MessageTag tag){
 	m_tag=tag;
 }
 
+void Message::setCount(int count){
+	m_count=count;
+}
+
 void Message::setSource(Rank source){
 	m_source=source;
 }

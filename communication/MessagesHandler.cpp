@@ -51,7 +51,9 @@ void MessagesHandler::sendMessages(StaticVector*outbox){
 		}
 		assert(destination<m_size);
 		assert(!(buffer==NULL && count>0));
-		assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
+
+		// this assertion is invalid when using checksum calculation.
+		//assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
 		#endif
 
 		MPI_Request request;

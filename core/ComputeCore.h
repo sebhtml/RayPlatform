@@ -194,6 +194,10 @@ class ComputeCore{
 	int getMaximumNumberOfAllocatedInboxBuffers();
 	int getMaximumNumberOfAllocatedOutboxBuffers();
 
+	bool m_doChecksum;
+
+	void verifyMessageChecksums();
+	void addMessageChecksums();
 public:
 	/** this is the main method */
 	void run();
