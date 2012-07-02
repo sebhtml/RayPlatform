@@ -175,7 +175,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 			outboxBufferAllocator->markBufferAsDirty(buffer);
 		}
 
-		//  MPI_Issend
+		//  MPI_Isend
 		//      Synchronous nonblocking. 
 		MPI_Isend(buffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
 
