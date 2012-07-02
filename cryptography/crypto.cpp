@@ -163,7 +163,7 @@ uint32_t computeCyclicRedundancyCode32(uint8_t*bytes,uint32_t numberOfBytes){
 
 	uint32_t checksum=0xffffffff;
 
-	for(int i=0;i<numberOfBytes;i++){
+	for(uint32_t i=0;i<numberOfBytes;i++){
 		uint8_t byte=bytes[i];
 
 		uint8_t position=(byte ^ checksum) & 0xff;
