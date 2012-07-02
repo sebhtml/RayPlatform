@@ -58,6 +58,13 @@ typedef uint64_t MessageUnit;
 
 #define MAXIMUM_MESSAGE_SIZE_IN_BYTES 4000
 
+/*
+ * this is the maximum number of dirty buffers
+ * it should be at least the number of allocated
+ * buffer in a RayPlatform virtual machine tick
+ */
+#define MAXIMUM_NUMBER_OF_DIRTY_BUFFERS 17
+
 #define MASTER_RANK 0
 
 /* the maximum of processes is utilized to construct unique hyperfusions IDs */

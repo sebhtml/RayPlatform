@@ -27,6 +27,11 @@
 #include <iostream>
 using namespace std;
 
+// #define CONFIG_RING_VERBOSE
+
+#define BUFFER_STATE_AVAILABLE 0x0
+#define BUFFER_STATE_DIRTY 0x1
+
 void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 	resetCount();
 	m_chunks=chunks;
@@ -34,6 +39,11 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 	strcpy(m_type,type);
 	m_numberOfBytes=m_chunks*m_max;
 	m_memory=(uint8_t*)__Malloc(sizeof(uint8_t)*m_chunks*m_max,m_type,show);
+
+	for(int i=0;i<m_chunks;i++){
+		m_bufferStates[i]= BUFFER_STATE_AVAILABLE;
+	}
+
 	m_current=0;
 	m_show=show;
 }
@@ -52,16 +62,79 @@ void*RingAllocator::allocate(int a){
 	assert(a<=m_max);
 	#endif
 
+	int origin=m_current;
+
+	while(m_bufferStates[m_current] == BUFFER_STATE_DIRTY
+	&& m_current < m_chunks){
+
+		m_current++;
+
+	}
+
+	if(m_current==m_chunks){
+		m_current=0;
+	}
+
+	while(m_bufferStates[m_current] == BUFFER_STATE_DIRTY
+	&& m_current < origin){
+
+		m_current++;
+	}
+
+	#ifdef ASSERT
+	if(m_current==origin && m_bufferStates[m_current]==BUFFER_STATE_DIRTY){
+		cout<<"Error: all buffers are dirty !, chunks: "<<m_chunks<<endl;
+		assert(m_current!=origin);
+	}
+	#endif
+
 	void*address=(void*)(m_memory+m_current*m_max);
+
 
 	m_current++;
 
 	// depending on the architecture
 	// branching (if) can be faster than integer division/modulo
 
-	m_current%=m_chunks;
+	if(m_current==m_chunks){
+		m_current=0;
+	}
 
 	return address;
+}
+
+void RingAllocator::salvageBuffer(void*buffer){
+	int bufferNumber=getBufferHandle(buffer);
+
+	m_bufferStates[bufferNumber]= BUFFER_STATE_AVAILABLE;
+
+	#ifdef CONFIG_RING_VERBOSE
+	cout<<"[RingAllocator::salvageBuffer] "<<bufferNumber<<" -> BUFFER_STATE_AVAILABLE"<<endl;
+	#endif
+}
+
+void RingAllocator::markBufferAsDirty(void*buffer){
+	int bufferNumber=getBufferHandle(buffer);
+
+	m_bufferStates[bufferNumber]= BUFFER_STATE_DIRTY;
+
+	#ifdef CONFIG_RING_VERBOSE
+	cout<<"[RingAllocator::markBufferAsDirty] "<<bufferNumber<<" -> BUFFER_STATE_DIRTY"<<endl;
+	#endif
+}
+
+int RingAllocator::getBufferHandle(void*buffer){
+
+	void*origin=m_memory;
+
+	uint64_t originValue=(uint64_t)origin;
+	uint64_t bufferValue=(uint64_t)buffer;
+
+	uint64_t difference=bufferValue-originValue;
+
+	int index=difference/(m_max*sizeof(uint8_t));
+
+	return index;
 }
 
 int RingAllocator::getSize(){

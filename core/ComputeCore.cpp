@@ -478,7 +478,7 @@ void ComputeCore::sendMessages(){
 	}
 
 	// finally, send the messages
-	m_messagesHandler.sendMessages(&m_outbox);
+	m_messagesHandler.sendMessages(&m_outbox,&m_outboxAllocator);
 }
 
 void ComputeCore::addMessageChecksums(){

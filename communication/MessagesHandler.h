@@ -51,6 +51,11 @@ public:
 
 #endif
 
+struct DirtyBuffer{
+	void*m_buffer;
+	MPI_Request m_messageRequest;
+};
+
 /**
  * software layer to handler messages
  * it uses persistant communication
@@ -60,6 +65,9 @@ public:
  * \author Sébastien Boisvert
  */
 class MessagesHandler: public CorePlugin{
+
+	DirtyBuffer m_dirtyBuffers[MAXIMUM_NUMBER_OF_DIRTY_BUFFERS];
+	uint8_t m_dirtyBufferPosition;
 
 	MessageTag RAY_MPI_TAG_DUMMY;
 
@@ -150,7 +158,11 @@ public:
 	/**
  *  send a message or more
  */
-	void sendMessages(StaticVector*outbox);
+	void sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator);
+
+
+	uint8_t allocateDirtyBuffer();
+	void checkDirtyBuffers(RingAllocator*outboxBufferAllocator);
 
 	/**
  * receive one or zero message.

@@ -24,6 +24,7 @@
 
 #include<set>
 #include<stdint.h>
+#include <core/types.h> 
 using namespace std;
 
 /**
@@ -35,6 +36,9 @@ using namespace std;
  */
 class RingAllocator{
 	char m_type[100];
+	
+	uint8_t m_bufferStates[MAXIMUM_NUMBER_OF_DIRTY_BUFFERS];
+
 	int m_count;
 
 /** the number of memory cells */
@@ -51,6 +55,8 @@ class RingAllocator{
 
 /** the head */
 	int m_current;
+
+	int getBufferHandle(void*buffer);
 public:
 	RingAllocator();
 	void constructor(int chunks,int size,const char*type,bool show);
@@ -62,6 +68,9 @@ public:
 	void clear();
 	void resetCount();
 	int getCount();
+
+	void salvageBuffer(void*buffer);
+	void markBufferAsDirty(void*buffer);
 };
 
 

@@ -31,12 +31,95 @@
 #include <string.h>
 using namespace std;
 
-//#define COMMUNICATION_IS_VERBOSE
+// #define COMMUNICATION_IS_VERBOSE
+
+/**
+ * return the first free buffer
+ * this is O(MAXIMUM_NUMBER_OF_DIRTY_BUFFERS)
+ */
+uint8_t MessagesHandler::allocateDirtyBuffer(){
+
+	uint8_t position=0;
+
+	while(position<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS &&
+		m_dirtyBuffers[position].m_buffer!=NULL){
+
+		position++;
+	}
+
+	#ifdef ASSERT
+	if(position==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS){
+		cout<<"All buffers are dirty !"<<endl;
+	}
+	assert(position<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS);
+	#endif
+
+	// to remove 
+	// attention : array subscript is above array bounds [-Warray-bounds]
+	if(position==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS){
+		position=0;
+	}
+
+	#ifdef ASSERT
+	assert(m_dirtyBuffers[position].m_buffer==NULL);
+	#endif
+
+	return position;
+}
+
+/**
+ * TODO Instead of a true/false state, increase and decrease requests
+ * using a particular buffer. Otherwise, there may be a problem when 
+ * a buffer is re-used several times for many requests.
+ */
+void MessagesHandler::checkDirtyBuffers(RingAllocator*outboxBufferAllocator){
+
+	// check the buffer and free it if it is finished.
+	if(m_dirtyBuffers[m_dirtyBufferPosition].m_buffer!=NULL){
+		MPI_Status status;
+		MPI_Request*request=&(m_dirtyBuffers[m_dirtyBufferPosition].m_messageRequest);
+
+		int flag=0;
+
+		int returnValue=MPI_Test(request,&flag,&status);
+
+		if(flag){
+
+			void*buffer=m_dirtyBuffers[m_dirtyBufferPosition].m_buffer;
+			outboxBufferAllocator->salvageBuffer(buffer);
+
+			#ifdef COMMUNICATION_IS_VERBOSE
+			cout<<"From checkDirtyBuffers flag= "<<flag<<endl;
+			#endif
+
+			#ifdef ASSERT
+			assert(*request == MPI_REQUEST_NULL);
+			#endif
+
+			m_dirtyBuffers[m_dirtyBufferPosition].m_buffer=NULL;
+
+		}
+	}
+
+	// go to the next buffer.
+
+	m_dirtyBufferPosition++;
+
+	if(m_dirtyBufferPosition==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS){
+		m_dirtyBufferPosition=0;
+	}
+}
 
 /*
  * send messages,
  */
-void MessagesHandler::sendMessages(StaticVector*outbox){
+void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator){
+
+	// update the dirty buffer list.
+	for(int i=0;i<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS;i++){
+		checkDirtyBuffers(outboxBufferAllocator);
+	}
+
 	for(int i=0;i<(int)outbox->size();i++){
 		Message*aMessage=((*outbox)[i]);
 		Rank destination=aMessage->getDestination();
@@ -56,19 +139,61 @@ void MessagesHandler::sendMessages(StaticVector*outbox){
 		//assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
 		#endif
 
-		MPI_Request request;
+		MPI_Request dummyRequest;
+
+		MPI_Request*request=&dummyRequest;
+
+		bool mustRegister=true;
+
+		for(int i=0;i<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS;i++){
+
+			if(m_dirtyBuffers[i].m_buffer==buffer){
+
+				// the code can not manage
+				// this case
+				mustRegister=false;
+
+			}
+		}
+		
+
+		if(buffer!=NULL && mustRegister){
+			int dirtyBuffer=allocateDirtyBuffer();
+
+			#ifdef ASSERT
+			assert(m_dirtyBuffers[dirtyBuffer].m_buffer==NULL);
+			#endif
+
+			m_dirtyBuffers[dirtyBuffer].m_buffer=buffer;
+
+			#ifdef ASSERT
+			assert(m_dirtyBuffers[dirtyBuffer].m_buffer!=NULL);
+			#endif
+
+			request=&(m_dirtyBuffers[dirtyBuffer].m_messageRequest);
+
+			outboxBufferAllocator->markBufferAsDirty(buffer);
+		}
 
 		//  MPI_Issend
 		//      Synchronous nonblocking. 
-		MPI_Isend(buffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,&request);
+		MPI_Isend(buffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
 
-		// we don't need the request object because we use a ring and this ring is never violated. */
-		// this is enforced
-		MPI_Request_free(&request);
+		// if the buffer is NULL, we free the request right now
+		// because we there is no buffer to protect.
+		if(buffer==NULL || !mustRegister){
 
-		#ifdef ASSERT
-		assert(request==MPI_REQUEST_NULL);
-		#endif
+			#ifdef COMMUNICATION_IS_VERBOSE
+			cout<<" From sendMessages"<<endl;
+			#endif
+
+			MPI_Request_free(request);
+
+			#ifdef ASSERT
+			assert(*request==MPI_REQUEST_NULL);
+			#endif
+
+		}
 
 		// if the message was re-routed, we don't care
 		// we only fetch the tag for statistics
@@ -316,7 +441,7 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 
 }
 
-// this code is not utilised, but is kept for reference
+// this code is utilised, 
 void MessagesHandler::probeAndRead(int source,int tag,StaticVector*inbox,RingAllocator*inboxAllocator){
 	#ifdef COMMUNICATION_IS_VERBOSE
 	//cout<<"call to probeAndRead source="<<source<<""<<endl;
@@ -404,6 +529,14 @@ void MessagesHandler::freeLeftovers(){
 }
 
 void MessagesHandler::constructor(int*argc,char***argv){
+
+	for(int i=0;i<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS;i++){
+		m_dirtyBuffers[i].m_buffer=NULL;
+		//m_dirtyBuffers[i].m_messageRequest
+	}
+
+	m_dirtyBufferPosition=0;
+
 	m_destroyed=false;
 
 	m_sentMessages=0;
