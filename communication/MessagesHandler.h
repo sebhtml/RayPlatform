@@ -37,20 +37,6 @@ class ComputeCore;
 #include <vector>
 using namespace std;
 
-#ifdef CONFIG_PERSISTENT_COMMUNICATION
-
-/**
- * linked message
- */
-class MessageNode{
-public:
-	MessageNode*m_previous;
-	Message m_message;
-	MessageNode*m_next;
-};
-
-#endif
-
 struct DirtyBuffer{
 	void*m_buffer;
 	MPI_Request m_messageRequest;
@@ -81,10 +67,6 @@ class MessagesHandler: public CorePlugin{
 	#ifdef USE_PERSISTENT_COMMUNICATION
 	/** the number of buffered messages in the persistent layer */
 	int m_bufferedMessages;
-
-	/** allocators for messages received with persistent requests */
-	MyAllocator m_internalBufferAllocator;
-	MyAllocator m_internalMessageAllocator;
 
 	/** linked lists */
 	MessageNode**m_heads;
@@ -134,22 +116,13 @@ class MessagesHandler: public CorePlugin{
 	/** probe and read a message -- this method is not utilised */
 	void probeAndRead(int source,int tag,StaticVector*inbox,RingAllocator*inboxAllocator);
 
-	#ifdef USE_PERSISTENT_COMMUNICATION
 	/** pump a message from the persistent ring */
-	void pumpMessageFromPersistentRing();
-
-	/** add a message to the internal messages */
-	void addMessage(Message*a);
-	#endif
+	void pumpMessageFromPersistentRing(Rank source,
+	StaticVector*inbox,RingAllocator*inboxAllocator);
 
 	/** select and fetch a message from the internal messages using a round-robin policy */
 	void roundRobinReception(StaticVector*inbox,RingAllocator*inboxAllocator);
 
-	#ifdef CONFIG_PERSISTENT_COMMUNICATION
-
-	roundRobinReception_persistent();
-
-	#endif
 
 	void createBuffers();
 

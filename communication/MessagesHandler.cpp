@@ -33,6 +33,24 @@ using namespace std;
 
 // #define COMMUNICATION_IS_VERBOSE
 
+/*
+ * Persistent communication pumps the message more rapidly.
+ * XXX: this is not implemented correctly. see the TODO below.
+ */
+
+// #define CONFIG_PERSISTENT_COMMUNICATION
+
+/**
+ *  Use round-robin reception.
+ * Open-MPI 1.6 and later has this inside directly
+ */
+#define CONFIG_ROUND_ROBIN
+
+/* this configuration may be important for low latency */
+/* uncomment if you want to try it */
+//#define CONFIG_ONE_IPROBE_PER_TICK
+
+
 /**
  * return the first free buffer
  * this is O(MAXIMUM_NUMBER_OF_DIRTY_BUFFERS)
@@ -81,7 +99,7 @@ void MessagesHandler::checkDirtyBuffers(RingAllocator*outboxBufferAllocator){
 
 		int flag=0;
 
-		int returnValue=MPI_Test(request,&flag,&status);
+		MPI_Test(request,&flag,&status);
 
 		if(flag){
 
@@ -208,7 +226,6 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 	outbox->clear();
 }
 
-#ifdef CONFIG_PERSISTENT_COMMUNICATION
 /*	
  * receiveMessages is implemented as recommanded by Mr. George Bosilca from
 the University of Tennessee (via the Open-MPI mailing list)
@@ -228,25 +245,36 @@ Moreover, at the end it is very easy to MPI_Cancel all the receives not yet matc
 
     george. 
  */
-void MessagesHandler::pumpMessageFromPersistentRing(){
+void MessagesHandler::pumpMessageFromPersistentRing(Rank requestedSource,
+	StaticVector*inbox,RingAllocator*inboxAllocator){
+
 	/* persistent communication is not enabled by default */
 	int flag;
 	MPI_Status status;
 	MPI_Test(m_ring+m_head,&flag,&status);
 
-	if(flag){
+	while(flag){
 		// get the length of the message
 		// it is not necessary the same as the one posted with MPI_Recv_init
 		// that one was a lower bound
-		int tag=status.MPI_TAG;
-		int source=status.MPI_SOURCE;
+		MessageTag  tag=status.MPI_TAG;
+		Rank source=status.MPI_SOURCE;
+
+		// we will take this later...
+		if(source!=requestedSource){
+			// TODO: this is invalid because if flag is true,
+			// then MPI_Test consumed the request and it
+			// needs to be pumped now.
+			break; // exit this part of the code
+		}
+
 		int count;
 		MPI_Get_count(&status,m_datatype,&count);
 		MessageUnit*filledBuffer=(MessageUnit*)m_buffers+m_head*MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit);
 
 		// copy it in a safe buffer
 		// internal buffers are all of length MAXIMUM_MESSAGE_SIZE_IN_BYTES
-		MessageUnit*incoming=(MessageUnit*)m_internalBufferAllocator.allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+		MessageUnit*incoming=(MessageUnit*)inboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 
 		memcpy(incoming,filledBuffer,count*sizeof(MessageUnit));
 
@@ -257,79 +285,17 @@ void MessagesHandler::pumpMessageFromPersistentRing(){
 		// this inbox is not the real inbox
 		Message aMessage(incoming,count,m_rank,tag,source);
 
-		addMessage(&aMessage);
-
-		if(m_head == m_ringSize-1)
-			m_head = 0;
-		else
-			m_head++;
 	}
+
+	// advance the ring.
+	m_head++;
+
+	if(m_head == m_ringSize)
+		m_head = 0;
 }
-#endif
 
-
-#ifdef CONFIG_PERSISTENT_COMMUNICATION
-void MessagesHandler::addMessage(Message*message){
-
-	m_bufferedMessages ++ ;
-
-	int source=message->getSource();
-
-	// we allocate memory for internal storage
-	// this message may not be returned immediately
-	MessageNode*allocatedMessage = (MessageNode*) m_internalMessageAllocator.allocate(sizeof(MessageNode));
-
-	// the buffer of the message is already allocated in the calling function so eveyrthing is OK 
-	allocatedMessage->m_message = *message; // copy data
-	allocatedMessage->m_next = NULL;
-	allocatedMessage->m_previous = NULL;
-	
-	// there are no message from this source
-	if(m_heads[source] == NULL && m_tails[source] == NULL){
-		#ifdef ASSERT
-		assert(m_heads[source] == NULL && m_tails[source] == NULL);
-		#endif
-
-		m_heads[source] = allocatedMessage;
-		m_tails[source] = allocatedMessage;
-
-	// This source already have messages in the linked lists
-	}else{ // we add at the head
-		#ifdef ASSERT
-		assert(m_heads[source] != NULL && m_tails[source] != NULL);
-		#endif
-
-		// update the previous pointer of the old head
-
-		#ifdef ASSERT
-		assert(m_heads[source]->m_previous == NULL);
-		#endif
-
-		m_heads[source]->m_previous= allocatedMessage;
-
-		// Assign the next pointer for the new head
-		allocatedMessage->m_next = m_heads[source];
-		
-		// we have a new head
-		m_heads[source] = allocatedMessage;
-	}
-}
-#endif
-
-#define CONFIG_ROUND_ROBIN
 void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator){
-	#ifdef CONFIG_PERSISTENT_COMMUNICATION
-	// pump messages with persistent communication
-	pumpMessageFromPersistentRing();
-
-	// there is at least one message to fetch
-	if(m_bufferedMessages > 0){
-		while(inbox->size() == 0){
-			// pick a message according to a round-robin policy
-			roundRobinReception(inbox,inboxAllocator);
-		}
-	}
-	#elif defined CONFIG_ROUND_ROBIN
+	#if defined CONFIG_ROUND_ROBIN
 
 	// round-robin reception seems to avoid starvation 
 /** round robin with Iprobe will increase the latency because there will be a lot of calls to
@@ -348,86 +314,8 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 	#endif
 }
 
-#ifdef CONFIG_PERSISTENT_COMMUNICATION
-void MessagesHandler::roundRobinReception_persistent(){
-	// with persistent communication, we fetch the message from the persistent ring
-	// check if we have one message for m_currentRankToTryToReceiveFrom
-	if(m_tails[m_currentRankToTryToReceiveFrom] != NULL){
-		// we have a message
-		
-		MessageNode*messageNode = m_tails[m_currentRankToTryToReceiveFrom];
-		Message*selectedMessage=&(messageNode->m_message);
-
-		// set the new tail
-		m_tails[m_currentRankToTryToReceiveFrom] = messageNode->m_previous;
-
-		// we just took the last one
-		if(m_tails[m_currentRankToTryToReceiveFrom] == NULL){
-			m_heads[m_currentRankToTryToReceiveFrom] = NULL; // set the head to NULL too
-		}else{
-			// it was not the last one
-			// we need to update the next of the new tail
-			m_tails[m_currentRankToTryToReceiveFrom]->m_next = NULL;
-		}
-
-		#ifdef ASSERT
-		if(m_tails[m_currentRankToTryToReceiveFrom] != NULL)
-			assert(m_tails[m_currentRankToTryToReceiveFrom]->m_next == NULL);
-		#endif
-
-		int count = selectedMessage->getCount();
-
-		// allocate the buffer using the ring buffer for that
-		MessageUnit*incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
-	
-		// copy the data
-		memcpy(incoming,selectedMessage->getBuffer(),count*sizeof(MessageUnit));
-
-		// recycle the old buffer
-		// all internal buffers are MAXIMUM_MESSAGE_SIZE_IN_BYTES bytes, not count 
-		m_internalBufferAllocator.free(selectedMessage->getBuffer(),MAXIMUM_MESSAGE_SIZE_IN_BYTES);
-
-		// set the newly created buffer
-		selectedMessage->setBuffer(incoming);
-
-		// push the message in the inbox 
-		inbox->push_back(*selectedMessage);
-
-		// recycle the old message
-		m_internalMessageAllocator.free(messageNode,sizeof(MessageNode));
-
-		/** update statistics */
-		m_receivedMessages++;
-
-		m_bufferedMessages --;
-
-		#ifdef ASSERT
-		assert(m_bufferedMessages >= 0);
-		#endif
-	}
-
-
-}
-#endif
-
-/* this configuration may be important for low latency */
-/* uncomment if you want to try it */
-//#define CONFIG_ONE_IPROBE_PER_TICK
 
 void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inboxAllocator){
-	#ifdef CONFIG_PERSISTENT_COMMUNICATION
-
-	roundRobinReception_persistent();
-
-	/* advance the rank to receive from */
-	if(m_currentRankIndexToTryToReceiveFrom == (int)m_connections.size()-1){
-		/* restart the loop */
-		m_currentRankIndexToTryToReceiveFrom= 0;
-	}else{
-		m_currentRankIndexToTryToReceiveFrom++;
-	}
-
-	#else
 
 	/* otherwise, we use MPI_Iprobe + MPI_Recv */
 	/* probe and read a message */
@@ -457,8 +345,6 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 		#endif
 	}
 
-	#endif /* round-robin reception */
-
 
 	#ifdef COMMUNICATION_IS_VERBOSE
 	if(inbox->size() > 0){
@@ -468,8 +354,25 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 
 }
 
-// this code is utilised, 
-void MessagesHandler::probeAndRead(int source,int tag,StaticVector*inbox,RingAllocator*inboxAllocator){
+/* this code is utilised, 
+ * the code for persistent communication is not useful because
+ * round-robin policy and persistent communication are likely 
+ * not compatible because the number of persistent requests can be a limitation.
+ */
+void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
+	StaticVector*inbox,RingAllocator*inboxAllocator){
+
+	#ifdef CONFIG_PERSISTENT_COMMUNICATION
+
+	// the code here will check for messages from source in the persistent buffers.
+	for(int i=0;i<m_ringSize;i++){
+		pumpMessageFromPersistentRing(source,inbox,inboxAllocator);
+	}
+
+	#else /* CONFIG_PERSISTENT_COMMUNICATION */
+
+	// the code here will probe from rank source
+	// with MPI_Iprobe
 
 	#ifdef COMMUNICATION_IS_VERBOSE
 	cout<<"call to probeAndRead source="<<source<<""<<endl;
@@ -507,12 +410,14 @@ void MessagesHandler::probeAndRead(int source,int tag,StaticVector*inbox,RingAll
 
 		m_receivedMessages++;
 	}
+
+	#endif /* else CONFIG_PERSISTENT_COMMUNICATION */
 }
 
 void MessagesHandler::initialiseMembers(){
 	#ifdef CONFIG_PERSISTENT_COMMUNICATION
 	// the ring itself  contain requests ready to receive messages
-	m_ringSize=m_size+16;
+	m_ringSize=32;
 
 	m_ring=(MPI_Request*)__Malloc(sizeof(MPI_Request)*m_ringSize,"RAY_MALLOC_TYPE_PERSISTENT_MESSAGE_RING",false);
 	m_buffers=(uint8_t*)__Malloc(MAXIMUM_MESSAGE_SIZE_IN_BYTES*m_ringSize,"RAY_MALLOC_TYPE_PERSISTENT_MESSAGE_BUFFERS",false);
@@ -526,22 +431,17 @@ void MessagesHandler::initialiseMembers(){
 		MPI_Start(m_ring+i);
 	}
 
-	m_heads= (MessageNode**) __Malloc(sizeof(MessageNode*)*m_size,"RAY_MALLOC_TYPE_COMMUNICATION_LAYER",false);
-	m_tails= (MessageNode**) __Malloc(sizeof(MessageNode*)*m_size,"RAY_MALLOC_TYPE_COMMUNICATION_LAYER",false);
-
-	for(int i=0;i<m_size;i++){
-		m_heads[i] = NULL;
-		m_tails[i] = NULL;
-	}
 	#endif
 }
 
 void MessagesHandler::freeLeftovers(){
 	#ifdef CONFIG_PERSISTENT_COMMUNICATION
+
 	for(int i=0;i<m_ringSize;i++){
 		MPI_Cancel(m_ring+i);
 		MPI_Request_free(m_ring+i);
 	}
+
 	__Free(m_ring,"RAY_MALLOC_TYPE_PERSISTENT_MESSAGE_RING",false);
 	m_ring=NULL;
 	__Free(m_buffers,"RAY_MALLOC_TYPE_PERSISTENT_MESSAGE_BUFFERS",false);
@@ -550,10 +450,6 @@ void MessagesHandler::freeLeftovers(){
 	__Free(m_messageStatistics,"RAY_MALLOC_TYPE_MESSAGE_STATISTICS",false);
 	m_messageStatistics=NULL;
 
-	__Free(m_heads,"RAY_MALLOC_TYPE_COMMUNICATION_LAYER",false);
-	__Free(m_tails,"RAY_MALLOC_TYPE_COMMUNICATION_LAYER",false);
-	m_heads= NULL;
-	m_tails= NULL;
 	#endif
 }
 
@@ -600,13 +496,6 @@ void MessagesHandler::createBuffers(){
 	// start with the first connection
 	m_currentRankIndexToTryToReceiveFrom=0;
 
-	#ifdef CONFIG_PERSISTENT_COMMUNICATION
-	int chunkSize = 4194304; // 4 MiB
-	m_internalMessageAllocator.constructor(chunkSize,"RAY_MALLOC_TYPE_COMMUNICATION_LAYER",false);
-	m_internalBufferAllocator.constructor(chunkSize,"RAY_MALLOC_TYPE_COMMUNICATION_LAYER",false);
-
-	m_bufferedMessages=0;
-	#endif
 
 	// initialize connections
 	for(int i=0;i<m_size;i++)
