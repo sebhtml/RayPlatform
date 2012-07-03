@@ -410,26 +410,14 @@ void MessagesHandler::roundRobinReception_persistent(){
 }
 #endif
 
+/* this configuration may be important for low latency */
+/* uncomment if you want to try it */
+//#define CONFIG_ONE_IPROBE_PER_TICK
 
 void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inboxAllocator){
 	#ifdef CONFIG_PERSISTENT_COMMUNICATION
 
 	roundRobinReception_persistent();
-
-	#else
-
-	/* otherwise, we use MPI_Iprobe + MPI_Recv */
-	/* probe and read a message */
-
-	probeAndRead(m_connections[m_currentRankIndexToTryToReceiveFrom],MPI_ANY_TAG,inbox,inboxAllocator);
-
-	#endif
-
-	#ifdef COMMUNICATION_IS_VERBOSE
-	if(inbox->size() > 0){
-		cout<<"[RoundRobin] received a message from "<<m_currentRankIndexToTryToReceiveFrom<<endl;
-	}
-	#endif
 
 	/* advance the rank to receive from */
 	if(m_currentRankIndexToTryToReceiveFrom == (int)m_connections.size()-1){
@@ -439,13 +427,54 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 		m_currentRankIndexToTryToReceiveFrom++;
 	}
 
+	#else
+
+	/* otherwise, we use MPI_Iprobe + MPI_Recv */
+	/* probe and read a message */
+
+	int operations=0;
+	while(operations<m_size){
+
+		probeAndRead(m_connections[m_currentRankIndexToTryToReceiveFrom],MPI_ANY_TAG,
+			inbox,inboxAllocator);
+
+		// advance the head
+		m_currentRankIndexToTryToReceiveFrom++;
+		if(m_currentRankIndexToTryToReceiveFrom==m_peers){
+			m_currentRankIndexToTryToReceiveFrom=0;
+		}
+
+		// increment operations
+		operations++;
+
+		// we have read a message
+		if(inbox->size()>0){
+			break;
+		}
+
+		#ifdef CONFIG_ONE_IPROBE_PER_TICK
+		break;
+		#endif
+	}
+
+	#endif /* round-robin reception */
+
+
+	#ifdef COMMUNICATION_IS_VERBOSE
+	if(inbox->size() > 0){
+		cout<<"[RoundRobin] received a message from "<<m_currentRankIndexToTryToReceiveFrom<<endl;
+	}
+	#endif /* COMMUNICATION_IS_VERBOSE */
+
 }
 
 // this code is utilised, 
 void MessagesHandler::probeAndRead(int source,int tag,StaticVector*inbox,RingAllocator*inboxAllocator){
+
 	#ifdef COMMUNICATION_IS_VERBOSE
-	//cout<<"call to probeAndRead source="<<source<<""<<endl;
-	#endif
+	cout<<"call to probeAndRead source="<<source<<""<<endl;
+	#endif /* COMMUNICATION_IS_VERBOSE */
+
 	int flag;
 	MPI_Status status;
 	MPI_Iprobe(source,tag,MPI_COMM_WORLD,&flag,&status);
@@ -582,7 +611,12 @@ void MessagesHandler::createBuffers(){
 	// initialize connections
 	for(int i=0;i<m_size;i++)
 		m_connections.push_back(i);
+
+	cout<<"[MessagesHandler] Will use "<<m_connections.size()<<" connections for round-robin reception."<<endl;
+
+	m_peers=m_connections.size();
 }
+
 
 void MessagesHandler::destructor(){
 	if(!m_destroyed){
@@ -669,6 +703,7 @@ string MessagesHandler::getMessagePassingInterfaceImplementation(){
 }
 
 // set connections to probe from
+// we assume that connections are sorted.
 void MessagesHandler::setConnections(vector<int>*connections){
 
 	bool hasSelf=false;
@@ -681,14 +716,34 @@ void MessagesHandler::setConnections(vector<int>*connections){
 
 	m_connections.clear();
 
-	// add the self rank
-	if(!hasSelf)
+	// we have to make sure to insert the self link
+	// at the good place.
+
+	for(int i=0;i<(int)connections->size();i++){
+
+		Rank otherRank=connections->at(i);
+
+		// add the self rank
+		if(!hasSelf){
+			if(m_rank < otherRank){
+				m_connections.push_back(m_rank);
+				hasSelf=true;
+			}
+		}
+
+		m_connections.push_back(otherRank);
+	}
+
+	// if we have not added the self link yet,
+	// it is because it is greater.
+	if(!hasSelf){
 		m_connections.push_back(m_rank);
+		hasSelf=true;
+	}
 
-	for(int i=0;i<(int)connections->size();i++)
-		m_connections.push_back(connections->at(i));
+	cout<<"[MessagesHandler] after runtime re-configuration, will use "<<m_connections.size()<<" connections for round-robin reception."<<endl;
 
-	cout<<"[MessagesHandler] Will use "<<m_connections.size()<<" connections for round-robin reception."<<endl;
+	m_peers=m_connections.size();
 }
 
 void MessagesHandler::registerPlugin(ComputeCore*core){

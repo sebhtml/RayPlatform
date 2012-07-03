@@ -66,6 +66,9 @@ struct DirtyBuffer{
  */
 class MessagesHandler: public CorePlugin{
 
+	// the number of peers for communication
+	int m_peers;
+
 	DirtyBuffer m_dirtyBuffers[MAXIMUM_NUMBER_OF_DIRTY_BUFFERS];
 	uint8_t m_dirtyBufferPosition;
 
