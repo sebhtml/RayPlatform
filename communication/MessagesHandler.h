@@ -117,8 +117,7 @@ class MessagesHandler: public CorePlugin{
 	void probeAndRead(int source,int tag,StaticVector*inbox,RingAllocator*inboxAllocator);
 
 	/** pump a message from the persistent ring */
-	void pumpMessageFromPersistentRing(Rank source,
-	StaticVector*inbox,RingAllocator*inboxAllocator);
+	void pumpMessageFromPersistentRing(StaticVector*inbox,RingAllocator*inboxAllocator);
 
 	/** select and fetch a message from the internal messages using a round-robin policy */
 	void roundRobinReception(StaticVector*inbox,RingAllocator*inboxAllocator);

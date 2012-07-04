@@ -33,23 +33,46 @@ using namespace std;
 
 // #define COMMUNICATION_IS_VERBOSE
 
-/*
- * Persistent communication pumps the message more rapidly.
- * XXX: this is not implemented correctly. see the TODO below.
+
+/* 3 communication models are implemented:
+ * latencies are for a system with 36 cores (or 120 cores), QLogic interconnect, 
+ *  and Performance scaled messaging
+ * - CONFIG_COMM_IPROBE_ANY_SOURCE  
+     	latency(36): 16 micro seconds
+	latency(120): 19 microseconds
+	no fairness, possible starvation
+ * - CONFIG_COMM_IPROBE_ROUND_ROBIN 
+     	latency(36):, 18 microseconds
+     	latency(120): 23 microseconds
+     	latency with 1008 cores: 78 (84*12): microseconds (without -route-messages.)
+     	with fairness, no starvation
+ * - CONFIG_COMM_PERSISTENT (latency(36): , no fairness)
+     	latency(36): 28 micro seconds
+	latency(120): 75 microseconds
+	no fairness, possible starvation
+ *
+ * only one must be set
  */
 
-// #define CONFIG_PERSISTENT_COMMUNICATION
+/*
+ * Persistent communication pumps the message more rapidly
+ * on some systems
+ */
+
+//#define CONFIG_COMM_PERSISTENT
 
 /**
  *  Use round-robin reception.
- * Open-MPI 1.6 and later has this inside directly
  */
-#define CONFIG_ROUND_ROBIN
+#define CONFIG_COMM_IPROBE_ROUND_ROBIN
 
 /* this configuration may be important for low latency */
 /* uncomment if you want to try it */
+/* this is only useful with CONFIG_COMM_IPROBE_ROUND_ROBIN */
 //#define CONFIG_ONE_IPROBE_PER_TICK
 
+
+//#define CONFIG_COMM_IPROBE_ANY_SOURCE
 
 /**
  * return the first free buffer
@@ -245,28 +268,20 @@ Moreover, at the end it is very easy to MPI_Cancel all the receives not yet matc
 
     george. 
  */
-void MessagesHandler::pumpMessageFromPersistentRing(Rank requestedSource,
-	StaticVector*inbox,RingAllocator*inboxAllocator){
+void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAllocator*inboxAllocator){
 
 	/* persistent communication is not enabled by default */
-	int flag;
+	int flag=0;
 	MPI_Status status;
-	MPI_Test(m_ring+m_head,&flag,&status);
+	MPI_Request*request=m_ring+m_head;
+	MPI_Test(request,&flag,&status);
 
-	while(flag){
+	if(flag){
 		// get the length of the message
 		// it is not necessary the same as the one posted with MPI_Recv_init
 		// that one was a lower bound
 		MessageTag  tag=status.MPI_TAG;
 		Rank source=status.MPI_SOURCE;
-
-		// we will take this later...
-		if(source!=requestedSource){
-			// TODO: this is invalid because if flag is true,
-			// then MPI_Test consumed the request and it
-			// needs to be pumped now.
-			break; // exit this part of the code
-		}
 
 		int count;
 		MPI_Get_count(&status,m_datatype,&count);
@@ -285,6 +300,7 @@ void MessagesHandler::pumpMessageFromPersistentRing(Rank requestedSource,
 		// this inbox is not the real inbox
 		Message aMessage(incoming,count,m_rank,tag,source);
 
+		inbox->push_back(aMessage);
 	}
 
 	// advance the ring.
@@ -295,7 +311,7 @@ void MessagesHandler::pumpMessageFromPersistentRing(Rank requestedSource,
 }
 
 void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator){
-	#if defined CONFIG_ROUND_ROBIN
+	#if defined CONFIG_COMM_IPROBE_ROUND_ROBIN
 
 	// round-robin reception seems to avoid starvation 
 /** round robin with Iprobe will increase the latency because there will be a lot of calls to
@@ -303,7 +319,12 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 
 	roundRobinReception(inbox,inboxAllocator);
 
-	#else
+	#elif defined CONFIG_COMM_PERSISTENT
+
+	// use persistent communication
+	pumpMessageFromPersistentRing(inbox,inboxAllocator);
+
+	#elif defined CONFIG_COMM_IPROBE_ANY_SOURCE
 
 	// receive any message
 	// it is assumed that MPI is fair
@@ -335,14 +356,23 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 		// increment operations
 		operations++;
 
+		// only 1 MPI_Iprobe is called for any source
+		#ifdef CONFIG_COMM_IPROBE_ANY_SOURCE
+		break;
+		#endif /* CONFIG_COMM_IPROBE_ANY_SOURCE */
+
+		#ifdef CONFIG_COMM_IPROBE_ROUND_ROBIN
+		#ifdef CONFIG_ONE_IPROBE_PER_TICK
+		break;
+		#endif /* CONFIG_ONE_IPROBE_PER_TICK */
+		#endif /* CONFIG_COMM_IPROBE_ROUND_ROBIN */
+
+
 		// we have read a message
 		if(inbox->size()>0){
 			break;
 		}
 
-		#ifdef CONFIG_ONE_IPROBE_PER_TICK
-		break;
-		#endif
 	}
 
 
@@ -361,15 +391,6 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
  */
 void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	StaticVector*inbox,RingAllocator*inboxAllocator){
-
-	#ifdef CONFIG_PERSISTENT_COMMUNICATION
-
-	// the code here will check for messages from source in the persistent buffers.
-	for(int i=0;i<m_ringSize;i++){
-		pumpMessageFromPersistentRing(source,inbox,inboxAllocator);
-	}
-
-	#else /* CONFIG_PERSISTENT_COMMUNICATION */
 
 	// the code here will probe from rank source
 	// with MPI_Iprobe
@@ -411,13 +432,12 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 		m_receivedMessages++;
 	}
 
-	#endif /* else CONFIG_PERSISTENT_COMMUNICATION */
 }
 
 void MessagesHandler::initialiseMembers(){
-	#ifdef CONFIG_PERSISTENT_COMMUNICATION
+	#ifdef CONFIG_COMM_PERSISTENT
 	// the ring itself  contain requests ready to receive messages
-	m_ringSize=32;
+	m_ringSize=m_size;
 
 	m_ring=(MPI_Request*)__Malloc(sizeof(MPI_Request)*m_ringSize,"RAY_MALLOC_TYPE_PERSISTENT_MESSAGE_RING",false);
 	m_buffers=(uint8_t*)__Malloc(MAXIMUM_MESSAGE_SIZE_IN_BYTES*m_ringSize,"RAY_MALLOC_TYPE_PERSISTENT_MESSAGE_BUFFERS",false);
@@ -435,7 +455,7 @@ void MessagesHandler::initialiseMembers(){
 }
 
 void MessagesHandler::freeLeftovers(){
-	#ifdef CONFIG_PERSISTENT_COMMUNICATION
+	#ifdef CONFIG_COMM_PERSISTENT
 
 	for(int i=0;i<m_ringSize;i++){
 		MPI_Cancel(m_ring+i);
@@ -501,7 +521,9 @@ void MessagesHandler::createBuffers(){
 	for(int i=0;i<m_size;i++)
 		m_connections.push_back(i);
 
+	#ifdef CONFIG_COMM_IPROBE_ROUND_ROBIN
 	cout<<"[MessagesHandler] Will use "<<m_connections.size()<<" connections for round-robin reception."<<endl;
+	#endif
 
 	m_peers=m_connections.size();
 }
