@@ -69,6 +69,9 @@ using namespace std;
  *
  * probing depth is usually low because incremental resizing is triggered at load >= 70.0%
  * and double hashing eases exploration of bucket landscapes.
+ *
+ * \author Sébastien Boisvert
+ * \date 2012-08-07 This class was reviewed by David Weese <weese@campus.fu-berlin.de>
  */
 template<class KEY,class VALUE>
 class MyHashTable{

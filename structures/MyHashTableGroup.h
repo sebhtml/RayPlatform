@@ -38,6 +38,7 @@ using namespace std;
  *
  * All operations are constant-time or so
  * \author Sébastien Boisvert
+ * \date 2012-08-07 This class was reviewed by David Weese <weese@campus.fu-berlin.de>
  */
 template<class KEY,class VALUE>
 class MyHashTableGroup{
