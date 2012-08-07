@@ -83,6 +83,8 @@ public:
 
 	int getUsedBuckets();
 
+	int __countBits(uint64_t value);
+
 	/**
  * 	is the bucket utilised by someone else than key ?
  */
@@ -341,82 +343,12 @@ VALUE*MyHashTableGroup<KEY,VALUE>::getBucket(int bucket,ChunkAllocatorWithDefrag
  */
 template<class KEY,class VALUE>
 int MyHashTableGroup<KEY,VALUE>::getBucketsBefore(int bucket){
-
-
-	#if  defined (__GNUC__) && defined (__WORDSIZE) && __WORDSIZE == 64 
-
-	/* http://gcc.gnu.org/onlinedocs/gcc-3.4.5/gcc/Other-Builtins.html */
-
-
-/*
- * bit shift the bit so that we get a value of 2^(i+1)
- */
 	
 	uint64_t mask=1;
 	mask<<=bucket;
 	mask-=1;
 
-	return  __builtin_popcountll( m_bitmap & mask );
-
-
-	#elif defined (_MSC_VER) // should work on _WIN64 or _WIN32
-
-
-	uint64_t mask=1;
-	mask<<=bucket;
-	mask-=1;
-
-	// http://msdn.microsoft.com/en-us/library/bb385231.aspx 
-	
-	return __popcnt64 ( m_bitmap & mask ) ;
-
-	#else // all other platforms.
-
-	#ifdef __hardware_debugging_gnuc
-	int bit=bucket;
-	#endif
-
-	/** the computation is done using only one variable and 
- * 	the one provided in argument */
-	int bucketsBefore=0;
-	bucket--;
-	while(bucket>=0)
-		bucketsBefore+=getBit(bucket--);
-
-	#ifdef __hardware_debugging_gnuc
-
-	uint64_t mask=1;
-	mask<<=bit;
-	mask-=1;
-
-	int gcc=__builtin_popcountll( m_bitmap & mask );
-
-	if(gcc!=bucketsBefore){
-		cout<<"Error."<<endl;
-		cout<<"gcc says "<<gcc<<" but real value is "<<bucketsBefore<<endl;
-		cout<<"bitmap"<<endl;
-		__hash_print64(m_bitmap);
-		cout<<"bit= "<<bit<<endl;
-		cout<<"Stuff given to __builtin_popcountll"<<endl;
-		__hash_print64( m_bitmap & mask );
-
-		cout<<"mask"<<endl;
-
-		__hash_print64(mask);
-
-		uint64_t result=m_bitmap&mask;
-
-		cout<<"result"<<endl;
-		__hash_print64(result);
-		cout<<endl;
-	}
-	#endif
-
-
-	return bucketsBefore;
-
-	#endif
-
+	return __countBits( m_bitmap & mask );
 }
 
 /** finds a key in a bucket  
@@ -462,27 +394,69 @@ void MyHashTableGroup<KEY,VALUE>::__hash_print64(uint64_t a){
 template<class KEY,class VALUE>
 int MyHashTableGroup<KEY,VALUE>::getUsedBuckets(){
 
-	#if  defined (__GNUC__) && defined (__WORDSIZE) && __WORDSIZE == 64
-
-	/* http://gcc.gnu.org/onlinedocs/gcc-3.4.5/gcc/Other-Builtins.html */
-
-	return  __builtin_popcountll( m_bitmap );
-
-	#elif defined (_MSC_VER) // should work on _WIN64 or _WIN32
-
-	// http://msdn.microsoft.com/en-us/library/bb385231.aspx 
-	
-	return __popcnt64 ( m_bitmap ) ;
-
-	// with SSE on Windows -> _mm_popcnt_u64
-	
-	#else
-
-	return getBucketsBefore(sizeof(uint64_t)*8); // 64
-
-	#endif
+	return __countBits(m_bitmap);
 }
 
+/**
+ * could also use _mm_popcnt_u64
+ *
+ * \see http://www.dalkescientific.com/writings/diary/archive/2011/11/02/faster_popcount_update.html
+ */
+template<class KEY,class VALUE>
+int MyHashTableGroup<KEY,VALUE>::__countBits(uint64_t map){
+
+	#define KNUTH
+	//#define CONFIG_SSE_4_2
+	//#define CONFIG_HAS_POPCNT
+
+	/** Support is indicated via the CPUID.01H:ECX.POPCNT[Bit 23] flag. (Wikipedia **/
+	/* \see http://stackoverflow.com/questions/6427473/how-to-generate-a-sse4-2-popcnt-machine-instruction */
+	#if defined (CONFIG_HAS_POPCNT)
+
+	return _mm_popcnt_u64 (map);
+
+
+	/* this is the default on 64-bit gnu systems */
+	/* \see http://gcc.gnu.org/onlinedocs/gcc-3.4.5/gcc/Other-Builtins.html  */
+	#elif  defined (__GNUC__) && defined (__WORDSIZE) && __WORDSIZE == 64
+
+	return  __builtin_popcountll( map );
+
+	/* for Microsoft */
+	/* \see http://msdn.microsoft.com/en-us/library/bb385231.aspx  */
+	#elif defined (_MSC_VER) // should work on _WIN64 or _WIN32
+
+	
+	return __popcnt64 ( map ) ;
+
+	
+	#elif defined(KNUTH)
+
+	// from http://gcc.gnu.org/bugzilla/show_bug.cgi?id=36041
+	
+	map = (map & 0x5555555555555555ULL) + ((map >> 1) & 0x5555555555555555ULL);
+	map = (map & 0x3333333333333333ULL) + ((map >> 2) & 0x3333333333333333ULL);
+	map = (map & 0x0F0F0F0F0F0F0F0FULL) + ((map >> 4) & 0x0F0F0F0F0F0F0F0FULL);
+	return (map * 0x0101010101010101ULL) >> 56;
+
+
+	#else
+
+	// silly implementation, slow.
+
+	int bits=0;
+	int i=0;
+	while(i<64){
+		bits+=((<map<(63-i))>>63);
+		i++;
+	}
+
+	return bits;
+
+	#endif
+
+	#undef KNUTH
+}
 
 #endif /* _MyHashTableGroup_hh */
 
