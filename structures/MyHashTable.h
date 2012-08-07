@@ -216,7 +216,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 		VALUE*vectorPointer=(VALUE*)allocator->getPointer(m_vector);
 		#ifdef ASSERT
 		VALUE*value=vectorPointer+bucketsBefore;
-		assert(value->m_lowerKey==*key);
+		assert(value->getKey()==*key);
 		#endif
 		return vectorPointer+bucketsBefore;
 	}
@@ -258,7 +258,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 		newVectorPointer[bucketsBefore+1+i]=vectorPointer[bucketsBefore+i];
 
 	/* assign the new bucket */
-	newVectorPointer[bucketsBefore].m_lowerKey=*key;
+	newVectorPointer[bucketsBefore].getKey()=*key;
 	
 	/* garbage the old vector, ChunkAllocatorWithDefragmentation will reuse it */
 	if(m_vector!=SmartPointer_NULL)
@@ -270,22 +270,22 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 	/* check that everything is OK now ! */
 	#ifdef ASSERT
 	assert(getBit(bucket)==1);
-	if(getBucket(bucket,allocator)->m_lowerKey!=*key){
+	if(getBucket(bucket,allocator)->getKey()!=*key){
 		cout<<"Expected"<<endl;
 		key->print();
 		cout<<"Actual"<<endl;
-		getBucket(bucket,allocator)->m_lowerKey.print();
+		getBucket(bucket,allocator)->getKey().print();
 		
 		cout<<"Bucket= "<<bucket<<" BucketsBefore= "<<bucketsBefore<<" BucketsAfter= "<<bucketsAfter<<endl;
 	}
-	assert(getBucket(bucket,allocator)->m_lowerKey==*key);
+	assert(getBucket(bucket,allocator)->getKey()==*key);
 	assert(!bucketIsUtilisedBySomeoneElse(bucket,key,allocator));
 	#endif
 
 	/** check that we inserted something somewhere actually */
 	#ifdef ASSERT
 	assert(find(bucket,key,allocator)!=NULL);
-	assert(find(bucket,key,allocator)->m_lowerKey==*key);
+	assert(find(bucket,key,allocator)->getKey()==*key);
 	#endif
 
 	/** tell the caller that we inserted something  somewhere */
@@ -308,7 +308,7 @@ bool MyHashTableGroup<KEY,VALUE>::bucketIsUtilisedBySomeoneElse(int bucket,KEY*k
 
 	/** check if the key is the same */
 	VALUE*vectorPointer=(VALUE*)allocator->getPointer(m_vector);
-	return vectorPointer[bucketsBefore].m_lowerKey!=*key;
+	return vectorPointer[bucketsBefore].getKey()!=*key;
 }
 
 /** get direct access to the bucket 
@@ -378,7 +378,17 @@ VALUE*MyHashTableGroup<KEY,VALUE>::find(int bucket,KEY*key,ChunkAllocatorWithDef
 /**
  * this hash table is specific to DNA
  * uses open addressing with double hashing
- * class VALUE must have a public attribute of class KEY called m_lowerKey.
+ *
+ * class KEY must have these methods:
+ *
+ * hash_function_1()
+ * hash_function_2()
+ * print()
+ *
+ * class VALUE must have these methods:
+ *
+ * getKey()
+ *
  * the number of buckets can not be exceeded. 
  * based on the description at
  * \see http://google-sparsehash.googlecode.com/svn/trunk/doc/implementation.html
@@ -703,7 +713,8 @@ void MyHashTable<KEY,VALUE>::resize(){
 			assert(entry!=NULL);
 			#endif
 
-			KEY*key=&(entry->m_lowerKey);
+			KEY keyValue=entry->getKey();
+			KEY*key=&keyValue;
 
 			#ifdef ASSERT
 			uint64_t probe;
@@ -1156,11 +1167,11 @@ VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
 	/* check that nothing failed elsewhere */
 	#ifdef ASSERT
 	assert(entry!=NULL);
-	if(entry->m_lowerKey!=*key)
+	if(entry->getKey()!=*key)
 		cout<<"Pointer: "<<entry<<endl;
-	assert(entry->m_lowerKey==*key);
+	assert(entry->getKey()==*key);
 	assert(m_groups[group].find(bucketInGroup,key,&m_allocator)!=NULL);
-	assert(m_groups[group].find(bucketInGroup,key,&m_allocator)->m_lowerKey==*key);
+	assert(m_groups[group].find(bucketInGroup,key,&m_allocator)->getKey()==*key);
 	#endif
 
 	/* increment the elements if an insertion occured */
@@ -1175,7 +1186,7 @@ VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
 
 	#ifdef ASSERT
 	assert(find(key)!=NULL);
-	assert(find(key)->m_lowerKey==*key);
+	assert(find(key)->getKey()==*key);
 	if(inserted)
 		assert(m_utilisedBuckets==beforeSize+1);
 	#endif
