@@ -29,6 +29,9 @@
 #include <assert.h>
 using namespace std;
 
+/* debug the hardware stuff (gcc built-ins */
+//#define __hardware_debugging_gnuc
+
 
 /**
  * This is an hash group.
@@ -42,6 +45,15 @@ using namespace std;
  */
 template<class KEY,class VALUE>
 class MyHashTableGroup{
+
+	#ifdef __hardware_debugging_gnuc
+
+	void __hash_print64(uint64_t a);
+
+	#endif /* __hardware_debugging_gnuc */
+
+
+
 	/**
  * 	The VALUEs
  */
@@ -68,6 +80,8 @@ public:
  * get the number of occupied buckets before bucket 
  */
 	int getBucketsBefore(int bucket);
+
+	int getUsedBuckets();
 
 	/**
  * 	is the bucket utilised by someone else than key ?
@@ -188,7 +202,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 	/* if it would be the case, then MyHashTable would not have sent key here */
 	#ifdef ASSERT
 	if(bucketIsUtilisedBySomeoneElse(bucket,key,allocator)){
-		cout<<"Error, bucket "<<bucket<<" is utilised by another key numberOfBucketsInGroup "<<numberOfBucketsInGroup<<" utilised buckets in group: "<<getBucketsBefore(numberOfBucketsInGroup)<<endl;
+		cout<<"Error, bucket "<<bucket<<" is utilised by another key numberOfBucketsInGroup "<<numberOfBucketsInGroup<<" utilised buckets in group: "<<getUsedBuckets()<<endl;
 	}
 	assert(!bucketIsUtilisedBySomeoneElse(bucket,key,allocator));
 	#endif
@@ -212,14 +226,14 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 	#endif
 
 	#ifdef ASSERT
-	int usedBucketsBefore=getBucketsBefore(numberOfBucketsInGroup);
+	int usedBucketsBefore=getUsedBuckets();
 	#endif
 
 	/* the bucket is not occupied */
 	setBit(bucket,1);
 
 	#ifdef ASSERT
-	assert(getBucketsBefore(numberOfBucketsInGroup)==usedBucketsBefore+1);
+	assert(getUsedBuckets()==usedBucketsBefore+1);
 	#endif
 
 	/* compute the number of buckets to actually move. */
@@ -327,13 +341,82 @@ VALUE*MyHashTableGroup<KEY,VALUE>::getBucket(int bucket,ChunkAllocatorWithDefrag
  */
 template<class KEY,class VALUE>
 int MyHashTableGroup<KEY,VALUE>::getBucketsBefore(int bucket){
+
+
+	#if  defined (__GNUC__) && defined (__WORDSIZE) && __WORDSIZE == 64 
+
+	/* http://gcc.gnu.org/onlinedocs/gcc-3.4.5/gcc/Other-Builtins.html */
+
+
+/*
+ * bit shift the bit so that we get a value of 2^(i+1)
+ */
+	
+	uint64_t mask=1;
+	mask<<=bucket;
+	mask-=1;
+
+	return  __builtin_popcountll( m_bitmap & mask );
+
+
+	#elif defined (_MSC_VER) // should work on _WIN64 or _WIN32
+
+
+	uint64_t mask=1;
+	mask<<=bucket;
+	mask-=1;
+
+	// http://msdn.microsoft.com/en-us/library/bb385231.aspx 
+	
+	return __popcnt64 ( m_bitmap & mask ) ;
+
+	#else // all other platforms.
+
+	#ifdef __hardware_debugging_gnuc
+	int bit=bucket;
+	#endif
+
 	/** the computation is done using only one variable and 
  * 	the one provided in argument */
 	int bucketsBefore=0;
 	bucket--;
 	while(bucket>=0)
 		bucketsBefore+=getBit(bucket--);
+
+	#ifdef __hardware_debugging_gnuc
+
+	uint64_t mask=1;
+	mask<<=bit;
+	mask-=1;
+
+	int gcc=__builtin_popcountll( m_bitmap & mask );
+
+	if(gcc!=bucketsBefore){
+		cout<<"Error."<<endl;
+		cout<<"gcc says "<<gcc<<" but real value is "<<bucketsBefore<<endl;
+		cout<<"bitmap"<<endl;
+		__hash_print64(m_bitmap);
+		cout<<"bit= "<<bit<<endl;
+		cout<<"Stuff given to __builtin_popcountll"<<endl;
+		__hash_print64( m_bitmap & mask );
+
+		cout<<"mask"<<endl;
+
+		__hash_print64(mask);
+
+		uint64_t result=m_bitmap&mask;
+
+		cout<<"result"<<endl;
+		__hash_print64(result);
+		cout<<endl;
+	}
+	#endif
+
+
 	return bucketsBefore;
+
+	#endif
+
 }
 
 /** finds a key in a bucket  
@@ -358,6 +441,46 @@ VALUE*MyHashTableGroup<KEY,VALUE>::find(int bucket,KEY*key,ChunkAllocatorWithDef
 	/** return the pointer m_vector with the offset valued by bucketsBefore */
 	VALUE*vectorPointer=(VALUE*)allocator->getPointer(m_vector);
 	return vectorPointer+bucketsBefore;
+}
+
+#ifdef __hardware_debugging_gnuc
+template<class KEY,class VALUE>
+void MyHashTableGroup<KEY,VALUE>::__hash_print64(uint64_t a){
+	for(int k=63;k>=0;k-=2){
+		int bit=a<<(k-1)>>63;
+		printf("%i",bit);
+		bit=a<<(k)>>63;
+		printf("%i ",bit);
+	}
+	printf("\n");
+}
+#endif /* __hardware_debugging_gnuc */
+
+
+/* 
+ * get the number of used buckets */
+template<class KEY,class VALUE>
+int MyHashTableGroup<KEY,VALUE>::getUsedBuckets(){
+
+	#if  defined (__GNUC__) && defined (__WORDSIZE) && __WORDSIZE == 64
+
+	/* http://gcc.gnu.org/onlinedocs/gcc-3.4.5/gcc/Other-Builtins.html */
+
+	return  __builtin_popcountll( m_bitmap );
+
+	#elif defined (_MSC_VER) // should work on _WIN64 or _WIN32
+
+	// http://msdn.microsoft.com/en-us/library/bb385231.aspx 
+	
+	return __popcnt64 ( m_bitmap ) ;
+
+	// with SSE on Windows -> _mm_popcnt_u64
+	
+	#else
+
+	return getBucketsBefore(sizeof(uint64_t)*8); // 64
+
+	#endif
 }
 
 
