@@ -72,7 +72,7 @@ class MyHashTableGroup{
  */
 	void setBit(int i,uint64_t j);
 public:
-	void print(ChunkAllocatorWithDefragmentation*allocator);
+	void print(ChunkAllocatorWithDefragmentation*allocator,int numberOfBucketsInGroup);
 
 	/** requests the bucket directly
  * 	fails if it is empty
@@ -147,11 +147,14 @@ void MyHashTableGroup<KEY,VALUE>::setBit(int bit,uint64_t value){
 	#endif
 }
 
-/* TODO replace  hard-coded 64 by m_numberOfBucketsInGroup  or numberOfBucketsInGroup */
+/* replace  hard-coded 64 by m_numberOfBucketsInGroup  or numberOfBucketsInGroup 
+ * 2012-08-07 - done */
 template<class KEY,class VALUE>
-void MyHashTableGroup<KEY,VALUE>::print(ChunkAllocatorWithDefragmentation*allocator){
+void MyHashTableGroup<KEY,VALUE>::print(ChunkAllocatorWithDefragmentation*allocator,int
+	numberOfBucketsInGroup){
+
 	cout<<"Group bitmap"<<endl;
-	for(int i=0;i<64;i++)
+	for(int i=0;i<numberOfBucketsInGroup;i++)
 		cout<<" "<<i<<":"<<getBit(i);
 	cout<<endl;
 }
@@ -179,7 +182,8 @@ void MyHashTableGroup<KEY,VALUE>::constructor(int numberOfBucketsInGroup,ChunkAl
 	/* the number of buckets in a group must be a multiple of 8 */
 	/* why ? => to save memory -- not to waste memory */
 	#ifdef ASSERT
-	assert(numberOfBucketsInGroup%8==0);
+	//assert(numberOfBucketsInGroup%8==0);
+	// this is not necessary.
 	#endif
 
 	/** set all bits to 0 */
@@ -223,14 +227,14 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 	#endif
 
 	#ifdef ASSERT
-	int usedBucketsBefore=getBucketsBefore(64);
+	int usedBucketsBefore=getBucketsBefore(numberOfBucketsInGroup);
 	#endif
 
 	/* the bucket is not occupied */
 	setBit(bucket,1);
 
 	#ifdef ASSERT
-	assert(getBucketsBefore(64)==usedBucketsBefore+1);
+	assert(getBucketsBefore(numberOfBucketsInGroup)==usedBucketsBefore+1);
 	#endif
 
 	/* compute the number of buckets to actually move. */
@@ -473,9 +477,6 @@ class MyHashTable{
  */
 	bool m_showMalloc;
 
-	/**
- * build the buckets and the hash */
-	void constructor(uint64_t buckets,const char*mallocType,bool showMalloc,int rank);
 
 /*
  * find a key, but specify if the auxiliary table should be searched also */
@@ -495,9 +496,11 @@ public:
  * 	is the seat available
  */
 	bool isAvailable(uint64_t a);
+
 	/**
  * build the buckets and the hash */
-	void constructor(const char*mallocType,bool showMalloc,int rank);
+	void constructor(uint64_t buckets,const char*mallocType,bool showMalloc,int rank,
+		int bucketsPerGroup,double loadFactorThreshold);
 
 	/**
  * find a seat given a key */
@@ -597,6 +600,11 @@ void MyHashTable<KEY,VALUE>::growIfNecessary(){
 	m_currentBucketToTransfer=0;
 	m_resizing=true;
 
+	if(m_verbose){
+		cout<<"Beginning resizing operations"<<endl;
+		printProbeStatistics();
+	}
+
 	#ifdef ASSERT
 	assert(m_auxiliaryTableForIncrementalResize==NULL);
 	#endif
@@ -604,7 +612,8 @@ void MyHashTable<KEY,VALUE>::growIfNecessary(){
 	m_auxiliaryTableForIncrementalResize=new MyHashTable();
 
 	/** build a new larger table */
-	m_auxiliaryTableForIncrementalResize->constructor(newSize,m_mallocType,m_showMalloc,m_rank);
+	m_auxiliaryTableForIncrementalResize->constructor(newSize,m_mallocType,m_showMalloc,m_rank,
+		m_numberOfBucketsInGroup,m_maximumLoadFactor);
 
 	//cout<<"Rank "<<m_rank<<" MyHashTable must grow now "<<m_totalNumberOfBuckets<<" -> "<<newSize<<endl;
 	//printStatistics();
@@ -749,6 +758,7 @@ void MyHashTable<KEY,VALUE>::resize(){
 		/* make sure the old table is now empty */
 		#ifdef ASSERT
 		//assert(size()==0);
+		//the old table still has its stuff.
 		#endif
 
 		/** destroy the current table */
@@ -763,6 +773,7 @@ void MyHashTable<KEY,VALUE>::resize(){
 		m_size=m_auxiliaryTableForIncrementalResize->m_size;
 
 		#ifdef ASSERT
+		assert(m_size == m_utilisedBuckets);
 		assert(m_auxiliaryTableForIncrementalResize->m_resizing == false);
 		assert(m_size == m_utilisedBuckets);
 		#endif
@@ -777,6 +788,11 @@ void MyHashTable<KEY,VALUE>::resize(){
 		delete m_auxiliaryTableForIncrementalResize;
 		m_auxiliaryTableForIncrementalResize=NULL;
 		m_resizing=false;
+
+		if(m_verbose){
+			cout<<"Completed resizing operations"<<endl;
+			printProbeStatistics();
+		}
 	}
 }
 
@@ -787,15 +803,6 @@ uint64_t MyHashTable<KEY,VALUE>::size(){
 	return m_size;
 }
 
-/**
- * Allocate the theater and mark the buckets as available
- */
-template<class KEY,class VALUE>
-void MyHashTable<KEY,VALUE>::constructor(const char*mallocType,bool showMalloc,int rank){
-	/** build the hash with a default size */
-	uint64_t defaultSize=524288;
-	constructor(defaultSize,mallocType,showMalloc,rank);
-}
 
 template<class KEY,class VALUE>
 void MyHashTable<KEY,VALUE>::toggleVerbosity(){
@@ -806,12 +813,35 @@ void MyHashTable<KEY,VALUE>::toggleVerbosity(){
  * this is private actually 
  * */
 template<class KEY,class VALUE>
-void MyHashTable<KEY,VALUE>::constructor(uint64_t buckets,const char*mallocType,bool showMalloc,int rank){
+void MyHashTable<KEY,VALUE>::constructor(uint64_t buckets,const char*mallocType,bool showMalloc,int rank,
+	int bucketsPerGroup,double loadFactorThreshold){
+
+	// adjust the buckets.
+	uint64_t check=2;
+	while(check<buckets)
+		check*=2;
+	
+	if(check!=buckets){
+		cout<<"Warning: the number of buckets must be a power of 2"<<endl;
+		buckets=check;
+		cout<<"Changed buckets to "<<buckets<<endl;
+	}
+
 	/** this is the maximum acceptable load factor. */
 	/** based on Figure 42 on page 531 of
  * 	The Art of Computer Programming, Second Edition, by Donald E. Knuth
  */
-	m_maximumLoadFactor=0.9; 
+
+	/* TODO: why does the code crash when loadFactorThreshold < 0.5 ? */
+	/* probably has something to do with resizing */
+	if(loadFactorThreshold<0.5)
+		loadFactorThreshold=0.5;
+
+	if(loadFactorThreshold>1)
+		loadFactorThreshold=1;
+
+	m_maximumLoadFactor=loadFactorThreshold; 
+	m_numberOfBucketsInGroup=bucketsPerGroup;
 
 	m_auxiliaryTableForIncrementalResize=NULL;
 	m_resizing=false;
@@ -838,7 +868,7 @@ void MyHashTable<KEY,VALUE>::constructor(uint64_t buckets,const char*mallocType,
  * 	this is arbitrary I believe... 
  * 	in my case, 64 is the number of bits in a uint64_t
  * 	*/
-	m_numberOfBucketsInGroup=64;
+	m_numberOfBucketsInGroup=bucketsPerGroup;
 
 	/**
  * 	compute the required number of groups 
@@ -1048,6 +1078,7 @@ VALUE*MyHashTable<KEY,VALUE>::findKey(KEY*key,bool checkAuxiliary){ /* for verbo
 	assert(bucketInGroup<m_numberOfBucketsInGroup);
 	#endif
 	
+	#if 0
 	if(m_verbose){
 		cout<<"GridTable (service provided by MyHashTable) -> found key [";
 		for(int i=0;i<key->getNumberOfU64();i++){
@@ -1063,6 +1094,7 @@ VALUE*MyHashTable<KEY,VALUE>::findKey(KEY*key,bool checkAuxiliary){ /* for verbo
 			cout<<"s";
 		cout<<endl;
 	}
+	#endif
 
 	/** ask the group to find the key */
 	return m_groups[group].find(bucketInGroup,key,&m_allocator);
@@ -1180,11 +1212,14 @@ void MyHashTable<KEY,VALUE>::printProbeStatistics(){
 	else
 		cout<<"no";
 	cout<<endl;
+
 	cout<<"Rank "<<m_rank<<" ProbeStatistics: ";
 	for(int i=0;i<MAX_SAVED_PROBE;i++){
 		if(m_probes[i]!=0)
-			cout<<"("<<i<<"; "<<m_probes[i]<<"); ";
+			cout<<" "<<i<<" -> "<<m_probes[i]<<"";
 	}
+
+	cout<<endl;
 }
 
 template<class KEY,class VALUE>
