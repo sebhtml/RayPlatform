@@ -887,6 +887,7 @@ void MyHashTable<KEY,VALUE>::printStatistics(){
 
 template<class KEY,class VALUE>
 void MyHashTable<KEY,VALUE>::printProbeStatistics(){
+
 	double loadFactor=(0.0+m_utilisedBuckets)/m_totalNumberOfBuckets*100;
 	cout<<"Rank "<<m_rank<<": MyHashTable, BucketGroups: "<<m_numberOfGroups<<", BucketsPerGroup: "<<m_numberOfBucketsInGroup<<", LoadFactor: "<<loadFactor<<"%, OccupiedBuckets: "<<m_utilisedBuckets<<"/"<<m_totalNumberOfBuckets<<endl;
 	cout<<"Rank "<<m_rank<<": incremental resizing in progress: ";
@@ -913,6 +914,9 @@ void MyHashTable<KEY,VALUE>::completeResizing(){
 	#ifdef ASSERT
 	assert(m_auxiliaryTableForIncrementalResize == NULL);
 	#endif
+
+	if(m_verbose)
+		printProbeStatistics();
 }
 
 template<class KEY,class VALUE>
