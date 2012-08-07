@@ -242,7 +242,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 		newVectorPointer[bucketsBefore+1+i]=vectorPointer[bucketsBefore+i];
 
 	/* assign the new bucket */
-	newVectorPointer[bucketsBefore].getKey()=*key;
+	newVectorPointer[bucketsBefore].setKey(*key);
 	
 	/* garbage the old vector, ChunkAllocatorWithDefragmentation will reuse it */
 	if(m_vector!=SmartPointer_NULL)
