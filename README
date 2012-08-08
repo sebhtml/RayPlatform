@@ -7,8 +7,31 @@ added on the RayPlatform compute engine.
 It uses the message-passing interface for interprocess communication, but this is
 transparent to the developer.
 
+## Illustration 
 
-== Projects using RayPlatform ==
++--------------------------------------------------------------------------+
+|                                                                          |
+|                                Application                               |
+|                                                                          |
++------------------------+------------------------+------------------------+
+|                        |                        |                        |
+|         Plugin         |         Plugin         |         Plugin         |
+|                        |                        |                        |
++---------+---------+    +---------+---------+    +---------+---------+    +
+|         |         |    |         |         |    |         |         |    |
+| Adapter | Adapter |    | Adapter | Adapter |    | Adapter | Adapter |    |
+|         |         |    |         |         |    |         |         |    |
++---------+---------+----+---------+---------+----+---------+---------+----+
+|                                                                          |
+|                                RayPlatform                               |
+|                                                                          |
++--------------------------------------------------------------------------+
+|                                                                          |
+|                        Message Passing Interface                         |
+|                                                                          |
++--------------------------------------------------------------------------+
+
+## Projects using RayPlatform 
 
 - The Ray genome assembler
 - RayPlatform example
@@ -16,21 +39,21 @@ transparent to the developer.
 - A latency test (part of the Ray assembler)
 
 
-== RayPlatform example ==
+## RayPlatform example 
 
 git://github.com/sebhtml/RayPlatform-example.git
 git://github.com/sebhtml/RayPlatform.git
 
 See the README of RayPlatform-example
 
-== The Ray genome assembler ==
+## The Ray genome assembler 
 
 Ray is built on top of RayPlatform and makes heavy use of the RayPlatform API.
 
 See git://github.com/sebhtml/ray.git
 
 
-== Description ==
+## Description 
 
 There is some documentation in Documentation/
 
