@@ -27,7 +27,6 @@
 #include <structures/StaticVector.h>
 #include <communication/Message.h>
 #include <memory/MyAllocator.h>
-#include <plugins/CorePlugin.h>
 
 #include <map>
 #include <vector>
@@ -48,7 +47,7 @@ using namespace std;
 * this class is event-driven and tag-specific and destination-specific
  * \author Sébastien Boisvert
 */
-class VirtualCommunicator: public CorePlugin{
+class VirtualCommunicator{
 	bool m_debug;
 	uint64_t m_pushedMessages;
 	uint64_t m_flushedMessages;
@@ -215,8 +214,6 @@ public:
 
 	int getReplyType(int tag);
 
-	void registerPlugin(ComputeCore*core);
-	void resolveSymbols(ComputeCore*core);
 };
 
 #endif

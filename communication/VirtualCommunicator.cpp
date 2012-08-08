@@ -470,15 +470,3 @@ Rank VirtualCommunicator::getDestinationFromMessageUniqueId(uint64_t a){
 	return rank;
 }
 
-void VirtualCommunicator::registerPlugin(ComputeCore*core){
-	m_plugin=core->allocatePluginHandle();
-
-	core->setPluginName(m_plugin,"VirtualCommunicator");
-	core->setPluginDescription(m_plugin,"Multiplexing and demultiplexing of worker messages (bundled with RayPlatform)");
-	core->setPluginAuthors(m_plugin,"Sébastien Boisvert");
-	core->setPluginLicense(m_plugin,"GNU Lesser General License version 3");
-}
-
-void VirtualCommunicator::resolveSymbols(ComputeCore*core){
-
-}

@@ -28,14 +28,14 @@
 class MasterModeExecutor{
 
 /** a list of objects to use for calling methods */
-	MasterModeHandler*m_objects[MAXIMUM_NUMBER_OF_MASTER_HANDLERS];
+	MasterModeHandler m_objects[MAXIMUM_NUMBER_OF_MASTER_HANDLERS];
 
 public:
 	/** call the handler */
 	void callHandler(MasterMode mode);
 
 /** set the correct object to call for a given master mode */
-	void setObjectHandler(MasterMode mode, MasterModeHandler*object);
+	void setObjectHandler(MasterMode mode, MasterModeHandler object);
 
 /** initialise default object and method handlers */
 	MasterModeExecutor();

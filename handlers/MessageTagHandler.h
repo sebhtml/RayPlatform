@@ -21,24 +21,12 @@
 #ifndef _MessageTagHandler_h
 #define _MessageTagHandler_h
 
-/* this is a macro to create the header code for an adapter */
-#define ____CreateMessageTagAdapterDeclaration(corePlugin,handle) \
-class Adapter_ ## handle : public MessageTagHandler{ \
-	corePlugin *m_object; \
-public: \
-	void setObject(corePlugin *object); \
-	void call(Message*message); \
-};
 
 /* this is a macro to create the cpp code for an adapter */
-#define ____CreateMessageTagAdapterImplementation(corePlugin,handle)\
-void Adapter_ ## handle ::setObject( corePlugin *object){ \
-	m_object=object; \
-} \
- \
-void Adapter_ ## handle ::call(Message*message){ \
-	m_object->call_ ## handle(message); \
-}
+#define __CreateMessageTagAdapter( corePlugin, handle ) \
+void __GetAdapter( corePlugin, handle) ( Message*message ) { \
+	__GetPlugin( corePlugin ) -> __GetMethod( handle ) ( message ) ; \
+} 
 
 
 
@@ -50,13 +38,9 @@ void Adapter_ ## handle ::call(Message*message){ \
  * base class for handling message tags
  * \author Sébastien Boisvert
  * with help from Élénie Godzaridis for the design
+ * \date 2012-08-08 replaced this with function pointers
  */
-class MessageTagHandler{
-public:
+typedef void (*MessageTagHandler) (Message*message) /* */ ;
 
-	virtual void call(Message*message) = 0;
-
-	virtual ~MessageTagHandler();
-};
 
 #endif

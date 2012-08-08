@@ -28,8 +28,10 @@ using namespace std;
 
 //#define CONFIG_SWITCHMAN_VERBOSITY
 
-____CreateMessageTagAdapterImplementation(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
-____CreateSlaveModeAdapterImplementation(SwitchMan,RAY_SLAVE_MODE_STOP);
+__CreatePlugin(SwitchMan);
+
+__CreateMessageTagAdapter(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
+__CreateSlaveModeAdapter(SwitchMan,RAY_SLAVE_MODE_STOP);
 
 
 void SwitchMan::constructor(Rank rank,int numberOfCores){
@@ -315,8 +317,9 @@ void SwitchMan::registerPlugin(ComputeCore*core){
 	core->setMasterModeSymbol(m_plugin,RAY_MASTER_MODE_DO_NOTHING,"RAY_MASTER_MODE_DO_NOTHING");
 
 	RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL=core->allocateMessageTagHandle(m_plugin);
-	m_adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL.setObject(this);
-	core->setMessageTagObjectHandler(m_plugin,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL, &m_adapter_RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
+	core->setMessageTagObjectHandler(m_plugin,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL,
+		__GetAdapter(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL));
+
 	core->setMessageTagSymbol(m_plugin,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL,"RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL");
 
 	// set default modes
@@ -334,6 +337,9 @@ void SwitchMan::resolveSymbols(ComputeCore*core){
 	RAY_MASTER_MODE_DO_NOTHING=core->getMasterModeFromSymbol(m_plugin,"RAY_MASTER_MODE_DO_NOTHING");
 
 	RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL");
+
+	__BindPlugin(SwitchMan);
 }
+	
 
 

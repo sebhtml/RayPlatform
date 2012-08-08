@@ -24,6 +24,25 @@
 
 #include <core/types.h>
 
+/** get the static name for the variable **/
+#define __GetPlugin(corePlugin) \
+	staticPlugin_ ## corePlugin
+
+/** get the method name in the plugin **/
+#define __GetMethod(handle) \
+	call_ ## handle
+
+/** get the function pointer name for the adapter **/
+#define __GetAdapter(corePlugin,handle) \
+	Adapter_ ## corePlugin ## _call_ ## handle 
+
+/* create the static core pluging thing. */
+#define __CreatePlugin( corePlugin ) \
+	static corePlugin * __GetPlugin( corePlugin ) ;
+
+#define __BindPlugin( corePlugin ) \
+	__GetPlugin( corePlugin ) = this;
+
 class ComputeCore;
 
 /** 

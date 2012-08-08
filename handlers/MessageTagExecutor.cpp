@@ -28,14 +28,14 @@
 
 
 void MessageTagExecutor::callHandler(MessageTag messageTag,Message*message){
-	MessageTagHandler*handlerObject=m_objects[messageTag];
+	MessageTagHandler object=m_objects[messageTag];
 
 	// it is useless to call base implementations
 	// because they are empty
-	if(handlerObject==NULL)
+	if(object==NULL)
 		return;
 
-	handlerObject->call(message);
+	object(message);
 }
 
 MessageTagExecutor::MessageTagExecutor(){
@@ -44,7 +44,7 @@ MessageTagExecutor::MessageTagExecutor(){
 	}
 }
 
-void MessageTagExecutor::setObjectHandler(MessageTag messageTag,MessageTagHandler*object){
+void MessageTagExecutor::setObjectHandler(MessageTag messageTag,MessageTagHandler object){
 
 	#ifdef ASSERT
 	assert(messageTag>=0);

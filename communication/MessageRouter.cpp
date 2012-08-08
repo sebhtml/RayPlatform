@@ -367,15 +367,4 @@ ConnectionGraph*MessageRouter::getGraph(){
 	return &m_graph;
 }
 
-void MessageRouter::registerPlugin(ComputeCore*core){
-	m_plugin=core->allocatePluginHandle();
 
-	core->setPluginName(m_plugin,"MessageRouter");
-	core->setPluginDescription(m_plugin,"message router for large jobs (bundled with RayPlatform)");
-	core->setPluginAuthors(m_plugin,"Sébastien Boisvert");
-	core->setPluginLicense(m_plugin,"GNU Lesser General License version 3");
-
-}
-
-void MessageRouter::resolveSymbols(ComputeCore*core){
-}

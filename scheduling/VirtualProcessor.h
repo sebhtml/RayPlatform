@@ -24,9 +24,7 @@
 #include <structures/StaticVector.h>
 #include <memory/RingAllocator.h>
 #include <scheduling/Worker.h>
-#include <plugins/CorePlugin.h>
 
-class ComputeCore;
 
 #include <set>
 #include <vector>
@@ -84,7 +82,7 @@ work()
  *
  * \author Sébastien Boisvert
 */
-class VirtualProcessor: public CorePlugin{
+class VirtualProcessor{
 
 	WorkerHandle m_currentWorker;
 
@@ -139,8 +137,6 @@ public:
 
 	void printStatistics();
 
-	void registerPlugin(ComputeCore*core);
-	void resolveSymbols(ComputeCore*core);
 };
 
 #endif

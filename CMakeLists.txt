@@ -7,9 +7,6 @@ include_directories( . )
 
 set( source_files
 
-handlers/MessageTagHandler.cpp
-handlers/SlaveModeHandler.cpp
-handlers/MasterModeHandler.cpp
 handlers/MasterModeExecutor.cpp
 handlers/SlaveModeExecutor.cpp
 handlers/MessageTagExecutor.cpp

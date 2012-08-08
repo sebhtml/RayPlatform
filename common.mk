@@ -52,9 +52,6 @@ obj-y += profiling/TimePrinter.o
 
 # handlers
 
-obj-y += handlers/SlaveModeHandler.o
-obj-y += handlers/MasterModeHandler.o
-obj-y += handlers/MessageTagHandler.o
 obj-y += handlers/MasterModeExecutor.o
 obj-y += handlers/SlaveModeExecutor.o
 obj-y += handlers/MessageTagExecutor.o

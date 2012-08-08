@@ -29,7 +29,7 @@
 #endif
 
 void MasterModeExecutor::callHandler(MasterMode mode){
-	MasterModeHandler*object=m_objects[mode];
+	MasterModeHandler object=m_objects[mode];
 
 	// don't do it if it is NULL because it does nothing
 	if(object==NULL)
@@ -37,7 +37,7 @@ void MasterModeExecutor::callHandler(MasterMode mode){
 
 	/** otherwise, fetch the method and call it*/
 
-	object->call();
+	object();
 }
 
 MasterModeExecutor::MasterModeExecutor(){
@@ -46,7 +46,7 @@ MasterModeExecutor::MasterModeExecutor(){
 	}
 }
 
-void MasterModeExecutor::setObjectHandler(MasterMode mode,MasterModeHandler*object){
+void MasterModeExecutor::setObjectHandler(MasterMode mode,MasterModeHandler object){
 
 	#ifdef ASSERT
 	assert(mode>=0);

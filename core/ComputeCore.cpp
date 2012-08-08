@@ -42,7 +42,7 @@ ComputeCore::ComputeCore(){
 	m_hasMaximumNumberOfOutboxBuffers=false;
 }
 
-void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler*object){
+void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -68,7 +68,7 @@ void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,S
 	m_plugins[plugin].addRegisteredSlaveModeHandler(mode);
 }
 
-void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandler*object){
+void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandler object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -92,7 +92,7 @@ void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode
 	m_plugins[plugin].addRegisteredMasterModeHandler(mode);
 }
 
-void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler*object){
+void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -847,9 +847,6 @@ void ComputeCore::registerPlugin(CorePlugin*plugin){
 		// register some built-in plugins
 
 		registerPlugin(&m_switchMan);
-		registerPlugin(&m_router);
-		registerPlugin(&m_virtualCommunicator);
-		registerPlugin(&m_virtualProcessor);
 
 	}
 

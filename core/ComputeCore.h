@@ -270,7 +270,7 @@ public:
 	MasterMode getMasterModeFromSymbol(PluginHandle plugin,const char*symbol);
 
 /** add a master mode handler */
-	void setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandler*object);
+	void setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandler object);
 
 /** sets the master mode switch for a master mode
  * this tells the core which message tag is to be automaticalled broadcasted for 
@@ -298,7 +298,7 @@ Not all master modes have yet been ported to that list.
 	void setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const char*symbol);
 
 /** add a slave mode handler */
-	void setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler*object);
+	void setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler object);
 
 /** get a slave mode from its symbol **/
 	SlaveMode getSlaveModeFromSymbol(PluginHandle plugin,const char*symbol);
@@ -315,7 +315,7 @@ Not all master modes have yet been ported to that list.
 	MessageTag getMessageTagFromSymbol(PluginHandle plugin,const char*symbol);
 
 /** add a message tag handler */
-	void setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler*object);
+	void setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler object);
 
 /** sets the slave switch for a slave mode
  * this tells the core which slave mode to switch to when receiving a particular message tag **/

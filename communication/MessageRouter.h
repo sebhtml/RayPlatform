@@ -27,7 +27,6 @@
 #include <communication/Message.h>
 #include <routing/ConnectionGraph.h>
 #include <core/types.h>
-#include <plugins/CorePlugin.h>
 
 class ComputeCore;
 
@@ -51,7 +50,7 @@ using namespace std;
  * bits 8 to 19: true source (12 bits, values from 0 to 4095, 4096 possible values)
  * bits 20 to 31: true destination (12 bits, values from 0 to 4095, 4096 possible values)
  */
-class MessageRouter: public CorePlugin {
+class MessageRouter {
 
 /**
  * Number of relayed messages if the relay checker is activated.
@@ -186,8 +185,6 @@ string prefix,int numberOfRanks,string type,int degree);
 
 	ConnectionGraph*getGraph();
 
-	void registerPlugin(ComputeCore*core);
-	void resolveSymbols(ComputeCore*core);
 };
 
 #endif
