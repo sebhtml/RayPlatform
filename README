@@ -12,6 +12,7 @@ transparent to the developer.
 
 - The Ray genome assembler
 - RayPlatform example
+- MessageWarden
 - A latency test (part of the Ray assembler)
 
 
