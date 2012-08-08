@@ -800,6 +800,8 @@ VALUE*MyHashTable<KEY,VALUE>::find(KEY*key){
 
 /**
  * inserts a key
+ * \author Sébastien Boisvert
+ * \date 2012-08-07 This method was reviewed by David Weese <weese@campus.fu-berlin.de>
  */
 template<class KEY,class VALUE>
 VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
@@ -807,9 +809,23 @@ VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
 	if(m_resizing){
 		resize();
 	}
-	if(m_resizing){
+
+	if(m_resizing){ // the auxiliary table is only alive during resizing operations
+
+		// Case 1. If a key is already in the new one, then the new one is 
+		// responsible, regardless if it was in the old one or not 
+
+		VALUE*fromAuxiliary=m_auxiliaryTableForIncrementalResize->findKey(key,false);
+
+		if(fromAuxiliary!=NULL){
+			return fromAuxiliary;
+		}
+
+		// Case 2. If a key if not in the old (and was never in the old one), 
+		// then the new one is responsible for it 
+		//
 		/* check if key is not in the main table
- * 		insert it in the other one */
+ 		 * 		insert it in the other one */
 		if(findKey(key,false)==NULL){
 			uint64_t sizeBefore=m_auxiliaryTableForIncrementalResize->m_utilisedBuckets;
 			VALUE*e=m_auxiliaryTableForIncrementalResize->insert(key);
@@ -820,6 +836,9 @@ VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
 		}
 	}
 
+	// Case 3. Otherwise, the old one is responsible. 
+	//
+	
 	#ifdef ASSERT
 	uint64_t beforeSize=m_utilisedBuckets;
 	#endif
