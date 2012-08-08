@@ -34,28 +34,17 @@ transparent to the developer.
 ## Projects using RayPlatform 
 
 - The Ray genome assembler
+	http://github.com/sebhtml/ray
 - RayPlatform example
+	http://github.com/sebhtml/RayPlatform-example
 - MessageWarden
-- A latency test (part of the Ray assembler)
-
-
-## RayPlatform example 
-
-git://github.com/sebhtml/RayPlatform-example.git
-git://github.com/sebhtml/RayPlatform.git
-
-See the README of RayPlatform-example
-
-## The Ray genome assembler 
-
-Ray is built on top of RayPlatform and makes heavy use of the RayPlatform API.
-
-See git://github.com/sebhtml/ray.git
-
+	http://github.com/sebhtml/MessageWarden
 
 ## Description 
 
 There is some documentation in Documentation/
+
+You can also generate doxygen documentation.
 
 The framework provides facilities for parallel software architecture,
 communication, memory management, profiling, thread pools 
@@ -65,7 +54,7 @@ It can be compiled as libRayPlatform.a, libRayPlatform.so or libRayPlatform.dll
 using GNU Make or CMake.
 
 
-Parallel software architecture:
+### Parallel software architecture:
 
 - a compute core implementation in which the main loop lives (core/ComputeCore.h);
 - a system of plugins that can be registered with the ComputeCore (core/CorePlugin.h);
@@ -75,7 +64,7 @@ Parallel software architecture:
 - a system for master switches (scheduling/Switchman.h)
 - a system for slave switches (scheduling/Switchman.h)
 
-Communication:
+### Communication:
 
 - a message inbox and outbox (structures/StaticVector.h);
 - a virtual communicator for automated message aggregation (communication/VirtualCommunicator.h);
@@ -84,24 +73,24 @@ Communication:
   for jobs running on numerous cores (> 1000) (communication/MessageRouter.h and routing/*);
 - a wrapper on top of the provided MPI library (communication/MessagesHandler.h).
 
-Memory management:
+### Memory management:
 
 - a ring allocator (memory/RingAllocator.h);
 - a "chunk" allocator (memory/MyAllocator.h);
 - an allocator with real-time defragmentation (memory/ChunkAllocatorWithDefragmentation.h).
 
-Profiling:
+### Profiling:
 
 - a profiler that reports granularity (profiling/Profiler.h);
 - a tick counter for slave and master modes (profiling/TickLogger.h);
 
-Thread pools:
+### Thread pools:
 
 - a virtual processor containing a lot of workers (scheduling/VirtualProcessor.h);
 - a general interface to define a worker (scheduling/Worker.h);
 - a general way to use the virtual processor (scheduling/TaskCreator.h).
 
-Structures:
+### Structures:
 
 - very space-efficient sparse hash table (structures/MyHashTable.h);
 - a splay tree (structures/SplayTree.h).
