@@ -64,6 +64,8 @@ void*RingAllocator::allocate(int a){
 
 	int origin=m_current;
 
+	// first half of the circle
+	// from origin to N-1
 	while(m_bufferStates[m_current] == BUFFER_STATE_DIRTY
 	&& m_current < m_chunks){
 
@@ -71,16 +73,20 @@ void*RingAllocator::allocate(int a){
 
 	}
 
+	// start from 0 if we completed.
+	// set i to 0
 	if(m_current==m_chunks){
 		m_current=0;
 	}
 
+	// from 0 to origin-1
 	while(m_bufferStates[m_current] == BUFFER_STATE_DIRTY
 	&& m_current < origin){
 
 		m_current++;
 	}
 
+	// if all buffers are dirty, we throw a runtime error
 	#ifdef ASSERT
 	if(m_current==origin && m_bufferStates[m_current]==BUFFER_STATE_DIRTY){
 		cout<<"Error: all buffers are dirty !, chunks: "<<m_chunks<<endl;
