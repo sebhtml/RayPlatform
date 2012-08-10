@@ -644,13 +644,15 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
  */
 	(*probe)=0; 
 
-	/** between 0 and M-1 inclusively -- M is m_totalNumberOfBuckets */
+	/** between 0 and M-1 -- M is m_totalNumberOfBuckets */
 	uint64_t h1=key->hash_function_2()%m_totalNumberOfBuckets;
 
 	/* first probe is 0 */
 	/** double hashing is computed on probe 1, not on 0 */
 	uint64_t h2=0;
-	uint64_t bucket=h1;
+	uint64_t bucket=0;
+
+	bucket=(h1+(*probe)*h2)%m_totalNumberOfBuckets;
 
 	/** use double hashing */
 	(*group)=bucket/m_numberOfBucketsInGroup;
@@ -665,11 +667,12 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 	/** probe bucket */
 	while(m_groups[*group].bucketIsUtilisedBySomeoneElse(*bucketInGroup,key,&m_allocator)
 		&& ((*probe)+1) < m_totalNumberOfBuckets){
+
 		(*probe)++;
 		
 		/** the stride and the number of buckets are relatively prime because
 			number of buckets = M = 2^m
-		and the stride is 1 < s < M and is odd thus does not share factor with 2^m */
+		and the stride is 1 <= s <= M-1 and is odd thus does not share factor with 2^m */
 
 		#ifdef ASSERT
 		/** issue a warning for an unexpected large probe depth */
@@ -684,7 +687,7 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 		/** only compute the double hashing once */
 		if((*probe)==1){
 			/**  page 529 
- * 				between 1 and M exclusive
+ * 				between 1 and M-1 exclusive
 				odd number
  * 			*/
 
@@ -692,24 +695,23 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 			
 			/** h2 can not be 0 */
 			if(h2 == 0)
-				h2=3;
+				h2=1;
 
 			/** h2 can not be even */
 			if(h2%2 == 0)
 				h2--; 
-
-			/* I assume it must be between 1 and M exclusive */
-			if(h2 < 3)
-				h2=3;
 
 			/** check boundaries */
 			#ifdef ASSERT
 			assert(h2!=0);
 			assert(h2%2!=0);
 			assert(h2%2 == 1);
-			assert(h2>=3);
+			assert(h2>=1);
+
+/*
 			if(h2>=m_totalNumberOfBuckets)
 				cout<<"h2= "<<h2<<" Buckets= "<<m_totalNumberOfBuckets<<endl;
+*/
 			assert(h2<m_totalNumberOfBuckets);
 			assert((*probe)<m_totalNumberOfBuckets);
 			#endif
@@ -720,7 +722,13 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 		#endif
 		
 		/** use double hashing */
-		bucket=(h1+(*probe)*h2)%m_totalNumberOfBuckets;
+		//bucket=(h1+(*probe)*h2)%m_totalNumberOfBuckets;
+		
+		if(h2>bucket)
+			bucket+=m_totalNumberOfBuckets;
+
+		bucket-=h2;
+
 		(*group)=bucket/m_numberOfBucketsInGroup;
 		(*bucketInGroup)=bucket%m_numberOfBucketsInGroup;
 
@@ -929,6 +937,10 @@ void MyHashTable<KEY,VALUE>::printProbeStatistics(){
 	}
 
 	cout<<endl;
+
+	cout<<"Memory usage"<<endl;
+
+	m_allocator.print();
 }
 
 template<class KEY,class VALUE>
