@@ -39,19 +39,32 @@ void ChunkAllocatorWithDefragmentation::defragment(){
 * print allocator information
 */
 void ChunkAllocatorWithDefragmentation::print(){
-	cout<<"DefragmentationLanes: "<<m_numberOfLanes<<endl;
+	cout<<"DefragmentationLane objects: "<<m_numberOfLanes<<endl;
 
 	for(int i=0;i<m_numberOfLanes;i++){
 		DefragmentationLane*lane=m_defragmentationLanes[i];
 		#ifdef ASSERT
 		assert(lane!=NULL);
 		#endif
-		cout<<"DefragmentationLane: "<<lane->getNumber()<<endl;
+		cout<<"DefragmentationGroup objects in DefragmentationLane # "<<lane->getNumber()<<endl;
 		for(int group=0;group<GROUPS_PER_LANE;group++){
-			if(lane->getGroup(group)->isOnline()){
-				int availableElements=lane->getGroup(group)->getAvailableElements();
 
-				cout<<"  DefragmentationGroup: "<<group<<" usage: "<<(ELEMENTS_PER_GROUP-availableElements)<<"/"<<ELEMENTS_PER_GROUP<<" FreeSliceStart: "<<lane->getGroup(group)->getFreeSliceStart()<<endl;
+			DefragmentationGroup*theGroup=lane->getGroup(group);
+			if(theGroup->isOnline()){
+				int availableElements=theGroup->getAvailableElements();
+
+				cout<<" # "<<group<<" usage: "<<(ELEMENTS_PER_GROUP-availableElements)<<"/"<<ELEMENTS_PER_GROUP;
+				cout<<" FreeSliceStart="<<theGroup->getFreeSliceStart();
+
+				cout<<" Fragmented="<<theGroup->getFragmentedElements();
+				cout<<" Contiguous="<<theGroup->getContiguousElements();
+
+				cout<<endl;
+				cout<<"   operations: ";
+				cout<<" "<<theGroup->getOperations(__OPERATION_ALLOCATE)<<" allocate calls;";
+ 				cout<<" "<<theGroup->getOperations(__OPERATION_DEALLOCATE)<<" deallocate calls;";
+				cout<<" "<<theGroup->getOperations(__OPERATION_DEFRAGMENT)<<" defragment calls"<<endl;
+
 			}
 		}
 	}
@@ -145,7 +158,8 @@ SmartPointer ChunkAllocatorWithDefragmentation::allocate(int n){ /** 64 is the n
 	// a small smart pointer can only be resolved with the context of
 	// a DefragmentationGroup
 	int group;
-	SmallSmartPointer smallSmartPointer=m_fastLane->allocate(n,m_bytesPerElement,&group);
+	SmallSmartPointer smallSmartPointer=m_fastLane->allocate(n,m_bytesPerElement,&group,
+		m_cellContents,m_cellOccupancies );
 
 	/** build the SmartPointer with the
  *	SmallSmartPointer, DefragmentationLane id, and DefragmentationGroup id 

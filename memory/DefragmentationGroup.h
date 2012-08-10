@@ -40,6 +40,11 @@
  */
 typedef uint16_t SmallSmartPointer;
 
+#define __OPERATION_ALLOCATE 0x0
+#define __OPERATION_DEALLOCATE 0x1
+#define __OPERATION_DEFRAGMENT 0x2
+
+
 /**
  * This class does the complex logic
  * for memory allocation and deallocation,
@@ -47,6 +52,14 @@ typedef uint16_t SmallSmartPointer;
  * \author Sébastien Boisvert
  */
 class DefragmentationGroup{
+
+	int m_operations[__OPERATION_DEFRAGMENT+1];
+
+	/** routine to test if we must run defragmentation **/
+
+	void __triggerDefragmentationRoutine (int bytesPerElement,uint16_t*cellContent,
+		uint8_t*cellOccupancies) ;
+
 	/** freed stuff to accelerate things. */
 	uint16_t m_fastPointers[FAST_POINTERS];
 	
@@ -106,7 +119,7 @@ public:
 /**
  * Allocate memory
  */
-	SmallSmartPointer allocate(int n);
+	SmallSmartPointer allocate(int n,int bytesPerElement,uint16_t*cellContents,uint8_t*cellOccupancies);
 
 /**
  * Free memory
@@ -138,7 +151,16 @@ public:
  */
 	int getAvailableElements();
 
+/** get the frontier **/
 	int getFreeSliceStart();
+
+/** get the number of available elements left of the frontier **/
+	int getFragmentedElements();
+
+/** get the number of available elements in the free slice **/
+	int getContiguousElements();
+
+	int getOperations(int operationCode);
 };
 
 #endif

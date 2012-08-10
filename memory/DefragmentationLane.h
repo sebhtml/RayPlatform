@@ -66,7 +66,10 @@ class DefragmentationLane{
 	void getFastGroup(int n,int bytesPerElement,bool show);
 public:
 	/** allocate a SmallSmartPointer */
-	SmallSmartPointer allocate(int n,int bytesPerElement,int*group);
+	SmallSmartPointer allocate(int n,int bytesPerElement,int*group,
+uint16_t*cellContent,
+	uint8_t*cellOccupancies 
+);
 
 	/** initialize the DefragmentationLane */
 	void constructor(int number,int bytesPerElement,bool show);

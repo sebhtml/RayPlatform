@@ -45,8 +45,6 @@ using namespace std;
 /** value for an occupied chunk in the array */
 #define BUSY_CHUNK 18446744073709551615UL
 
-/** the threshold for defragmentation **/
-#define CONFIG_DEFRAGMENTATION_THRESHOLD 2048
 
 /**
  *  Return true if the DefragmentationGroup can allocate n elements 
@@ -103,7 +101,11 @@ bool DefragmentationGroup::canAllocate(int n){
  * Otherwise, populating m_fastPointers is O(ELEMENTS_PER_GROUP)
  *
  */
-SmallSmartPointer DefragmentationGroup::allocate(int n){
+SmallSmartPointer DefragmentationGroup::allocate(int n,
+	int bytesPerElement,uint16_t*cellContents,uint8_t*cellOccupancies){
+
+	m_operations[__OPERATION_ALLOCATE]++;
+
 	/* verify pre-conditions */
 	#ifdef ASSERT
 	assert(n>0);
@@ -164,6 +166,8 @@ SmallSmartPointer DefragmentationGroup::allocate(int n){
 	assert(m_availableElements>=0);
 	assert(m_availableElements<=ELEMENTS_PER_GROUP);
 	#endif
+
+	__triggerDefragmentationRoutine(bytesPerElement,cellContents,cellOccupancies);
 
 	// finally return safely the handle
 	return returnValue;
@@ -247,6 +251,8 @@ SmallSmartPointer DefragmentationGroup::getAvailableSmallSmartPointer(){
 void DefragmentationGroup::deallocate(SmallSmartPointer a,int bytesPerElement,uint16_t*cellContent,
 	uint8_t*cellOccupancies){
 
+	m_operations[__OPERATION_DEALLOCATE]++;
+
 	#ifdef LOW_LEVEL_ASSERT
 	assert((ELEMENTS_PER_GROUP-m_freeSliceStart)<=m_availableElements);
 	for(int i=m_freeSliceStart;i<ELEMENTS_PER_GROUP;i++){
@@ -302,20 +308,7 @@ void DefragmentationGroup::deallocate(SmallSmartPointer a,int bytesPerElement,ui
 	assert((ELEMENTS_PER_GROUP-m_freeSliceStart)<=m_availableElements);
 	#endif
 
-	int elementsInFreeSlice=ELEMENTS_PER_GROUP-m_freeSliceStart;
-	int fragmentedElements=m_availableElements-elementsInFreeSlice;
-
-	/** this threshold is the minimum number of bins in the fragmented zone
- * 	that are necessary to trigger a defragmentation 
- *	low value will trigger a lot of defragmentation events, but defragmentation
- *	is kind of slow. Therefore, you want a amortized time complexity -- that is
- *	in general we don't defragment (fast), but sometimes we do (slow)
- *	many fast events plus a few slow events is hopefully more fast than slow.
- * 	*/
-	int threshold=CONFIG_DEFRAGMENTATION_THRESHOLD ; // 2Ki elements
-
-	if(fragmentedElements>=threshold)
-		defragment(bytesPerElement,cellContent,cellOccupancies);
+	__triggerDefragmentationRoutine(bytesPerElement,cellContent,cellOccupancies);
 }
 
 /**
@@ -324,6 +317,11 @@ void DefragmentationGroup::deallocate(SmallSmartPointer a,int bytesPerElement,ui
  * Time complexity: O(1)
  */
 void DefragmentationGroup::constructor(int bytesPerElement,bool show){
+
+	m_operations[__OPERATION_ALLOCATE]=0;
+	m_operations[__OPERATION_DEALLOCATE]=0;
+	m_operations[__OPERATION_DEFRAGMENT]=0;
+	
 	#ifdef ASSERT
 	assert(m_block==NULL);
 	#endif
@@ -428,12 +426,25 @@ int DefragmentationGroup::getFreeSliceStart(){
  * are moved correctly.
  * \author Sébastien Boisvert
  */
+
+#define __defragment_optimized
 bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,uint8_t*cellOccupancies){
+
+
+	m_operations[__OPERATION_DEFRAGMENT]++;
+
+	#ifdef __defragment_optimized
+
+	memset(cellOccupancies,0x0,ELEMENTS_PER_GROUP);
+
+	#else
 
 	/* update the look-up table */
 	for(int i=0;i<ELEMENTS_PER_GROUP;i++){
 		cellOccupancies[i]=0;
 	}
+
+	#endif
 
 	
 	for(int i=0;i<ELEMENTS_PER_GROUP;i++){
@@ -461,8 +472,10 @@ bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,
 	int destination=0;
 	int source=0;
 
+	// skip allocated stuff.
 	while(cellOccupancies[destination]==1 && destination<ELEMENTS_PER_GROUP)
 		destination++;
+
 	source=destination+1;
 
 	while(cellOccupancies[source]==0 && source<ELEMENTS_PER_GROUP)
@@ -509,11 +522,25 @@ bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,
 			}
 		}
 
+		#ifdef __defragment_optimized
+
+		if(n>0)
+			memset(cellOccupancies+destination,0x1,n);
+		
+		int count=source-destination;
+
+		if(count>0)
+			memset(cellOccupancies+destination+n,0x0,count);
+
+		#else
+
 		for(int i=destination;i<destination+n;i++)
 			cellOccupancies[i]=1;
 
 		for(int i=destination+n;i<source+n;i++)
 			cellOccupancies[i]=0;
+
+		#endif
 
 		m_allocatedOffsets[smartPointer]=destination;
 
@@ -571,3 +598,51 @@ bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,
 	return true;
 }
 
+#undef __defragment_optimized
+
+void DefragmentationGroup::__triggerDefragmentationRoutine(int bytesPerElement,uint16_t*cellContents,
+	uint8_t*cellOccupancies){
+
+	int elementsInFreeSlice=getContiguousElements();
+	int fragmentedElements=getFragmentedElements();
+
+	/** this threshold is the minimum number of bins in the fragmented zone
+ * 	that are necessary to trigger a defragmentation 
+ *	low value will trigger a lot of defragmentation events, but defragmentation
+ *	is kind of slow. Therefore, you want a amortized time complexity -- that is
+ *	in general we don't defragment (fast), but sometimes we do (slow)
+ *	many fast events plus a few slow events is hopefully more fast than slow.
+ *
+ *	\date 2012-08-09 if there are still some good stuff
+ * 	*/
+
+	/** the main client of this code is the hash table */
+	/** the hash table allocates a maximum of 64 elements for a single call of allocate() **/
+
+	int thresholdForFragmentedWarZone=2048;
+	int thresholdForFreeSlice=128;
+
+	if(fragmentedElements>= thresholdForFragmentedWarZone
+		&& elementsInFreeSlice <= thresholdForFreeSlice )
+		defragment(bytesPerElement,cellContents,cellOccupancies);
+
+}
+
+int DefragmentationGroup::getFragmentedElements(){
+
+	int elementsInFreeSlice=getContiguousElements();
+	int fragmentedElements=m_availableElements-elementsInFreeSlice;
+
+	return fragmentedElements;
+}
+
+int DefragmentationGroup::getContiguousElements(){
+
+	int elementsInFreeSlice=ELEMENTS_PER_GROUP-m_freeSliceStart;
+
+	return elementsInFreeSlice;
+}
+
+int DefragmentationGroup::getOperations(int operationCode){
+	return m_operations[operationCode];
+}

@@ -113,7 +113,10 @@ bool DefragmentationLane::canAllocate(int n,int bytesPerElement,bool show){
 /**
  * Time complexity: O(1)
  */
-SmallSmartPointer DefragmentationLane::allocate(int n,int bytesPerElement,int*group){
+SmallSmartPointer DefragmentationLane::allocate(int n,int bytesPerElement,int*group,
+uint16_t*cellContents,
+	uint8_t*cellOccupancies ){
+
 	#ifdef ASSERT
 	assert(m_fastGroup!=-1);
 	if(!(m_fastGroup<GROUPS_PER_LANE))
@@ -131,7 +134,9 @@ SmallSmartPointer DefragmentationLane::allocate(int n,int bytesPerElement,int*gr
 	// this is an invariant
 	(*group)=m_fastGroup;
 
-	return m_groups[m_fastGroup].allocate(n);
+	return m_groups[m_fastGroup].allocate(n,
+		bytesPerElement,cellContents,cellOccupancies
+		);
 }
 
 /**
