@@ -64,7 +64,7 @@ using namespace std;
 /**
  *  Use round-robin reception.
  */
-#define CONFIG_COMM_IPROBE_ROUND_ROBIN
+//#define CONFIG_COMM_IPROBE_ROUND_ROBIN
 
 /* this configuration may be important for low latency */
 /* uncomment if you want to try it */
@@ -72,7 +72,7 @@ using namespace std;
 //#define CONFIG_ONE_IPROBE_PER_TICK
 
 
-//#define CONFIG_COMM_IPROBE_ANY_SOURCE
+#define CONFIG_COMM_IPROBE_ANY_SOURCE
 
 /**
  * return the first free buffer
