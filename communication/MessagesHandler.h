@@ -56,7 +56,8 @@ class MessagesHandler: public CorePlugin{
 	int m_peers;
 
 	DirtyBuffer m_dirtyBuffers[MAXIMUM_NUMBER_OF_DIRTY_BUFFERS];
-	uint8_t m_dirtyBufferPosition;
+	int m_numberOfDirtyBuffers;
+	int m_maximumDirtyBuffers;
 
 	MessageTag RAY_MPI_TAG_DUMMY;
 
@@ -125,6 +126,11 @@ class MessagesHandler: public CorePlugin{
 
 	void createBuffers();
 
+	void checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int i);
+	uint8_t allocateDirtyBuffer();
+	void cleanDirtyBuffers(RingAllocator*outboxBufferAllocator);
+	void cleanBuffers(RingAllocator*outboxBufferAllocator);
+
 public:
 	/** initialize the message handler
  * 	*/
@@ -136,8 +142,6 @@ public:
 	void sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator);
 
 
-	uint8_t allocateDirtyBuffer();
-	void checkDirtyBuffers(RingAllocator*outboxBufferAllocator);
 
 	/**
  * receive one or zero message.

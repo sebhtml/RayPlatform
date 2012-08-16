@@ -113,12 +113,16 @@ uint8_t MessagesHandler::allocateDirtyBuffer(){
  * using a particular buffer. Otherwise, there may be a problem when 
  * a buffer is re-used several times for many requests.
  */
-void MessagesHandler::checkDirtyBuffers(RingAllocator*outboxBufferAllocator){
+void MessagesHandler::checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int index){
+
+	#ifdef ASSERT
+	assert(m_numberOfDirtyBuffers>0);
+	#endif
 
 	// check the buffer and free it if it is finished.
-	if(m_dirtyBuffers[m_dirtyBufferPosition].m_buffer!=NULL){
+	if(m_dirtyBuffers[index].m_buffer!=NULL){
 		MPI_Status status;
-		MPI_Request*request=&(m_dirtyBuffers[m_dirtyBufferPosition].m_messageRequest);
+		MPI_Request*request=&(m_dirtyBuffers[index].m_messageRequest);
 
 		int flag=0;
 
@@ -126,29 +130,65 @@ void MessagesHandler::checkDirtyBuffers(RingAllocator*outboxBufferAllocator){
 
 		if(flag){
 
-			void*buffer=m_dirtyBuffers[m_dirtyBufferPosition].m_buffer;
+			void*buffer=m_dirtyBuffers[index].m_buffer;
 			outboxBufferAllocator->salvageBuffer(buffer);
+			m_numberOfDirtyBuffers--;
 
 			#ifdef COMMUNICATION_IS_VERBOSE
-			cout<<"From checkDirtyBuffers flag= "<<flag<<endl;
+			cout<<"From checkDirtyBuffer flag= "<<flag<<endl;
 			#endif
 
 			#ifdef ASSERT
 			assert(*request == MPI_REQUEST_NULL);
 			#endif
 
-			m_dirtyBuffers[m_dirtyBufferPosition].m_buffer=NULL;
+			m_dirtyBuffers[index].m_buffer=NULL;
 
 		}
 	}
 
-	// go to the next buffer.
 
-	m_dirtyBufferPosition++;
+}
 
-	if(m_dirtyBufferPosition==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS){
-		m_dirtyBufferPosition=0;
+void MessagesHandler::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
+
+	if(m_numberOfDirtyBuffers==0)
+		return;
+
+	cleanBuffers(outboxBufferAllocator);
+
+	int iterations=1<<10;
+	int steps=0;
+
+	while(steps<iterations && m_numberOfDirtyBuffers==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS){
+		
+		if(steps==0){
+			cout<<"Warning: all buffers are dirty, Ray will try to clean this mess during ";
+			cout<<iterations<<" iterations."<<endl;
+		}
+
+		cleanBuffers(outboxBufferAllocator);
+		steps++;
 	}
+
+	if(m_numberOfDirtyBuffers==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS)
+		cout<<"Error: all buffers are still dirty, the program will not exit."<<endl;
+}
+
+void MessagesHandler::cleanBuffers(RingAllocator*outboxBufferAllocator){
+
+	#ifdef ASSERT
+	assert(m_numberOfDirtyBuffers>0);
+	#endif
+
+	// update the dirty buffer list.
+	for(int i=0;i<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS;i++){
+		if(m_numberOfDirtyBuffers==0)
+			return;
+
+		checkDirtyBuffer(outboxBufferAllocator,i);
+	}
+
 }
 
 /*
@@ -156,10 +196,7 @@ void MessagesHandler::checkDirtyBuffers(RingAllocator*outboxBufferAllocator){
  */
 void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator){
 
-	// update the dirty buffer list.
-	for(int i=0;i<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS;i++){
-		checkDirtyBuffers(outboxBufferAllocator);
-	}
+	cleanDirtyBuffers(outboxBufferAllocator);
 
 	for(int i=0;i<(int)outbox->size();i++){
 		Message*aMessage=((*outbox)[i]);
@@ -214,6 +251,11 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 			request=&(m_dirtyBuffers[dirtyBuffer].m_messageRequest);
 
 			outboxBufferAllocator->markBufferAsDirty(buffer);
+
+			m_numberOfDirtyBuffers++;
+
+			if(m_numberOfDirtyBuffers > m_maximumDirtyBuffers)
+				m_maximumDirtyBuffers=m_numberOfDirtyBuffers;
 		}
 
 		//  MPI_Isend
@@ -480,7 +522,6 @@ void MessagesHandler::constructor(int*argc,char***argv){
 		//m_dirtyBuffers[i].m_messageRequest
 	}
 
-	m_dirtyBufferPosition=0;
 
 	m_destroyed=false;
 
@@ -500,7 +541,9 @@ void MessagesHandler::constructor(int*argc,char***argv){
 	initialiseMembers();
 	m_processorName=serverName;
 
+	m_numberOfDirtyBuffers=0;
 
+	m_maximumDirtyBuffers=m_numberOfDirtyBuffers;
 }
 
 void MessagesHandler::createBuffers(){
@@ -587,7 +630,9 @@ void MessagesHandler::appendStatistics(const char*file){
 	fp.close();
 
 	cout<<"Rank "<<m_rank<<": sent "<<m_sentMessages<<" messages, received "<<m_receivedMessages<<" messages."<<endl;
+	cout<<"Rank "<<m_rank<<": the maximum number of dirty buffers was "<<m_maximumDirtyBuffers<<endl;
 	cout<<"Rank "<<m_rank<<": Active peers (including self): "<<activePeers.size()<<" list:";
+
 	for(int i=0;i<(int)activePeers.size();i++){
 		cout<<" "<<activePeers[i];
 	}
