@@ -17,6 +17,7 @@ obj-y += routing/GraphImplementationDeBruijn.o
 obj-y += routing/GraphImplementationKautz.o
 obj-y += routing/GraphImplementationExperimental.o
 obj-y += routing/GraphImplementationGroup.o
+obj-y += routing/Hypercube.o
 obj-y += routing/ConnectionGraph.o
 
 #communication

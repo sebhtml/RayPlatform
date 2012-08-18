@@ -1,6 +1,6 @@
 /*
- 	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+ 	RayPlatform
+    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -36,6 +36,7 @@
 #include <routing/GraphImplementationKautz.h>
 #include <routing/GraphImplementationExperimental.h>
 #include <routing/GraphImplementationComplete.h>
+#include <routing/Hypercube.h>
 #include <string>
 #include <core/types.h>
 using namespace std;
@@ -53,6 +54,7 @@ class ConnectionGraph{
 	GraphImplementationKautz m_kautz;
 	GraphImplementationExperimental m_experimental;
 	GraphImplementationGroup m_group;
+	Hypercube m_hypercube;
 
 /** verbosity */
 	bool m_verbose;

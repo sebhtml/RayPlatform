@@ -23,6 +23,7 @@ routing/GraphImplementationGroup.cpp
 routing/GraphImplementationComplete.cpp
 routing/GraphImplementationDeBruijn.cpp
 routing/GraphImplementationRandom.cpp
+routing/Hypercube.cpp
 scheduling/TaskCreator.cpp
 scheduling/SwitchMan.cpp
 scheduling/VirtualProcessor.cpp

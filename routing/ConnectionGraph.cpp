@@ -1,6 +1,6 @@
 /*
- 	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+ 	RayPlatform
+    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -234,6 +234,8 @@ int degree){
 
 	if(type=="random"){
 		m_implementation=&m_random;
+	}else if(type=="hypercube"){
+		m_implementation=&m_hypercube;
 	}else if(type=="group"){
 		m_implementation=&m_group;
 	}else if(type=="debruijn" && m_deBruijn.isValid(numberOfRanks)){
