@@ -45,6 +45,7 @@ using namespace std;
 class ConnectionGraph{
 
 	string m_type;
+	int m_typeCode;
 
 	GraphImplementation*m_implementation;
 
@@ -89,14 +90,18 @@ public:
 	void buildGraph(int numberOfVertices,string method,bool verbosity,int degree);
 
 
-	/** get the number of paths that contain rank from 0 to any vertex */
+	/** get the number of paths that contain rank from 0 to any vertex 
+ * TODO: remove this */
 	int getRelaysFrom0(Rank rank);
 
-	/** get the number of paths that contain rank from any vertex to vertex 0  */
+	/** get the number of paths that contain rank from any vertex to vertex 0  
+ * TODO: remove this */
 	int getRelaysTo0(Rank rank);
 
 	void getIncomingConnections(Rank i,vector<Rank>*connections);
 
+	void printStatus();
+	void start();
 };
 
 #endif

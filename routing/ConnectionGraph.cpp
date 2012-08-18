@@ -21,6 +21,14 @@
 
 #include <routing/ConnectionGraph.h>
 
+#define __HYPERCUBE 0x0
+#define __KAUTZ  0x678
+#define __DEBRUIJN 0x45621
+#define __COMPLETE 0x5
+#define __RANDOM 0x902
+#define __GROUP 0x121
+#define __EXPERIMENTAL 0x78112
+
 /**
  * Print a route
  */
@@ -45,6 +53,7 @@ void ConnectionGraph::printRoute(Rank source,Rank destination){
  * a rank can only speak to things listed in connections
  */
 bool ConnectionGraph::isConnected(Rank source,Rank destination){
+	// TODO: replace by a switch case to avoid virtual calls
 	return m_implementation->isConnected(source,destination);
 }
 
@@ -206,13 +215,16 @@ void ConnectionGraph::writeFiles(string prefix){
 	f4<<"        "<<"Total"<<"    "<<totalForPaths<<"    100.00%"<<endl;
 
 	f4.close();
+
 }
 
 int ConnectionGraph::getNextRankInRoute(Rank source,Rank destination,Rank rank){
+	// TODO: replace by a switch case to avoid virtual calls
 	return m_implementation->getNextRankInRoute(source,destination,rank);
 }
 
 void ConnectionGraph::getIncomingConnections(Rank source,vector<Rank>*connections){
+	// TODO: replace by a switch case to avoid virtual calls
 	m_implementation->getIncomingConnections(source,connections);
 }
 
@@ -234,38 +246,66 @@ int degree){
 
 	if(type=="random"){
 		m_implementation=&m_random;
+		m_typeCode=__RANDOM;
 	}else if(type=="hypercube"){
 		m_implementation=&m_hypercube;
+		m_typeCode=__HYPERCUBE;
 	}else if(type=="group"){
 		m_implementation=&m_group;
+		m_typeCode=__GROUP;
 	}else if(type=="debruijn" && m_deBruijn.isValid(numberOfRanks)){
 		m_implementation=&m_deBruijn;
+		m_typeCode=__DEBRUIJN;
 	}else if(type=="complete"){
 		m_implementation=&m_complete;
+		m_typeCode=__COMPLETE;
 	}else if(type=="kautz" && m_kautz.isValid(numberOfRanks)){
 		m_implementation=&m_kautz;
+		m_typeCode=__KAUTZ;
 	}else if(type=="experimental" && m_experimental.isValid(numberOfRanks)){
 		m_implementation=&m_experimental;
+		m_typeCode=__EXPERIMENTAL;
 	}else{
 		cout<<"Warning: using a complete graph because type "<<type<<" can not used with "<<numberOfRanks<<" vertices"<<endl;
 		type="complete";
 		m_implementation=&m_complete;
+		m_typeCode=__COMPLETE;
 	}
 
 	m_type=type;
 	
+	// TODO: replace by a switch case to avoid virtual calls
 	m_implementation->setVerbosity(m_verbose);
 
+	// TODO: replace by a switch case to avoid virtual calls
 	m_implementation->makeConnections(m_size);
 
-	// generate the routes
+	// TODO: replace by a switch case to avoid virtual calls
 	m_implementation->makeRoutes();
 }
 
+/**
+ * TODO: remove me
+ * */
 int ConnectionGraph::getRelaysFrom0(Rank rank){
 	return m_implementation->getRelaysFrom0(rank);
 }
 
+/**
+ * TODO: remove me
+ */
 int ConnectionGraph::getRelaysTo0(Rank rank){
 	return m_implementation->getRelaysTo0(rank);
+}
+
+void ConnectionGraph::printStatus(){
+
+	if(m_typeCode==__HYPERCUBE)
+		m_hypercube.printStatus();
+}
+
+void ConnectionGraph::start(){
+
+	if(m_typeCode==__HYPERCUBE)
+		m_hypercube.start();
 }

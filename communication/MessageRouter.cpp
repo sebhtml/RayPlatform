@@ -240,21 +240,33 @@ void MessageRouter::enable(StaticVector*inbox,StaticVector*outbox,RingAllocator*
 
 	if(m_rank==MASTER_RANK)
 		m_graph.writeFiles(prefix);
+
+	m_extraTicks=1<<20;
 }
 
 void MessageRouter::activateRelayChecker(){
 	m_relayCheckerActivated=true;
 }
 
+/**
+ * TODO: remove me
+ */
 void MessageRouter::addTagToCheckForRelayFrom0(MessageTag tag){
 	m_tagsToCheckForRelayFrom0.insert(tag);
 }
 
+/**
+ * TODO: remove me
+ */
 void MessageRouter::addTagToCheckForRelayTo0(MessageTag tag){
 	m_tagsToCheckForRelayTo0.insert(tag);
 }
 
 bool MessageRouter::hasCompletedRelayEvents(){
+
+	return m_extraTicks--;
+
+	#if 0
 	// check relay events from 0
 	int expected=m_graph.getRelaysFrom0(m_rank);
 
@@ -284,6 +296,8 @@ bool MessageRouter::hasCompletedRelayEvents(){
 	}
 
 	return true;
+
+	#endif
 }
 
 //_-------------------------------------------------

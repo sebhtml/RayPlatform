@@ -150,16 +150,20 @@ void Hypercube::configureGraph(int n){
 	m_wordLength=digits; // this is wordLength
 	m_size=n; // this is the number of vertices
 
-	for(int i=0;i<m_wordLength;i++)
-		for(int j=1;j<m_alphabetSize;j++)
-			setLoad(i,j,0);
+	start();
 }
 
-void Hypercube::setLoad(int position,int symbol,int value){
+void Hypercube::setLoad(int position,int symbol,uint64_t value){
 	m_loadValues[position*m_alphabetSize+symbol]=value;
 }
 
-int Hypercube::getLoad(int position,int symbol){
+uint64_t Hypercube::getLoad(int position,int symbol){
+	
+	#ifdef ASSERT
+	assert(position<m_wordLength);
+	assert(symbol<m_alphabetSize);
+	#endif /* ASSERT */
+
 	return m_loadValues[position*m_alphabetSize+symbol];
 }
 
@@ -299,7 +303,7 @@ Rank Hypercube::computeNextRankInRoute(Rank source,Rank destination,Rank current
 	int NO_VALUE=-1;
 	int bestPosition=NO_VALUE;
 	int bestSymbol=NO_VALUE;
-	int bestLoad=NO_VALUE;
+	uint64_t bestLoad=NO_VALUE;
 
 	// the next will be populated in the loop
 	Tuple next;
@@ -318,7 +322,7 @@ Rank Hypercube::computeNextRankInRoute(Rank source,Rank destination,Rank current
 			continue;
 	
 		// at this point, the symbol needs to be changed
-		int load=getLoad(position,destinationSymbol);
+		uint64_t load=getLoad(position,destinationSymbol);
 
 		// select this edge if it has a lower load 
 		// or if it is the first one we are testing.
@@ -402,3 +406,23 @@ void Hypercube::setDegree(int degree){
 	m_degree=degree;
 }
 
+void Hypercube::printStatus(){
+	cout<<"[Hypercube] Load values:"<<endl;
+	cout<<"AlphabetSize: "<<m_alphabetSize<<endl;
+	cout<<"WordLength: "<<m_wordLength<<endl;
+
+	for(int i=0;i<m_wordLength;i++){
+		cout<<"Position: "<<i<<endl;
+		for(int j=0;j<m_alphabetSize;j++){
+			uint64_t load=getLoad(i,j);
+			cout<<"  Symbol: "<<j<<" Load: "<<load<<endl;
+		}
+	}
+}
+
+void Hypercube::start(){
+	for(int i=0;i<m_wordLength;i++)
+		for(int j=1;j<m_alphabetSize;j++)
+			setLoad(i,j,0);
+
+}

@@ -78,8 +78,8 @@ class Hypercube : public GraphImplementation{
 	bool computeConnection(Rank source,Rank destination);
 
 
-	int getLoad(int position,int symbol);
-	void setLoad(int position,int symbol,int value);
+	uint64_t getLoad(int position,int symbol);
+	void setLoad(int position,int symbol,uint64_t value);
 
 protected:
 
@@ -94,6 +94,8 @@ public:
 	void setDegree(int degree);
 
 	bool isValid(int n);
+	void printStatus();
+	void start();
 };
 
 #endif

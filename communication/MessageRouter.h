@@ -52,6 +52,9 @@ using namespace std;
  */
 class MessageRouter {
 
+/** the extra ticks after the computation has completed. **/
+	int m_extraTicks;
+
 /**
  * Number of relayed messages if the relay checker is activated.
  */
@@ -161,6 +164,8 @@ string prefix,int numberOfRanks,string type,int degree);
  * of the computation because we need ranks to shut down 
  * after they have relayed messages for which they act as
  * relay in the routing table.
+ *
+ * This is only called once the loop is dead, that is m_alive= false;
  */
 	bool hasCompletedRelayEvents();
 
@@ -168,11 +173,14 @@ string prefix,int numberOfRanks,string type,int degree);
  * We actually only need to monitor a few message tags
  * for relay events. They are added with this method
  * if they are sent from 0
+ *
+ * TODO: remove this
  */
 	void addTagToCheckForRelayFrom0(MessageTag tag);
 
 /**
  * Tags to monitor when sent to 0
+ * TODO: remove this
  */
 	void addTagToCheckForRelayTo0(MessageTag tag);
 
@@ -180,6 +188,8 @@ string prefix,int numberOfRanks,string type,int degree);
  * Unless the relayChecker component is activated with
  * this method, no logic code concerning relays is ever
  * executed whatsoever.
+ *
+ * TODO: remove this
  */
 	void activateRelayChecker();
 

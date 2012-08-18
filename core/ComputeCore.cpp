@@ -133,11 +133,18 @@ void ComputeCore::run(){
 
 	m_startingTimeMicroseconds = getMicroseconds();
 
+	if(m_router.isEnabled())
+		m_router.getGraph()->start();
+
 	if(m_runProfiler){
 		runWithProfiler();
 	}else{
 		runVanilla();
 	}
+
+	if(m_router.isEnabled())
+		m_router.getGraph()->printStatus();
+
 }
 
 /**
