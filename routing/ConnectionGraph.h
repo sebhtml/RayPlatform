@@ -44,6 +44,8 @@ using namespace std;
 /** a graph for connections between compute cores */
 class ConnectionGraph{
 
+	Rank m_rank;
+
 	string m_type;
 	int m_typeCode;
 
@@ -101,7 +103,7 @@ public:
 	void getIncomingConnections(Rank i,vector<Rank>*connections);
 
 	void printStatus();
-	void start();
+	void start(Rank rank);
 };
 
 #endif

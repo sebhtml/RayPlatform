@@ -21,13 +21,15 @@
 
 #include <routing/ConnectionGraph.h>
 
-#define __HYPERCUBE 0x0
-#define __KAUTZ  0x678
-#define __DEBRUIJN 0x45621
-#define __COMPLETE 0x5
-#define __RANDOM 0x902
-#define __GROUP 0x121
-#define __EXPERIMENTAL 0x78112
+enum {
+__COMPLETE,
+__GROUP,
+__RANDOM,
+__DEBRUIJN,
+__KAUTZ,
+__EXPERIMENTAL,
+__HYPERCUBE
+};
 
 /**
  * Print a route
@@ -247,7 +249,7 @@ int degree){
 	if(type=="random"){
 		m_implementation=&m_random;
 		m_typeCode=__RANDOM;
-	}else if(type=="hypercube"){
+	}else if(type=="hypercube" && m_hypercube.isValid(numberOfRanks)){
 		m_implementation=&m_hypercube;
 		m_typeCode=__HYPERCUBE;
 	}else if(type=="group"){
@@ -266,7 +268,7 @@ int degree){
 		m_implementation=&m_experimental;
 		m_typeCode=__EXPERIMENTAL;
 	}else{
-		cout<<"Warning: using a complete graph because type "<<type<<" can not used with "<<numberOfRanks<<" vertices"<<endl;
+		cout<<"Warning: using a complete graph because type "<<type<<" can not be used with "<<numberOfRanks<<" vertices"<<endl;
 		type="complete";
 		m_implementation=&m_complete;
 		m_typeCode=__COMPLETE;
@@ -301,10 +303,12 @@ int ConnectionGraph::getRelaysTo0(Rank rank){
 void ConnectionGraph::printStatus(){
 
 	if(m_typeCode==__HYPERCUBE)
-		m_hypercube.printStatus();
+		m_hypercube.printStatus(m_rank);
 }
 
-void ConnectionGraph::start(){
+void ConnectionGraph::start(Rank rank){
+
+	m_rank=rank;
 
 	if(m_typeCode==__HYPERCUBE)
 		m_hypercube.start();

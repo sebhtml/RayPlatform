@@ -94,7 +94,7 @@ public:
 	void setDegree(int degree);
 
 	bool isValid(int n);
-	void printStatus();
+	void printStatus(Rank rank);
 	void start();
 };
 

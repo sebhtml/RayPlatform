@@ -222,7 +222,8 @@ void Hypercube::printVertex(Tuple*a){
 	for(int i=0;i<m_wordLength;i++){
 		if(i!=0)
 			cout<<",";
-		cout<<a->m_digits[i];
+		int value=a->m_digits[i];
+		cout<<value;
 	}
 }
 
@@ -288,6 +289,7 @@ void Hypercube::makeRoutes(){
 Rank Hypercube::computeNextRankInRoute(Rank source,Rank destination,Rank current){
 
 	#ifdef ASSERT
+	assert(destination!=current); // we don't need any routing...
 	assert(source>=0);
 	assert(destination>=0);
 	assert(current>=0);
@@ -305,16 +307,12 @@ Rank Hypercube::computeNextRankInRoute(Rank source,Rank destination,Rank current
 	int bestSymbol=NO_VALUE;
 	uint64_t bestLoad=NO_VALUE;
 
-	// the next will be populated in the loop
-	Tuple next;
-
 	// select the next that has the lowest load.
 	for(int position=0;position<m_wordLength;position++){
 		//int sourceSymbol=sourceVertex[i];
 		int currentSymbol=currentVertex->m_digits[position];
 		int destinationSymbol=destinationVertex->m_digits[position];
 
-		next.m_digits[position]=currentSymbol;
 
 		// we don't need to test this one 
 		// because the bit is already correct
@@ -344,13 +342,23 @@ Rank Hypercube::computeNextRankInRoute(Rank source,Rank destination,Rank current
 
 	// we just need to update next with the choice having
 	// the lowest load
-	
+
+	// the next will be populated in the loop
+	Tuple next=*currentVertex;
+
+
 	next.m_digits[bestPosition]=bestSymbol;
 	
 	// we increate the load by 1
 	setLoad(bestPosition,bestSymbol,bestLoad+1);
 
-	return convertToBase10(&next);
+	Rank nextRank=convertToBase10(&next);
+
+	#ifdef ASSERT
+	assert(current!=nextRank);
+	#endif
+
+	return nextRank;
 }
 
 /**
@@ -406,23 +414,45 @@ void Hypercube::setDegree(int degree){
 	m_degree=degree;
 }
 
-void Hypercube::printStatus(){
+void Hypercube::printStatus(Rank rank){
 	cout<<"[Hypercube] Load values:"<<endl;
 	cout<<"AlphabetSize: "<<m_alphabetSize<<endl;
 	cout<<"WordLength: "<<m_wordLength<<endl;
+	cout<<"Self: ";
+	Tuple*self=&(m_graphToVertex[rank]);
+
+	printVertex(self);
+	cout<<endl;
 
 	for(int i=0;i<m_wordLength;i++){
-		cout<<"Position: "<<i<<endl;
+
+		int selfSymbol=self->m_digits[i];
+
 		for(int j=0;j<m_alphabetSize;j++){
+
+			if(selfSymbol==j)// nothing to report
+				continue;
+
 			uint64_t load=getLoad(i,j);
-			cout<<"  Symbol: "<<j<<" Load: "<<load<<endl;
+			Tuple copy=*self;
+			copy.m_digits[i]=j;
+			cout<<"  ";
+			printVertex(self);
+			cout<<" ("<<rank<<")";
+			cout<<" -> ";
+			printVertex(&copy);
+
+			Rank other=convertToBase10(&copy);
+			cout<<" ("<<other<<")";
+			cout<<" Load: "<<load<<endl;
+			
 		}
 	}
 }
 
 void Hypercube::start(){
 	for(int i=0;i<m_wordLength;i++)
-		for(int j=1;j<m_alphabetSize;j++)
+		for(int j=0;j<m_alphabetSize;j++)
 			setLoad(i,j,0);
 
 }
