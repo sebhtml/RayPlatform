@@ -239,6 +239,7 @@ int degree){
 	/** provide the user-provided degree for those
  * requiring it */
 	m_deBruijn.setDegree(degree);
+	m_hypercube.setDegree(degree);
 
 	if(type==""){
 		type="debruijn";

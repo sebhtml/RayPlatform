@@ -68,6 +68,13 @@ bool Hypercube::isAPowerOf(int n,int base){
  * only implemented for the hypercube with alphabet {0,1}
  */
 void Hypercube::configureGraph(int n){
+
+	#if 0
+	// test some cases
+	n=1024;
+	m_degree=62;
+	#endif
+
 	int base=2;
 
 	// Given alphabetSize and wordLength,
@@ -130,6 +137,27 @@ void Hypercube::configureGraph(int n){
 	}
 	#endif
 
+	/* try to modify the base such that base^exponent = vertices */
+	/* and that meets the provided degree. */
+
+	for(int alphabetSize=n-1;alphabetSize>=2;alphabetSize--){
+		int wordLength=1;
+
+		while(n > getPower(alphabetSize,wordLength)){
+			wordLength++;
+		}
+
+		if(n == getPower(alphabetSize,wordLength)){
+			int degree=(alphabetSize-1)*wordLength;
+			if(degree==m_degree){
+				cout<<"[Hypercube] found a hypercube topology that matches the provided degree "<<m_degree<<endl;
+
+				base=alphabetSize;
+			}
+		}
+	}
+
+
 	if(!isAPowerOf(n,base)){
 		cout<<"Error: "<<n<<" is not a power of 2, can not use the hypercube."<<endl;
 		m_alphabetSize=__INVALID_ALPHABET_SIZE;
@@ -150,6 +178,7 @@ void Hypercube::configureGraph(int n){
 	m_wordLength=digits; // this is wordLength
 	m_size=n; // this is the number of vertices
 
+	cout<<"[Hypercube] Size: "<<m_size<<" AlphabetSize: "<<m_alphabetSize<<" WordLength: "<<m_wordLength<<" Degree: "<<m_degree<<endl;
 	start();
 }
 
