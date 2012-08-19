@@ -75,6 +75,11 @@ class Hypercube : public GraphImplementation{
 	int getMaximumOverlap(Tuple*a,Tuple*b);
 
 	Rank computeNextRankInRoute(Rank source,Rank destination,Rank rank);
+
+
+	Rank computeNextRankInRouteWithRoundRobin(Rank source,Rank destination,Rank rank);
+	int m_currentPosition;
+	int m_currentSymbol;
 	bool computeConnection(Rank source,Rank destination);
 
 

@@ -232,9 +232,19 @@ void Hypercube::printVertex(Tuple*a){
  */
 void Hypercube::computeRoute(Rank a,Rank b,vector<Rank>*route){}
 
+// use a round-robin algorithm.
+//#define __ROUND_ROBIN__
 Rank Hypercube::getNextRankInRoute(Rank source,Rank destination,Rank rank){
 
+	#ifdef __ROUND_ROBIN__
+
+	return computeNextRankInRouteWithRoundRobin(source,destination,rank);
+
+	#else
+
 	return computeNextRankInRoute(source,destination,rank);
+
+	#endif /* __ROUND_ROBIN__ */
 }
 
 /** with de Bruijn routing, no route are pre-computed at all */
@@ -455,4 +465,145 @@ void Hypercube::start(){
 		for(int j=0;j<m_alphabetSize;j++)
 			setLoad(i,j,0);
 
+	m_currentPosition=0;
+	m_currentSymbol=0;
+}
+
+Rank Hypercube::computeNextRankInRouteWithRoundRobin(Rank source,Rank destination,Rank current){
+
+	#ifdef ASSERT
+	assert(destination!=current); // we don't need any routing...
+	assert(source>=0);
+	assert(destination>=0);
+	assert(current>=0);
+	assert(source<m_size);
+	assert(destination<m_size);
+	assert(current<m_size);
+	#endif
+
+	//Tuple*sourceVertex=&(m_graphToVertex[source]);
+	Tuple*destinationVertex=&(m_graphToVertex[destination]);
+	Tuple*currentVertex=&(m_graphToVertex[current]);
+	
+	int NO_VALUE=-1;
+	int bestPosition=NO_VALUE;
+	int bestSymbol=NO_VALUE;
+
+	#if 0 /* to disable round-robin */
+	m_currentPosition=0;
+	m_currentSymbol=0;
+	#endif
+
+
+	// first slice of round-robin
+	for(int position=m_currentPosition;position<m_wordLength;position++){
+
+		if(bestPosition!=NO_VALUE)// we found something
+			break;
+
+		int desiredSymbol=destinationVertex->m_digits[position];
+		int currentSymbol=currentVertex->m_digits[position];
+
+		if(desiredSymbol==currentSymbol)// it is already correct.
+			continue;
+
+		int symbolStart=0;
+
+		if(false||position==m_currentPosition)// for next round, we start at 0
+			symbolStart=m_currentSymbol;
+
+		for(int symbol=symbolStart;symbol<m_alphabetSize;symbol++){
+
+			if(bestPosition!=NO_VALUE)// we found something
+				break;
+
+			if(symbol!=desiredSymbol)// this is not the correct symbol
+				continue;
+
+			// we found something to do!
+			bestPosition=position;
+			bestSymbol=symbol;
+		}
+
+	}
+
+	// second slice of round-robin
+	for(int position=0;position<=m_currentPosition;position++){
+
+		if(bestPosition!=NO_VALUE)// we found something
+			break;
+
+		int desiredSymbol=destinationVertex->m_digits[position];
+		int currentSymbol=currentVertex->m_digits[position];
+
+		if(desiredSymbol==currentSymbol)// it is already correct.
+			continue;
+
+		int maximumSymbol=m_alphabetSize;
+
+		if(false||position==m_currentPosition)// we need to complete the round-robin
+			maximumSymbol=m_currentSymbol;
+
+		for(int symbol=m_currentSymbol;symbol<maximumSymbol;symbol++){
+
+			if(bestPosition!=NO_VALUE)// we found something
+				break;
+
+			if(symbol!=desiredSymbol)// this is not the correct symbol
+				continue;
+
+			// we found something to do!
+			bestPosition=position;
+			bestSymbol=symbol;
+		}
+
+	}
+
+	#ifdef ASSERT
+	assert(bestPosition!=NO_VALUE);
+	assert(bestSymbol!=NO_VALUE);
+	#endif
+
+	// here, we know where we want to go
+	//
+	// This is the agenda:
+	//                 
+	//                  * we are here
+	//                  *
+	//                  *
+	// source -> ... -> current -> next -> ... -> destination
+
+	// we just need to update next with the choice having
+	// the lowest load
+
+	// the next will be populated in the loop
+	Tuple next=*currentVertex;
+
+	next.m_digits[bestPosition]=bestSymbol;
+	
+	uint64_t bestLoad=getLoad(bestPosition,bestSymbol);
+
+	// we increate the load by 1
+	setLoad(bestPosition,bestSymbol,bestLoad+1);
+
+	Rank nextRank=convertToBase10(&next);
+
+	#ifdef ASSERT
+	assert(current!=nextRank);
+	#endif
+
+	// update information for round-robin
+	
+	m_currentPosition=bestPosition;
+	m_currentSymbol=bestSymbol;
+	m_currentSymbol++;
+	if(m_currentSymbol==m_alphabetSize){
+		m_currentSymbol=0;
+		m_currentPosition++;
+	}
+	if(m_currentPosition==m_wordLength)
+		m_currentPosition=0;
+
+
+	return nextRank;
 }
