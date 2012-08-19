@@ -481,7 +481,10 @@ Rank Hypercube::computeNextRankInRouteWithRoundRobin(Rank source,Rank destinatio
 	assert(current<m_size);
 	#endif
 
-	//Tuple*sourceVertex=&(m_graphToVertex[source]);
+	#ifdef ASSERT
+	Tuple*sourceVertex=&(m_graphToVertex[source]);
+	#endif
+
 	Tuple*destinationVertex=&(m_graphToVertex[destination]);
 	Tuple*currentVertex=&(m_graphToVertex[current]);
 	
@@ -501,23 +504,25 @@ Rank Hypercube::computeNextRankInRouteWithRoundRobin(Rank source,Rank destinatio
 		if(bestPosition!=NO_VALUE)// we found something
 			break;
 
-		int desiredSymbol=destinationVertex->m_digits[position];
 		int currentSymbol=currentVertex->m_digits[position];
+		int destinationSymbol=destinationVertex->m_digits[position];
 
-		if(desiredSymbol==currentSymbol)// it is already correct.
+		if(destinationSymbol==currentSymbol)// it is already correct.
 			continue;
 
 		int symbolStart=0;
 
-		if(false||position==m_currentPosition)// for next round, we start at 0
+		if(position==m_currentPosition)// for the first round, we start at m_currentSymbol
 			symbolStart=m_currentSymbol;
+
+		//symbolStart=0;// TODO: remove me
 
 		for(int symbol=symbolStart;symbol<m_alphabetSize;symbol++){
 
 			if(bestPosition!=NO_VALUE)// we found something
 				break;
 
-			if(symbol!=desiredSymbol)// this is not the correct symbol
+			if(symbol!=destinationSymbol)// this is not the correct symbol
 				continue;
 
 			// we found something to do!
@@ -528,28 +533,32 @@ Rank Hypercube::computeNextRankInRouteWithRoundRobin(Rank source,Rank destinatio
 	}
 
 	// second slice of round-robin
+	// we also try the symbols below m_currentSymbol for m_currentPosition
+	// to complete the round robin
 	for(int position=0;position<=m_currentPosition;position++){
 
 		if(bestPosition!=NO_VALUE)// we found something
 			break;
 
-		int desiredSymbol=destinationVertex->m_digits[position];
 		int currentSymbol=currentVertex->m_digits[position];
+		int destinationSymbol=destinationVertex->m_digits[position];
 
-		if(desiredSymbol==currentSymbol)// it is already correct.
+		if(destinationSymbol==currentSymbol)// it is already correct.
 			continue;
 
 		int maximumSymbol=m_alphabetSize;
 
-		if(false||position==m_currentPosition)// we need to complete the round-robin
+		if(position==m_currentPosition)// we need to complete the round-robin
 			maximumSymbol=m_currentSymbol;
 
-		for(int symbol=m_currentSymbol;symbol<maximumSymbol;symbol++){
+		//maximumSymbol=m_alphabetSize;// TODO: remove me
+
+		for(int symbol=0;symbol<maximumSymbol;symbol++){
 
 			if(bestPosition!=NO_VALUE)// we found something
 				break;
 
-			if(symbol!=desiredSymbol)// this is not the correct symbol
+			if(symbol!=destinationSymbol)// this is not the correct symbol
 				continue;
 
 			// we found something to do!
@@ -560,6 +569,23 @@ Rank Hypercube::computeNextRankInRouteWithRoundRobin(Rank source,Rank destinatio
 	}
 
 	#ifdef ASSERT
+	if(bestPosition==NO_VALUE){
+		cout<<"Error: found no eligible position."<<endl;
+		cout<<"m_currentPosition: "<<m_currentPosition<<endl;
+		cout<<"m_currentSymbol: "<<m_currentSymbol<<endl;
+		cout<<"m_alphabetSize: "<<m_alphabetSize<<endl;
+		cout<<"m_wordLength: "<<m_wordLength<<endl;
+
+		cout<<"Source: "<<source<<" <=> ";
+		printVertex(sourceVertex);
+		cout<<endl;
+		cout<<"Current: "<<current<<" <=> ";
+		printVertex(currentVertex);
+		cout<<endl;
+		cout<<"Destination: "<<destination<<" <=> ";
+		printVertex(destinationVertex);
+		cout<<endl;
+	}
 	assert(bestPosition!=NO_VALUE);
 	assert(bestSymbol!=NO_VALUE);
 	#endif
