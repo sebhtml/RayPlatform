@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <core/OperatingSystem.h>
 #include <core/ComputeCore.h>
+#include <time.h> /* for time */
 using namespace std;
 
 /*
@@ -241,7 +242,7 @@ void MessageRouter::enable(StaticVector*inbox,StaticVector*outbox,RingAllocator*
 	if(m_rank==MASTER_RANK)
 		m_graph.writeFiles(prefix);
 
-	m_extraTicks=1<<20;
+	m_deletionTime=0;
 }
 
 void MessageRouter::activateRelayChecker(){
@@ -264,7 +265,17 @@ void MessageRouter::addTagToCheckForRelayTo0(MessageTag tag){
 
 bool MessageRouter::hasCompletedRelayEvents(){
 
-	return m_extraTicks--;
+	int duration=16; // 10 seconds
+
+	if(m_deletionTime==0){
+		m_deletionTime=time(NULL);
+		cout<<"[MessageRouter] Rank "<<m_rank<<" will die in "<<duration<<" seconds,";
+		cout<<" will not route anything after that point."<<endl;
+	}
+
+	time_t now=time(NULL);
+
+	return now >= (m_deletionTime+duration);
 
 	#if 0
 	// check relay events from 0

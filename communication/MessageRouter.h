@@ -33,6 +33,7 @@ class ComputeCore;
 #include <string>
 #include <map>
 #include <vector>
+#include <time.h> /* for time() */
 using namespace std;
 
 /**
@@ -53,7 +54,7 @@ using namespace std;
 class MessageRouter {
 
 /** the extra ticks after the computation has completed. **/
-	int m_extraTicks;
+	time_t m_deletionTime;
 
 /**
  * Number of relayed messages if the relay checker is activated.
