@@ -194,8 +194,6 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 	if(m_dirtyBuffers==NULL){
 		m_dirtyBufferSlots=outboxBufferAllocator->getNumberOfBuffers();
 
-		cout<<"getSize="<<m_dirtyBufferSlots<<endl;
-
 		m_dirtyBuffers=(DirtyBuffer*)__Malloc(m_dirtyBufferSlots*sizeof(DirtyBuffer),
 			"m_dirtyBuffers",false);
 
