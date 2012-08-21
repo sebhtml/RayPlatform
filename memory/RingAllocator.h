@@ -35,26 +35,33 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class RingAllocator{
-	char m_type[100];
-	
-	uint8_t m_bufferStates[MAXIMUM_NUMBER_OF_DIRTY_BUFFERS];
-
+/** the number of call to allocate() since the last hard reset */
 	int m_count;
 
 /** the number of memory cells */
 	int m_chunks;
 
-	bool m_show;
-
 /** the number of bytes, linear in the number of chunks/cells */
 	int m_numberOfBytes;
+
+/** the maximum size of a buffer */
 	int m_max;
 
-/** memory block */
-	uint8_t*m_memory;
+/** the number of available buffers */
+	int m_availableBuffers;
 
 /** the head */
 	int m_current;
+
+	bool m_show;
+/** memory block */
+
+	uint8_t*m_memory;
+
+	char m_type[100];
+	
+	uint8_t*m_bufferStates;
+
 
 	int getBufferHandle(void*buffer);
 public:
@@ -64,13 +71,29 @@ public:
 /** allocate memory */
 	void*allocate(int a);
 
+/**
+ * Gets the size of each buffer
+ */
 	int getSize();
+
 	void clear();
 	void resetCount();
 	int getCount();
 
+/**
+ * marks a buffer as available
+ */
 	void salvageBuffer(void*buffer);
+
+/**
+ * marks a buffer as used
+ */
 	void markBufferAsDirty(void*buffer);
+
+/**
+ * returns the number of buffers in the ring
+ */
+	int getNumberOfBuffers();
 };
 
 

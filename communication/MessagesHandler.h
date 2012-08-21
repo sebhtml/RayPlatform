@@ -40,6 +40,8 @@ using namespace std;
 struct DirtyBuffer{
 	void*m_buffer;
 	MPI_Request m_messageRequest;
+	Rank destination;
+	MessageTag mpiTag;
 };
 
 /**
@@ -52,12 +54,16 @@ struct DirtyBuffer{
  */
 class MessagesHandler: public CorePlugin{
 
+	int m_minimumNumberOfDirtyBuffersForSweep;
+
 	// the number of peers for communication
 	int m_peers;
 
-	DirtyBuffer m_dirtyBuffers[MAXIMUM_NUMBER_OF_DIRTY_BUFFERS];
+	DirtyBuffer*m_dirtyBuffers;
+
 	int m_numberOfDirtyBuffers;
 	int m_maximumDirtyBuffers;
+	int m_dirtyBufferSlots;
 
 	MessageTag RAY_MPI_TAG_DUMMY;
 
@@ -129,8 +135,7 @@ class MessagesHandler: public CorePlugin{
 	void checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int i);
 	uint8_t allocateDirtyBuffer();
 	void cleanDirtyBuffers(RingAllocator*outboxBufferAllocator);
-	void cleanBuffers(RingAllocator*outboxBufferAllocator);
-
+	uint64_t m_linearSweeps;
 public:
 	/** initialize the message handler
  * 	*/

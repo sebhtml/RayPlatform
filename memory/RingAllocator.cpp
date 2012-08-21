@@ -33,19 +33,57 @@ using namespace std;
 #define BUFFER_STATE_DIRTY 0x1
 
 void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
+
 	resetCount();
-	m_chunks=chunks;
-	m_max=size;
+
+	/* m_max should never be 0 */
+	#ifdef ASSERT
+	assert(size>0);
+	assert(chunks>0);
+	#endif /* ASSERT */
+
+	m_chunks=chunks;// number of buffers
+
+	m_max=size;// maximum buffer size in bytes
+
+	#ifdef ASSERT
+	assert(m_chunks==chunks);
+	assert(m_max==size);
+	#endif /* ASSERT */
+
 	strcpy(m_type,type);
+
 	m_numberOfBytes=m_chunks*m_max;
-	m_memory=(uint8_t*)__Malloc(sizeof(uint8_t)*m_chunks*m_max,m_type,show);
 
-	for(int i=0;i<m_chunks;i++){
+	#ifdef ASSERT
+	assert(m_numberOfBytes>0);
+	#endif /* ASSERT */
+
+	m_memory=(uint8_t*)__Malloc(sizeof(uint8_t)*m_numberOfBytes,m_type,show);
+	m_bufferStates=(uint8_t*)__Malloc(m_chunks*sizeof(uint8_t),m_type,show);
+
+	for(int i=0;i<m_chunks;i++)
 		m_bufferStates[i]= BUFFER_STATE_AVAILABLE;
-	}
 
-	m_current=0;
+	m_current=0;// the current head for allocation operations
+
 	m_show=show;
+
+	// in the beginning, all buffers are available
+	m_availableBuffers=m_chunks;
+
+	cout<<"[RingAllocator] m_chunks: "<<m_chunks<<" m_max: "<<m_max<<endl;
+
+	#ifdef ASSERT
+	assert(size>0);
+	assert(chunks>0);
+
+	if(m_chunks==0)
+		cout<<"Error: chunks: "<<chunks<<" m_chunks: "<<m_chunks<<endl;
+
+	assert(m_chunks>0);
+	assert(m_max>0);
+	#endif /* ASSERT */
 }
 
 RingAllocator::RingAllocator(){}
@@ -117,6 +155,13 @@ void RingAllocator::salvageBuffer(void*buffer){
 	#ifdef CONFIG_RING_VERBOSE
 	cout<<"[RingAllocator::salvageBuffer] "<<bufferNumber<<" -> BUFFER_STATE_AVAILABLE"<<endl;
 	#endif
+
+	m_availableBuffers++;
+
+	#ifdef ASSERT
+	assert(m_availableBuffers>=1);
+	#endif
+
 }
 
 void RingAllocator::markBufferAsDirty(void*buffer){
@@ -126,6 +171,16 @@ void RingAllocator::markBufferAsDirty(void*buffer){
 
 	#ifdef CONFIG_RING_VERBOSE
 	cout<<"[RingAllocator::markBufferAsDirty] "<<bufferNumber<<" -> BUFFER_STATE_DIRTY"<<endl;
+	#endif
+
+	#ifdef ASSERT
+	assert(m_availableBuffers>=1);
+	#endif
+
+	m_availableBuffers--;
+
+	#ifdef ASSERT
+	assert(m_availableBuffers>=0);
 	#endif
 }
 
@@ -160,4 +215,6 @@ int RingAllocator::getCount(){
 	return m_count;
 }
 
-
+int RingAllocator::getNumberOfBuffers(){
+	return m_chunks;
+}

@@ -740,7 +740,9 @@ void ComputeCore::constructor(int*argc,char***argv){
 		}
 	}
 
-	m_outboxAllocator.constructor(getMaximumNumberOfAllocatedOutboxBuffers(),
+	int availableBuffers=128;
+
+	m_outboxAllocator.constructor(availableBuffers,
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
 

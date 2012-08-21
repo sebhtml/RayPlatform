@@ -76,28 +76,28 @@ using namespace std;
 
 /**
  * return the first free buffer
- * this is O(MAXIMUM_NUMBER_OF_DIRTY_BUFFERS)
+ * this is O(m_dirtyBufferSlots)
  */
 uint8_t MessagesHandler::allocateDirtyBuffer(){
 
 	uint8_t position=0;
 
-	while(position<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS &&
+	while(position<m_dirtyBufferSlots&&
 		m_dirtyBuffers[position].m_buffer!=NULL){
 
 		position++;
 	}
 
 	#ifdef ASSERT
-	if(position==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS){
+	if(position==m_dirtyBufferSlots){
 		cout<<"All buffers are dirty !"<<endl;
 	}
-	assert(position<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS);
+	assert(position<m_dirtyBufferSlots);
 	#endif
 
 	// to remove 
 	// attention : array subscript is above array bounds [-Warray-bounds]
-	if(position==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS){
+	if(position==m_dirtyBufferSlots){
 		position=0;
 	}
 
@@ -119,70 +119,55 @@ void MessagesHandler::checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int i
 	assert(m_numberOfDirtyBuffers>0);
 	#endif
 
+	if(m_dirtyBuffers[index].m_buffer==NULL)// this entry is empty...
+		return;
+
 	// check the buffer and free it if it is finished.
-	if(m_dirtyBuffers[index].m_buffer!=NULL){
-		MPI_Status status;
-		MPI_Request*request=&(m_dirtyBuffers[index].m_messageRequest);
+	MPI_Status status;
+	MPI_Request*request=&(m_dirtyBuffers[index].m_messageRequest);
 
-		int flag=0;
+	int flag=0;
 
-		MPI_Test(request,&flag,&status);
+	MPI_Test(request,&flag,&status);
 
-		if(flag){
+	if(!flag)// this slot is not ready
+		return;
 
-			void*buffer=m_dirtyBuffers[index].m_buffer;
-			outboxBufferAllocator->salvageBuffer(buffer);
-			m_numberOfDirtyBuffers--;
+	#ifdef ASSERT
+	assert( flag );
+	#endif /* ASSERT */
 
-			#ifdef COMMUNICATION_IS_VERBOSE
-			cout<<"From checkDirtyBuffer flag= "<<flag<<endl;
-			#endif
+	void*buffer=m_dirtyBuffers[index].m_buffer;
+	outboxBufferAllocator->salvageBuffer(buffer);
+	m_numberOfDirtyBuffers--;
 
-			#ifdef ASSERT
-			assert(*request == MPI_REQUEST_NULL);
-			#endif
+	#ifdef COMMUNICATION_IS_VERBOSE
+	cout<<"From checkDirtyBuffer flag= "<<flag<<endl;
+	#endif /* COMMUNICATION_IS_VERBOSE */
 
-			m_dirtyBuffers[index].m_buffer=NULL;
+	#ifdef ASSERT
+	assert(*request == MPI_REQUEST_NULL);
+	#endif /* ASSERT */
 
-		}
-	}
-
-
+	m_dirtyBuffers[index].m_buffer=NULL;
 }
 
 void MessagesHandler::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
 
-	if(m_numberOfDirtyBuffers==0)
+/**
+ * don't do any linear sweep
+ */
+	if(m_numberOfDirtyBuffers<m_minimumNumberOfDirtyBuffersForSweep)
 		return;
-
-	cleanBuffers(outboxBufferAllocator);
-
-	int iterations=1<<10;
-	int steps=0;
-
-	while(steps<iterations && m_numberOfDirtyBuffers==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS){
-		
-		if(steps==0){
-			cout<<"Warning: all buffers are dirty, Ray will try to clean this mess during ";
-			cout<<iterations<<" iterations."<<endl;
-		}
-
-		cleanBuffers(outboxBufferAllocator);
-		steps++;
-	}
-
-	if(m_numberOfDirtyBuffers==MAXIMUM_NUMBER_OF_DIRTY_BUFFERS)
-		cout<<"Error: all buffers are still dirty, the program will not exit."<<endl;
-}
-
-void MessagesHandler::cleanBuffers(RingAllocator*outboxBufferAllocator){
 
 	#ifdef ASSERT
 	assert(m_numberOfDirtyBuffers>0);
 	#endif
 
+	m_linearSweeps++;
+
 	// update the dirty buffer list.
-	for(int i=0;i<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS;i++){
+	for(int i=0;i<m_dirtyBufferSlots;i++){
 		if(m_numberOfDirtyBuffers==0)
 			return;
 
@@ -193,8 +178,31 @@ void MessagesHandler::cleanBuffers(RingAllocator*outboxBufferAllocator){
 
 /*
  * send messages,
+ *
+ * Regarding m_dirtyBufferSlots:
+ *
+ * this is the maximum number of dirty buffers
+ * it should be at least the number of allocated
+ * buffer in a RayPlatform virtual machine tick.
+ *
+ * For very large jobs, this might need to be increased
+ * in order to avoid the situation in which
+ * all the buffer for the outbox are dirty/used.
  */
 void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator){
+
+	if(m_dirtyBuffers==NULL){
+		m_dirtyBufferSlots=outboxBufferAllocator->getNumberOfBuffers();
+
+		cout<<"getSize="<<m_dirtyBufferSlots<<endl;
+
+		m_dirtyBuffers=(DirtyBuffer*)__Malloc(m_dirtyBufferSlots*sizeof(DirtyBuffer),
+			"m_dirtyBuffers",false);
+
+		for(int i=0;i<m_dirtyBufferSlots;i++){
+			m_dirtyBuffers[i].m_buffer=NULL;
+		}
+	}
 
 	cleanDirtyBuffers(outboxBufferAllocator);
 
@@ -223,7 +231,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 		bool mustRegister=true;
 
-		for(int i=0;i<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS;i++){
+		for(int i=0;i<m_dirtyBufferSlots;i++){
 
 			if(m_dirtyBuffers[i].m_buffer==buffer){
 
@@ -517,12 +525,6 @@ void MessagesHandler::freeLeftovers(){
 
 void MessagesHandler::constructor(int*argc,char***argv){
 
-	for(int i=0;i<MAXIMUM_NUMBER_OF_DIRTY_BUFFERS;i++){
-		m_dirtyBuffers[i].m_buffer=NULL;
-		//m_dirtyBuffers[i].m_messageRequest
-	}
-
-
 	m_destroyed=false;
 
 	m_sentMessages=0;
@@ -544,6 +546,20 @@ void MessagesHandler::constructor(int*argc,char***argv){
 	m_numberOfDirtyBuffers=0;
 
 	m_maximumDirtyBuffers=m_numberOfDirtyBuffers;
+
+	m_dirtyBuffers=NULL;
+
+	m_linearSweeps=0;
+
+/**
+ * internally, there are 128 buffers for MPI_Isend. However,
+ * these slots become dirty when they are used and become
+ * clean again when MPI_Test says so.
+ * But we don't want to do too much sweep operations. Instead,
+ * we want amortized operations.
+ */
+
+	m_minimumNumberOfDirtyBuffersForSweep=32;
 }
 
 void MessagesHandler::createBuffers(){
@@ -629,8 +645,11 @@ void MessagesHandler::appendStatistics(const char*file){
 	}
 	fp.close();
 
+	cout<<"[MessagesHandler] Hello, this is the layered communication vessel, status follows."<<endl;
 	cout<<"Rank "<<m_rank<<": sent "<<m_sentMessages<<" messages, received "<<m_receivedMessages<<" messages."<<endl;
 	cout<<"Rank "<<m_rank<<": the maximum number of dirty buffers was "<<m_maximumDirtyBuffers<<endl;
+	cout<<"Rank "<<m_rank<<": "<<m_linearSweeps<<" linear sweep operations (threshold: ";
+	cout<<m_minimumNumberOfDirtyBuffersForSweep<<" dirty buffers)"<<endl;
 	cout<<"Rank "<<m_rank<<": Active peers (including self): "<<activePeers.size()<<" list:";
 
 	for(int i=0;i<(int)activePeers.size();i++){
@@ -638,8 +657,7 @@ void MessagesHandler::appendStatistics(const char*file){
 	}
 	cout<<endl;
 
-
-	cout<<endl;
+	cout<<"[MessagesHandler] Over and out."<<endl;
 }
 
 string MessagesHandler::getMessagePassingInterfaceImplementation(){
