@@ -22,6 +22,56 @@
 #ifndef _MessagesHandler
 #define _MessagesHandler
 
+
+
+/* 3 communication models are implemented:
+ * latencies are for a system with 36 cores (or 120 cores), QLogic interconnect, 
+ *  and Performance scaled messaging
+ * - CONFIG_COMM_IPROBE_ANY_SOURCE  
+     	latency(36): 16 micro seconds
+	latency(120): 19 microseconds
+	no fairness, possible starvation
+ * - CONFIG_COMM_IPROBE_ROUND_ROBIN 
+     	latency(36):, 18 microseconds
+     	latency(120): 23 microseconds
+     	latency with 1008 cores: 78 (84*12): microseconds (without -route-messages.)
+     	with fairness, no starvation
+ * - CONFIG_COMM_PERSISTENT (latency(36): , no fairness)
+     	latency(36): 28 micro seconds
+	latency(120): 75 microseconds
+	no fairness, possible starvation
+ *
+ * only one must be set
+ */
+
+/*
+ * Persistent communication pumps the message more rapidly
+ * on some systems
+ */
+
+//#define CONFIG_COMM_PERSISTENT
+
+/**
+ *  Use round-robin reception.
+ */
+//#define CONFIG_COMM_IPROBE_ROUND_ROBIN
+
+/* this configuration may be important for low latency */
+/* uncomment if you want to try it */
+/* this is only useful with CONFIG_COMM_IPROBE_ROUND_ROBIN */
+//#define CONFIG_ONE_IPROBE_PER_TICK
+
+
+#define CONFIG_COMM_IPROBE_ANY_SOURCE
+
+
+
+
+
+
+
+
+
 #include <mpi.h> // this is the only reference to MPI
 
 #include <memory/MyAllocator.h>
@@ -123,17 +173,20 @@ class MessagesHandler: public CorePlugin{
 	/** probe and read a message -- this method is not utilised */
 	void probeAndRead(int source,int tag,StaticVector*inbox,RingAllocator*inboxAllocator);
 
+#ifdef CONFIG_COMM_PERSISTENT
 	/** pump a message from the persistent ring */
 	void pumpMessageFromPersistentRing(StaticVector*inbox,RingAllocator*inboxAllocator);
+#endif /* CONFIG_COMM_PERSISTENT */
 
+#ifdef CONFIG_COMM_IPROBE_ROUND_ROBIN
 	/** select and fetch a message from the internal messages using a round-robin policy */
 	void roundRobinReception(StaticVector*inbox,RingAllocator*inboxAllocator);
+#endif /* CONFIG_COMM_IPROBE_ROUND_ROBIN */
 
 
 	void createBuffers();
 
 	void checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int i);
-	uint8_t allocateDirtyBuffer();
 	void cleanDirtyBuffers(RingAllocator*outboxBufferAllocator);
 	uint64_t m_linearSweeps;
 public:

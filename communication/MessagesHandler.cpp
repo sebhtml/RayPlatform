@@ -1,6 +1,6 @@
 /*
- 	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+ 	RayPlatform
+    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -32,81 +32,6 @@
 using namespace std;
 
 // #define COMMUNICATION_IS_VERBOSE
-
-
-/* 3 communication models are implemented:
- * latencies are for a system with 36 cores (or 120 cores), QLogic interconnect, 
- *  and Performance scaled messaging
- * - CONFIG_COMM_IPROBE_ANY_SOURCE  
-     	latency(36): 16 micro seconds
-	latency(120): 19 microseconds
-	no fairness, possible starvation
- * - CONFIG_COMM_IPROBE_ROUND_ROBIN 
-     	latency(36):, 18 microseconds
-     	latency(120): 23 microseconds
-     	latency with 1008 cores: 78 (84*12): microseconds (without -route-messages.)
-     	with fairness, no starvation
- * - CONFIG_COMM_PERSISTENT (latency(36): , no fairness)
-     	latency(36): 28 micro seconds
-	latency(120): 75 microseconds
-	no fairness, possible starvation
- *
- * only one must be set
- */
-
-/*
- * Persistent communication pumps the message more rapidly
- * on some systems
- */
-
-//#define CONFIG_COMM_PERSISTENT
-
-/**
- *  Use round-robin reception.
- */
-//#define CONFIG_COMM_IPROBE_ROUND_ROBIN
-
-/* this configuration may be important for low latency */
-/* uncomment if you want to try it */
-/* this is only useful with CONFIG_COMM_IPROBE_ROUND_ROBIN */
-//#define CONFIG_ONE_IPROBE_PER_TICK
-
-
-#define CONFIG_COMM_IPROBE_ANY_SOURCE
-
-/**
- * return the first free buffer
- * this is O(m_dirtyBufferSlots)
- */
-uint8_t MessagesHandler::allocateDirtyBuffer(){
-
-	uint8_t position=0;
-
-	while(position<m_dirtyBufferSlots&&
-		m_dirtyBuffers[position].m_buffer!=NULL){
-
-		position++;
-	}
-
-	#ifdef ASSERT
-	if(position==m_dirtyBufferSlots){
-		cout<<"All buffers are dirty !"<<endl;
-	}
-	assert(position<m_dirtyBufferSlots);
-	#endif
-
-	// to remove 
-	// attention : array subscript is above array bounds [-Warray-bounds]
-	if(position==m_dirtyBufferSlots){
-		position=0;
-	}
-
-	#ifdef ASSERT
-	assert(m_dirtyBuffers[position].m_buffer==NULL);
-	#endif
-
-	return position;
-}
 
 /**
  * TODO Instead of a true/false state, increase and decrease requests
@@ -204,6 +129,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 	cleanDirtyBuffers(outboxBufferAllocator);
 
+	// send messages.
 	for(int i=0;i<(int)outbox->size();i++){
 		Message*aMessage=((*outbox)[i]);
 		Rank destination=aMessage->getDestination();
@@ -227,42 +153,46 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 		MPI_Request*request=&dummyRequest;
 
-		bool mustRegister=true;
+		int handle=-1;
 
-		for(int i=0;i<m_dirtyBufferSlots;i++){
+		/* compute the handle, this is O(1) */
+		if(buffer!=NULL)
+			handle=outboxBufferAllocator->getBufferHandle(buffer);
 
-			if(m_dirtyBuffers[i].m_buffer==buffer){
+		bool mustRegister=false;
 
-				// the code can not manage
-				// this case
-				mustRegister=false;
+		// this buffer is not registered.
+		if(handle >=0 && m_dirtyBuffers[handle].m_buffer==NULL)
+			mustRegister=true;
 
-			}
-		}
-		
-
-		if(buffer!=NULL && mustRegister){
-			int dirtyBuffer=allocateDirtyBuffer();
-
+		/* register the buffer for processing */
+		if(mustRegister){
 			#ifdef ASSERT
-			assert(m_dirtyBuffers[dirtyBuffer].m_buffer==NULL);
+			assert(m_dirtyBuffers[handle].m_buffer==NULL);
 			#endif
 
-			m_dirtyBuffers[dirtyBuffer].m_buffer=buffer;
+			m_dirtyBuffers[handle].m_buffer=buffer;
 
 			#ifdef ASSERT
-			assert(m_dirtyBuffers[dirtyBuffer].m_buffer!=NULL);
+			assert(m_dirtyBuffers[handle].m_buffer!=NULL);
 			#endif
 
-			request=&(m_dirtyBuffers[dirtyBuffer].m_messageRequest);
+			request=&(m_dirtyBuffers[handle].m_messageRequest);
 
+			/* this is O(1) */
 			outboxBufferAllocator->markBufferAsDirty(buffer);
 
 			m_numberOfDirtyBuffers++;
 
+			// update the maximum number of dirty buffers
+			// observed since the beginning.
 			if(m_numberOfDirtyBuffers > m_maximumDirtyBuffers)
 				m_maximumDirtyBuffers=m_numberOfDirtyBuffers;
 		}
+
+		#ifdef ASSERT
+		assert(request!=NULL);
+		#endif
 
 		//  MPI_Isend
 		//      Synchronous nonblocking. 
@@ -270,7 +200,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 		// if the buffer is NULL, we free the request right now
 		// because we there is no buffer to protect.
-		if(buffer==NULL || !mustRegister){
+		if(!mustRegister){
 
 			#ifdef COMMUNICATION_IS_VERBOSE
 			cout<<" From sendMessages"<<endl;
@@ -296,6 +226,8 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 	outbox->clear();
 }
+
+#ifdef CONFIG_COMM_PERSISTENT
 
 /*	
  * receiveMessages is implemented as recommanded by Mr. George Bosilca from
@@ -358,6 +290,8 @@ void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAlloc
 		m_head = 0;
 }
 
+#endif /* CONFIG_COMM_PERSISTENT */
+
 void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator){
 	#if defined CONFIG_COMM_IPROBE_ROUND_ROBIN
 
@@ -383,6 +317,7 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 	#endif
 }
 
+#ifdef CONFIG_COMM_IPROBE_ROUND_ROBIN
 
 void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inboxAllocator){
 
@@ -432,6 +367,8 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 
 }
 
+#endif /* CONFIG_COMM_IPROBE_ROUND_ROBIN */
+
 /* this code is utilised, 
  * the code for persistent communication is not useful because
  * round-robin policy and persistent communication are likely 
@@ -447,38 +384,40 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	cout<<"call to probeAndRead source="<<source<<""<<endl;
 	#endif /* COMMUNICATION_IS_VERBOSE */
 
-	int flag;
+	int flag=0;
 	MPI_Status status;
 	MPI_Iprobe(source,tag,MPI_COMM_WORLD,&flag,&status);
 
+	// nothing to receive...
+	if(!flag)
+		return;
+
 	/* read at most one message */
-	if(flag){
-		MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
-		int tag=status.MPI_TAG;
-		Rank source=status.MPI_SOURCE;
-		int count=-1;
-		MPI_Get_count(&status,datatype,&count);
-	
-		#ifdef ASSERT
-		assert(count >= 0);
-		#endif
-	
-		MessageUnit*incoming=NULL;
-		if(count > 0){
-			incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
-		}
+	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
+	int actualTag=status.MPI_TAG;
+	Rank actualSource=status.MPI_SOURCE;
+	int count=-1;
+	MPI_Get_count(&status,datatype,&count);
 
-		MPI_Recv(incoming,count,datatype,source,tag,MPI_COMM_WORLD,&status);
+	#ifdef ASSERT
+	assert(count >= 0);
+	#endif
 
-		Message aMessage(incoming,count,m_rank,tag,source);
-		inbox->push_back(aMessage);
-
-		#ifdef ASSERT
-		assert(aMessage.getDestination() == m_rank);
-		#endif
-
-		m_receivedMessages++;
+	MessageUnit*incoming=NULL;
+	if(count > 0){
+		incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
 	}
+
+	MPI_Recv(incoming,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
+
+	Message aMessage(incoming,count,m_rank,actualTag,actualSource);
+	inbox->push_back(aMessage);
+
+	#ifdef ASSERT
+	assert(aMessage.getDestination() == m_rank);
+	#endif
+
+	m_receivedMessages++;
 
 }
 
@@ -499,7 +438,7 @@ void MessagesHandler::initialiseMembers(){
 		MPI_Start(m_ring+i);
 	}
 
-	#endif
+	#endif /* CONFIG_COMM_PERSISTENT */
 }
 
 void MessagesHandler::freeLeftovers(){
@@ -518,7 +457,7 @@ void MessagesHandler::freeLeftovers(){
 	__Free(m_messageStatistics,"RAY_MALLOC_TYPE_MESSAGE_STATISTICS",false);
 	m_messageStatistics=NULL;
 
-	#endif
+	#endif /* CONFIG_COMM_PERSISTENT */
 }
 
 void MessagesHandler::constructor(int*argc,char***argv){

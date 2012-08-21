@@ -63,7 +63,6 @@ class RingAllocator{
 	uint8_t*m_bufferStates;
 
 
-	int getBufferHandle(void*buffer);
 public:
 	RingAllocator();
 	void constructor(int chunks,int size,const char*type,bool show);
@@ -94,6 +93,11 @@ public:
  * returns the number of buffers in the ring
  */
 	int getNumberOfBuffers();
+
+/**
+ * get the handle for a buffer
+ */
+	int getBufferHandle(void*buffer);
 };
 
 
