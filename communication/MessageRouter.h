@@ -125,14 +125,6 @@ class MessageRouter {
 	/** build a routing tag */
 	RoutingTag getRoutingTag(MessageTag tag,Rank source,Rank destination);
 
-	/** get the source from a routing tag */
-	Rank getSource(RoutingTag tag);
-
-	/** get the destination from a routing tag */
-	Rank getDestination(RoutingTag tag);
-
-	/** get the tag from a routing tag */
-	MessageTag getTag(RoutingTag tag);
 
 public:
 	MessageRouter();
@@ -156,7 +148,6 @@ public:
 	void enable(StaticVector*inbox,StaticVector*outbox,RingAllocator*outboxAllocator,Rank rank,
 string prefix,int numberOfRanks,string type,int degree);
 
-	bool isRoutingTag(MessageTag tag);
 
 
 /**
@@ -196,6 +187,19 @@ string prefix,int numberOfRanks,string type,int degree);
 
 	ConnectionGraph*getGraph();
 
+
 };
+
+bool isRoutingTag(MessageTag tag);
+
+/** get the source from a routing tag */
+Rank getSourceFromRoutingTag(RoutingTag tag);
+
+/** get the destination from a routing tag */
+Rank getDestinationFromRoutingTag(RoutingTag tag);
+
+/** get the tag from a routing tag */
+MessageTag getMessageTagFromRoutingTag(RoutingTag tag);
+
 
 #endif

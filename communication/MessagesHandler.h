@@ -87,11 +87,15 @@ class ComputeCore;
 #include <vector>
 using namespace std;
 
-struct DirtyBuffer{
+/**
+ * A data model for storing dirty buffers
+ */
+class DirtyBuffer{
+public:
 	void*m_buffer;
 	MPI_Request m_messageRequest;
-	Rank destination;
-	MessageTag mpiTag;
+	Rank m_destination;
+	MessageTag m_messageTag;
 };
 
 /**
@@ -105,6 +109,11 @@ struct DirtyBuffer{
 class MessagesHandler: public CorePlugin{
 
 	int m_minimumNumberOfDirtyBuffersForSweep;
+
+	int m_minimumNumberOfDirtyBuffersForWarning;
+
+/** prints dirty buffers **/
+	void printDirtyBuffers();
 
 	// the number of peers for communication
 	int m_peers;

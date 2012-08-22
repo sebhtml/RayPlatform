@@ -36,6 +36,19 @@
 #include <time.h> /* for time */
 using namespace std;
 
+
+/** 
+ * some storage information for routing tags
+ **/
+#define RAY_ROUTING_TAG_TAG_OFFSET 0
+#define RAY_ROUTING_TAG_TAG_SIZE 8
+#define RAY_ROUTING_TAG_SOURCE_OFFSET RAY_ROUTING_TAG_TAG_SIZE
+#define RAY_ROUTING_TAG_SOURCE_SIZE 12
+#define RAY_ROUTING_TAG_DESTINATION_OFFSET (RAY_ROUTING_TAG_TAG_SIZE+RAY_ROUTING_TAG_SOURCE_SIZE)
+#define RAY_ROUTING_TAG_DESTINATION_SIZE 12
+
+
+
 /*
 #define CONFIG_ROUTING_VERBOSITY
 #define ASSERT
@@ -117,7 +130,7 @@ bool MessageRouter::routeIncomingMessages(){
 	Message*aMessage=m_inbox->at(0);
 	MessageTag tag=aMessage->getTag();
 
-	// if the message has no routing tag, then we can sefely receive it as is
+	// if the message has no routing tag, then we can safely receive it as is
 	if(!isRoutingTag(tag)){
 		// nothing to do
 		#ifdef CONFIG_ROUTING_VERBOSITY
@@ -130,8 +143,8 @@ bool MessageRouter::routeIncomingMessages(){
 	// we have a routing tag
 	RoutingTag routingTag=tag;
 
-	Rank trueSource=getSource(routingTag);
-	Rank trueDestination=getDestination(routingTag);
+	Rank trueSource=getSourceFromRoutingTag(routingTag);
+	Rank trueDestination=getDestinationFromRoutingTag(routingTag);
 
 	// this is the final destination
 	// we have received the message
@@ -144,7 +157,7 @@ bool MessageRouter::routeIncomingMessages(){
 		// we must update the original source and original tag
 		aMessage->setSource(trueSource);
 		
-		MessageTag trueTag=getTag(routingTag);
+		MessageTag trueTag=getMessageTagFromRoutingTag(routingTag);
 		aMessage->setTag(trueTag);
 
 		return false;
@@ -164,7 +177,7 @@ bool MessageRouter::routeIncomingMessages(){
 		
 	// process the relay event if necessary
 	if(m_relayCheckerActivated){
-		MessageTag trueTag=getTag(routingTag);
+		MessageTag trueTag=getMessageTagFromRoutingTag(routingTag);
 
 		if(trueSource==MASTER_RANK){
 			m_relayedMessagesFrom0[trueTag]++;
@@ -311,49 +324,7 @@ bool MessageRouter::hasCompletedRelayEvents(){
 	#endif
 }
 
-//_-------------------------------------------------
-// routing tag stuff
-// TODO: should be a class
 
-#define RAY_ROUTING_TAG_TAG_OFFSET 0
-#define RAY_ROUTING_TAG_TAG_SIZE 8
-#define RAY_ROUTING_TAG_SOURCE_OFFSET RAY_ROUTING_TAG_TAG_SIZE
-#define RAY_ROUTING_TAG_SOURCE_SIZE 12
-#define RAY_ROUTING_TAG_DESTINATION_OFFSET (RAY_ROUTING_TAG_TAG_SIZE+RAY_ROUTING_TAG_SOURCE_SIZE)
-#define RAY_ROUTING_TAG_DESTINATION_SIZE 12
-
-bool MessageRouter::isRoutingTag(MessageTag tag){
-	// the only case that could be an issue is sender=0 receiver=0
-	// but in this case, no routing is required (self send)
-	return getSource(tag)>0||getDestination(tag)>0;
-}
-
-/**
- */
-int MessageRouter::getTag(int tag){
-	uint64_t data=tag;
-	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_TAG_OFFSET+RAY_ROUTING_TAG_TAG_SIZE));
-	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_TAG_SIZE);
-	return data;
-}
-
-/**
- */
-Rank MessageRouter::getSource(int tag){
-	uint64_t data=tag;
-	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_SOURCE_OFFSET+RAY_ROUTING_TAG_SOURCE_SIZE));
-	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_SOURCE_SIZE);
-	return data;
-}
-
-/**
- */
-Rank MessageRouter::getDestination(int tag){
-	uint64_t data=tag;
-	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_DESTINATION_OFFSET+RAY_ROUTING_TAG_DESTINATION_SIZE));
-	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_DESTINATION_SIZE);
-	return data;
-}
 
 /*
  * To do so, the tag attribute of a message is converted to 
@@ -393,3 +364,39 @@ ConnectionGraph*MessageRouter::getGraph(){
 }
 
 
+//_-------------------------------------------------
+// routing tag stuff
+// TODO: should be a class
+
+bool isRoutingTag(MessageTag tag){
+	// the only case that could be an issue is sender=0 receiver=0
+	// but in this case, no routing is required (self send)
+	return getSourceFromRoutingTag(tag)>0||getDestinationFromRoutingTag(tag)>0;
+}
+
+/**
+ */
+int getMessageTagFromRoutingTag(int tag){
+	uint64_t data=tag;
+	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_TAG_OFFSET+RAY_ROUTING_TAG_TAG_SIZE));
+	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_TAG_SIZE);
+	return data;
+}
+
+/**
+ */
+Rank getSourceFromRoutingTag(int tag){
+	uint64_t data=tag;
+	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_SOURCE_OFFSET+RAY_ROUTING_TAG_SOURCE_SIZE));
+	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_SOURCE_SIZE);
+	return data;
+}
+
+/**
+ */
+Rank getDestinationFromRoutingTag(int tag){
+	uint64_t data=tag;
+	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_DESTINATION_OFFSET+RAY_ROUTING_TAG_DESTINATION_SIZE));
+	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_DESTINATION_SIZE);
+	return data;
+}

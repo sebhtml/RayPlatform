@@ -20,6 +20,9 @@
 */
 
 #include <communication/MessagesHandler.h>
+
+/* for decoding message tags */
+#include <communication/MessageRouter.h> 
 #include <memory/allocator.h>
 #include <core/OperatingSystem.h>
 #include <core/ComputeCore.h>
@@ -85,6 +88,14 @@ void MessagesHandler::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
 	if(m_numberOfDirtyBuffers<m_minimumNumberOfDirtyBuffersForSweep)
 		return;
 
+	#if 0
+	if(m_numberOfDirtyBuffers>=m_minimumNumberOfDirtyBuffersForWarning){
+		cout<<"[MessagesHandler] before linear sweep: "<<m_numberOfDirtyBuffers<<"/";
+		cout<<m_dirtyBufferSlots<<" are dirty."<<endl;
+		printDirtyBuffers();
+	}
+	#endif
+
 	#ifdef ASSERT
 	assert(m_numberOfDirtyBuffers>0);
 	#endif
@@ -99,6 +110,50 @@ void MessagesHandler::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
 		checkDirtyBuffer(outboxBufferAllocator,i);
 	}
 
+	if(m_numberOfDirtyBuffers>=m_minimumNumberOfDirtyBuffersForWarning){
+		cout<<"[MessagesHandler] Warning: dirty buffers are still dirty after linear sweep."<<endl;
+		printDirtyBuffers();
+	}
+}
+
+void MessagesHandler::printDirtyBuffers(){
+
+	cout<<"[MessagesHandler] Dirty buffers: "<<m_numberOfDirtyBuffers<<"/";
+	cout<<m_dirtyBufferSlots<<endl;
+
+	for(int i=0;i<m_dirtyBufferSlots;i++){
+		cout<<"DirtyBuffer # "<<i<<"    State: ";
+		if(m_dirtyBuffers[i].m_buffer==NULL){
+			cout<<"Available"<<endl;
+		}else{
+			cout<<"Dirty"<<endl;
+
+			MessageTag tag=m_dirtyBuffers[i].m_messageTag;
+			Rank destination=m_dirtyBuffers[i].m_destination;
+			Rank routingSource=m_rank;
+			Rank routingDestination=destination;
+			RoutingTag routingTag=tag;
+
+			bool isRoutingTagValue=false;
+
+			if(isRoutingTag(tag)){
+				tag=getMessageTagFromRoutingTag(routingTag);
+				routingSource=getSourceFromRoutingTag(routingTag);
+				routingDestination=getDestinationFromRoutingTag(routingTag);
+
+				isRoutingTagValue=true;
+			}
+
+			cout<<" MessageTag: "<<MESSAGE_TAGS[tag]<<" ("<<tag<<")"<<endl;
+			cout<<" Source: "<<m_rank<<endl;
+			cout<<" Destination: "<<destination<<endl;
+
+			if(isRoutingTagValue){
+				cout<<" RoutingSource: "<<routingSource<<endl;
+				cout<<" RoutingDestination: "<<routingDestination<<endl;
+			}
+		}
+	}
 }
 
 /*
@@ -135,7 +190,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		Rank destination=aMessage->getDestination();
 		void*buffer=aMessage->getBuffer();
 		int count=aMessage->getCount();
-		int tag=aMessage->getTag();
+		MessageTag tag=aMessage->getTag();
 
 		#ifdef ASSERT
 		assert(destination>=0);
@@ -172,6 +227,8 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 			#endif
 
 			m_dirtyBuffers[handle].m_buffer=buffer;
+			m_dirtyBuffers[handle].m_destination=destination;
+			m_dirtyBuffers[handle].m_messageTag=tag;
 
 			#ifdef ASSERT
 			assert(m_dirtyBuffers[handle].m_buffer!=NULL);
@@ -497,6 +554,7 @@ void MessagesHandler::constructor(int*argc,char***argv){
  */
 
 	m_minimumNumberOfDirtyBuffersForSweep=32;
+	m_minimumNumberOfDirtyBuffersForWarning=m_minimumNumberOfDirtyBuffersForSweep;
 }
 
 void MessagesHandler::createBuffers(){
