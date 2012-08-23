@@ -72,7 +72,9 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 	// in the beginning, all buffers are available
 	m_availableBuffers=m_chunks;
 
+	#if 0
 	cout<<"[RingAllocator] m_chunks: "<<m_chunks<<" m_max: "<<m_max<<endl;
+	#endif
 
 	#ifdef ASSERT
 	assert(size>0);

@@ -62,6 +62,10 @@ uint64_t uniform_hashing_function_2_64_64(uint64_t key){
 //   'grep sse4_2 /proc/cpuinfo' will tell you if you have it in Linux.
 //#define CONFIG_SSE_4_2
 
+#ifdef __SSE4_2__ /* this is set if compiled with gcc -march=native */
+#define CONFIG_SSE_4_2
+#endif /* __SSE4_2__ */
+
 #ifdef CONFIG_SSE_4_2
 
 /**
