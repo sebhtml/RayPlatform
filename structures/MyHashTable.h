@@ -45,6 +45,8 @@
 #include <memory/ChunkAllocatorWithDefragmentation.h>
 #include <iostream>
 #include <assert.h>
+#include <string.h> /* for strcpy */
+#include <memory/allocator.h> /* for __Malloc */
 using namespace std;
 
 /**
