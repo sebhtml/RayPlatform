@@ -554,7 +554,7 @@ void MessagesHandler::constructor(int*argc,char***argv){
  */
 
 	m_minimumNumberOfDirtyBuffersForSweep=32;
-	m_minimumNumberOfDirtyBuffersForWarning=m_minimumNumberOfDirtyBuffersForSweep;
+	m_minimumNumberOfDirtyBuffersForWarning=64;
 }
 
 void MessagesHandler::createBuffers(){
