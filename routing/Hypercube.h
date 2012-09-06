@@ -45,6 +45,9 @@ using namespace std;
  * n must be a power of 2 to be a hypercube.
  * Otherwise, it is an other polytope.
  * A hypercube is a convex regular polytope.
+ * This class in fact implements a generalized hypercube,
+ * usually called a convex regular polytope.
+ * \author Sébastien Boisvert
  */
 class Hypercube : public GraphImplementation{
 

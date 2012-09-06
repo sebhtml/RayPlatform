@@ -250,7 +250,9 @@ int degree){
 	if(type=="random"){
 		m_implementation=&m_random;
 		m_typeCode=__RANDOM;
-	}else if(type=="hypercube" && m_hypercube.isValid(numberOfRanks)){
+	}else if((type=="hypercube"||type=="polytope")
+		 && m_hypercube.isValid(numberOfRanks)){
+
 		m_implementation=&m_hypercube;
 		m_typeCode=__HYPERCUBE;
 	}else if(type=="group"){
