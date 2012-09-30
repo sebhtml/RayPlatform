@@ -91,21 +91,26 @@ void ConnectionGraph::writeFiles(string prefix){
 	ostringstream file2;
 	file2<<prefix<<"Routes.txt";
 	ofstream f2(file2.str().c_str());
-	f2<<"#Source	Destination	Hops	Route"<<endl;
+	
+	if(m_typeCode==__HYPERCUBE){
+		f2<<"Routes are dynamically determined with real-time load-balancing."<<endl;
+	}else{
+		f2<<"#Source	Destination	Hops	Route"<<endl;
 
-	for(Rank rank=0;rank<m_size;rank++){
-		for(Rank i=0;i<m_size;i++){
-			vector<Rank> route;
-			m_implementation->getRoute(rank,i,&route);
-			f2<<rank<<"	"<<i<<"	"<<route.size()-1<<"	";
-
-			for(int i=0;i<(int)route.size();i++){
-				if(i!=0)
-					f2<<" ";
-				f2<<route[i];
+		for(Rank rank=0;rank<m_size;rank++){
+			for(Rank i=0;i<m_size;i++){
+				vector<Rank> route;
+				m_implementation->getRoute(rank,i,&route);
+				f2<<rank<<"	"<<i<<"	"<<route.size()-1<<"	";
+	
+				for(int i=0;i<(int)route.size();i++){
+					if(i!=0)
+						f2<<" ";
+					f2<<route[i];
+				}
+	
+				f2<<endl;
 			}
-
-			f2<<endl;
 		}
 	}
 
