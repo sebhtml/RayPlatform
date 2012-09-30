@@ -1,6 +1,6 @@
 /*
  	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -42,46 +42,15 @@ using namespace std;
  *
  * the MessageRouter makes communication more efficient.
  *
- * To do so, the tag attribute of a message is converted to 
- * a composite tag which contains:
- *
- * int tag
- *
- * bits 0 to 7: tag (8 bits, values from 0 to 255, 256 possible values)
- * bits 8 to 19: true source (12 bits, values from 0 to 4095, 4096 possible values)
- * bits 20 to 31: true destination (12 bits, values from 0 to 4095, 4096 possible values)
  */
 class MessageRouter {
 
 /** the extra ticks after the computation has completed. **/
 	time_t m_deletionTime;
 
-/**
- * Number of relayed messages if the relay checker is activated.
- */
-	map<MessageTag,int> m_relayedMessagesFrom0;
-
-	map<MessageTag,int> m_relayedMessagesTo0;
-
 
 /**  the connection graph */
 	ConnectionGraph m_graph;
-
-/**
- * Is the relay checker activated
- */
-	bool m_relayCheckerActivated;
-
-/**
- * A list of tags to check with the relay checker.
- * from 0
- */
-	set<MessageTag> m_tagsToCheckForRelayFrom0;
-	
-/**
- * Tags to check to 0
- */
-	set<MessageTag> m_tagsToCheckForRelayTo0;
 
 /**
  * Is the router activated at all ?
@@ -113,18 +82,16 @@ class MessageRouter {
  */
 	int m_size;
 
-
-
-/**************** METHODS ***************************/
-
 	void relayMessage(Message*message,Rank destination);
 
-	/********************************************/
-	/* stuff for routing tags */
+	bool isRoutingTag(MessageTag tag);
 
-	/** build a routing tag */
-	RoutingTag getRoutingTag(MessageTag tag,Rank source,Rank destination);
-
+	MessageTag getMessageTagFromRoutingTag(MessageTag tag);
+	Rank getSourceFromBuffer(MessageUnit*buffer,int count);
+	Rank getDestinationFromBuffer(MessageUnit*buffer,int count);
+	MessageTag getRoutingTag(MessageTag tag);
+	void setSourceInBuffer(MessageUnit*buffer,int count,Rank source);
+	void setDestinationInBuffer(MessageUnit*buffer,int count,Rank destination);
 
 public:
 	MessageRouter();
@@ -148,8 +115,6 @@ public:
 	void enable(StaticVector*inbox,StaticVector*outbox,RingAllocator*outboxAllocator,Rank rank,
 string prefix,int numberOfRanks,string type,int degree);
 
-
-
 /**
  * Check if relayed messages have completed their transit.
  * This is required for the messages sent at the end
@@ -161,45 +126,7 @@ string prefix,int numberOfRanks,string type,int degree);
  */
 	bool hasCompletedRelayEvents();
 
-/**
- * We actually only need to monitor a few message tags
- * for relay events. They are added with this method
- * if they are sent from 0
- *
- * TODO: remove this
- */
-	void addTagToCheckForRelayFrom0(MessageTag tag);
-
-/**
- * Tags to monitor when sent to 0
- * TODO: remove this
- */
-	void addTagToCheckForRelayTo0(MessageTag tag);
-
-/**
- * Unless the relayChecker component is activated with
- * this method, no logic code concerning relays is ever
- * executed whatsoever.
- *
- * TODO: remove this
- */
-	void activateRelayChecker();
-
 	ConnectionGraph*getGraph();
-
-
 };
 
-bool isRoutingTag(MessageTag tag);
-
-/** get the source from a routing tag */
-Rank getSourceFromRoutingTag(RoutingTag tag);
-
-/** get the destination from a routing tag */
-Rank getDestinationFromRoutingTag(RoutingTag tag);
-
-/** get the tag from a routing tag */
-MessageTag getMessageTagFromRoutingTag(RoutingTag tag);
-
-
-#endif
+#endif /* _MessageRouter_h */

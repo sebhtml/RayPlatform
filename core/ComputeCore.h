@@ -123,6 +123,7 @@ class ComputeCore{
 
 /** the message router */
 	MessageRouter m_router;
+	bool m_routerIsEnabled;
 
 	StaticVector m_outbox;
 	StaticVector m_inbox;
@@ -148,8 +149,6 @@ class ComputeCore{
 	SlaveMode m_currentSlaveModeToAllocate;
 	MasterMode m_currentMasterModeToAllocate;
 	MessageTag m_currentMessageTagToAllocate;
-
-	bool m_hasMaximumNumberOfOutboxBuffers;
 
 /** is the program alive ? */
 	bool m_alive;
@@ -188,11 +187,6 @@ class ComputeCore{
 	bool validationObjectSymbolRegistered(PluginHandle plugin,const char*symbol);
 
 	void setFatalError();
-
-	int getMaximumNumberOfAllocatedInboxMessages();
-	int getMaximumNumberOfAllocatedOutboxMessages();
-	int getMaximumNumberOfAllocatedInboxBuffers();
-	int getMaximumNumberOfAllocatedOutboxBuffers();
 
 	bool m_doChecksum;
 

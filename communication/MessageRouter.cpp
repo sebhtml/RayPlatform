@@ -1,6 +1,6 @@
 /*
  	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -36,21 +36,25 @@
 #include <time.h> /* for time */
 using namespace std;
 
+/* 
+ * According to the MPI standard, MPI_TAG_UB is >= 32767 (2^15-1) 
+ * Therefore, the tag must be >=0 and <= 32767 
+ * In most applications, there will be not that much tag
+ * values.
+ * 2^14 = 16384
+ * So that MPI tag in applications using RayPlatform can be
+ * from 0 to 16383.
+ * Internally, RayPlatform adds 16384 to the application tag.
+ * A routing tag is >= 16384 and the corresponding real tag is
+ * tag - 16384.
+ */
+#define __ROUTING_TAG_BASE 16384 
 
-/** 
- * some storage information for routing tags
- **/
-#define RAY_ROUTING_TAG_TAG_OFFSET 0
-#define RAY_ROUTING_TAG_TAG_SIZE 8
-#define RAY_ROUTING_TAG_SOURCE_OFFSET RAY_ROUTING_TAG_TAG_SIZE
-#define RAY_ROUTING_TAG_SOURCE_SIZE 12
-#define RAY_ROUTING_TAG_DESTINATION_OFFSET (RAY_ROUTING_TAG_TAG_SIZE+RAY_ROUTING_TAG_SOURCE_SIZE)
-#define RAY_ROUTING_TAG_DESTINATION_SIZE 12
-
-
+#define __ROUTING_SOURCE 0
+#define __ROUTING_DESTINATION 1
+#define __ROUTING_OFFSET(count) (count-1)
 
 /*
-#define CONFIG_ROUTING_VERBOSITY
 #define ASSERT
 */
 
@@ -60,6 +64,9 @@ using namespace std;
 void MessageRouter::routeOutcomingMessages(){
 	int numberOfMessages=m_outbox->size();
 
+	if(numberOfMessages==0)
+		return;
+
 	for(int i=0;i<numberOfMessages;i++){
 		Message*aMessage=m_outbox->at(i);
 
@@ -67,14 +74,14 @@ void MessageRouter::routeOutcomingMessages(){
 
 		#ifdef CONFIG_ROUTING_VERBOSITY
 		uint8_t printableTag=communicationTag;
-		cout<<"routeOutcomingMessages tag= "<<MESSAGE_TAGS[printableTag]<<endl;
+		cout<<"[routeOutcomingMessages] tag= "<<MESSAGE_TAGS[printableTag]<<" value="<<communicationTag<<endl;
 		#endif
 
 		// - first, the message may have been already routed when it was received (also
 		// in a routed version). In this case, nothing must be done.
 		if(isRoutingTag(communicationTag)){
 			#ifdef CONFIG_ROUTING_VERBOSITY
-			cout<<__func__<<" Message has already a routing tag."<<endl;
+			cout<<"["<<__func__<<"] Message has already a routing tag."<<endl;
 			#endif
 			continue;
 		}
@@ -85,21 +92,66 @@ void MessageRouter::routeOutcomingMessages(){
 
 		// if it is reachable, no further routing is required
 		if(m_graph.isConnected(trueSource,trueDestination)){
+
 			#ifdef CONFIG_ROUTING_VERBOSITY
-			cout<<__func__<<" Rank "<<trueSource<<" can reach "<<trueDestination<<" without routing"<<endl;
+			cout<<"["<<__func__<<"] Rank "<<trueSource<<" can reach "<<trueDestination<<" without routing"<<endl;
 			#endif
+
 			continue;
 		}
 	
 		// re-route the message by re-writing the tag
-		RoutingTag routingTag=getRoutingTag(communicationTag,trueSource,trueDestination);
+		MessageTag routingTag=getRoutingTag(communicationTag);
 		aMessage->setTag(routingTag);
+
+		MessageUnit*buffer=aMessage->getBuffer();
+
+		// we need space for routing information
+		// also, if this is a control message sent to all, we need
+		// to allocate new buffers.
+		// There is no problem at rewritting buffers that have non-null buffers,
+		// but it is useless if the buffer is used once.
+		// So numberOfMessages==m_size is just an optimization.
+		if(aMessage->getBuffer()==NULL||numberOfMessages==m_size){
+
+			#ifdef ASSERT
+			assert(aMessage->getCount()==0||numberOfMessages==m_size);
+			#endif
+
+			buffer=(MessageUnit*)m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+
+			#ifdef ASSERT
+			assert(buffer!=NULL);
+			#endif
+
+			// copy the old stuff too
+			if(aMessage->getBuffer()!=NULL)
+				memcpy(buffer,aMessage->getBuffer(),aMessage->getCount()*sizeof(MessageUnit));
+
+			aMessage->setBuffer(buffer);
+		}
+
+		// routing information is stored in 64 bits
+		int newCount=aMessage->getCount()+1;
+		aMessage->setCount(newCount);
+		
+		#ifdef ASSERT
+		assert(buffer!=NULL);
+		#endif
+
+		setSourceInBuffer(buffer,newCount,trueSource);
+		setDestinationInBuffer(buffer,newCount,trueDestination);
+
+		#ifdef ASSERT
+		assert(getSourceFromBuffer(aMessage->getBuffer(),aMessage->getCount())==trueSource);
+		assert(getDestinationFromBuffer(aMessage->getBuffer(),aMessage->getCount())==trueDestination);
+		#endif
 
 		Rank nextRank=m_graph.getNextRankInRoute(trueSource,trueDestination,m_rank);
 		aMessage->setDestination(nextRank);
 
 		#ifdef CONFIG_ROUTING_VERBOSITY
-		cout<<__func__<<" relayed message (trueSource="<<trueSource<<" trueDestination="<<trueDestination<<" to intermediateSource "<<nextRank<<endl;
+		cout<<"["<<__func__<<"] relayed message, trueSource="<<trueSource<<" trueDestination="<<trueDestination<<" to intermediateSource "<<nextRank<<endl;
 		#endif
 	}
 
@@ -121,6 +173,10 @@ void MessageRouter::routeOutcomingMessages(){
 bool MessageRouter::routeIncomingMessages(){
 	int numberOfMessages=m_inbox->size();
 
+	#ifdef CONFIG_ROUTING_VERBOSITY
+	cout<<"["<<__func__<<"] inbox.size= "<<numberOfMessages<<endl;
+	#endif
+
 	// we have no message
 	if(numberOfMessages==0)
 		return false;
@@ -129,36 +185,62 @@ bool MessageRouter::routeIncomingMessages(){
 	
 	Message*aMessage=m_inbox->at(0);
 	MessageTag tag=aMessage->getTag();
+	MessageUnit*buffer=aMessage->getBuffer();
+	int count=aMessage->getCount();
+
+	#ifdef CONFIG_ROUTING_VERBOSITY
+	uint8_t printableTag=tag;
+	cout<<"[routeIncomingMessages] tag= "<<MESSAGE_TAGS[printableTag]<<" value="<<tag<<endl;
+	#endif
 
 	// if the message has no routing tag, then we can safely receive it as is
 	if(!isRoutingTag(tag)){
 		// nothing to do
 		#ifdef CONFIG_ROUTING_VERBOSITY
-		cout<<__func__<<" message has no routing tag, nothing to do"<<endl;
+		cout<<"["<<__func__<<"] message has no routing tag, nothing to do"<<endl;
 		#endif
 
 		return false;
 	}
 
-	// we have a routing tag
-	RoutingTag routingTag=tag;
-
-	Rank trueSource=getSourceFromRoutingTag(routingTag);
-	Rank trueDestination=getDestinationFromRoutingTag(routingTag);
+	Rank trueSource=getSourceFromBuffer(buffer,count);
+	Rank trueDestination=getDestinationFromBuffer(buffer,count);
 
 	// this is the final destination
 	// we have received the message
 	// we need to restore the original information now.
 	if(trueDestination==m_rank){
 		#ifdef CONFIG_ROUTING_VERBOSITY
-		cout<<__func__<<" message has reached destination, must strip routing information"<<endl;
+		cout<<"["<<__func__<<"] message has reached destination, must strip routing information"<<endl;
 		#endif
 
 		// we must update the original source and original tag
 		aMessage->setSource(trueSource);
 		
-		MessageTag trueTag=getMessageTagFromRoutingTag(routingTag);
+		// the original destination is already OK
+		#ifdef ASSERT
+		assert(aMessage->getDestination()==m_rank);
+		#endif
+
+		MessageTag trueTag=getMessageTagFromRoutingTag(tag);
 		aMessage->setTag(trueTag);
+
+		#ifdef CONFIG_ROUTING_VERBOSITY
+		cout<<"[routeIncomingMessages] real tag= "<<trueTag<<endl;
+		#endif
+
+		// remove the routing stuff
+		int newCount=aMessage->getCount()-1;
+
+		#ifdef ASSERT
+		assert(newCount>=0);
+		#endif
+
+		aMessage->setCount(newCount);
+
+		// set the buffer to NULL if there is no data
+		if(newCount==0)
+			aMessage->setBuffer(NULL);
 
 		return false;
 	}
@@ -169,25 +251,13 @@ bool MessageRouter::routeIncomingMessages(){
 
 	// at this point, we know that we need to forward
 	// the message to another peer
-	int nextRank=m_graph.getNextRankInRoute(trueSource,trueDestination,m_rank);
+	Rank nextRank=m_graph.getNextRankInRoute(trueSource,trueDestination,m_rank);
 
 	#ifdef CONFIG_ROUTING_VERBOSITY
-	cout<<__func__<<" message has been sent to the next one, trueSource="<<trueSource<<" trueDestination= "<<trueDestination<<endl;
+	cout<<"["<<__func__<<"] message has been sent to the next one, trueSource="<<trueSource<<" trueDestination= "<<trueDestination;
+	cout<<" Previous= "<<aMessage->getSource()<<" Current= "<<m_rank<<" Next= "<<nextRank<<endl;
 	#endif
 		
-	// process the relay event if necessary
-	if(m_relayCheckerActivated){
-		MessageTag trueTag=getMessageTagFromRoutingTag(routingTag);
-
-		if(trueSource==MASTER_RANK){
-			m_relayedMessagesFrom0[trueTag]++;
-		}
-
-		if(trueDestination==MASTER_RANK){
-			m_relayedMessagesTo0[trueTag]++;
-		}
-	}
-
 	// we forward the message
 	relayMessage(aMessage,nextRank);
 
@@ -199,15 +269,25 @@ bool MessageRouter::routeIncomingMessages(){
  * forward a message to follow a route
  */
 void MessageRouter::relayMessage(Message*message,Rank destination){
+	
 	int count=message->getCount();
 
-	// allocate a buffer from the ring
-	if(count>0){
-		MessageUnit*outgoingMessage=(MessageUnit*)m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
-		// copy the data into the new buffer
-		memcpy(outgoingMessage,message->getBuffer(),count*sizeof(MessageUnit));
-		message->setBuffer(outgoingMessage);
-	}
+	// routed messages always have a payload
+	#ifdef ASSERT
+	assert(count>=1);
+	#endif
+
+	MessageUnit*outgoingMessage=(MessageUnit*)m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+
+	// copy the data into the new buffer
+	memcpy(outgoingMessage,message->getBuffer(),count*sizeof(MessageUnit));
+	message->setBuffer(outgoingMessage);
+
+	#ifdef CONFIG_ROUTING_VERBOSITY
+	cout<<"[relayMessage] TrueSource="<<getSourceFromBuffer(message->getBuffer(),message->getCount());
+	cout<<" TrueDestination="<<getDestinationFromBuffer(message->getBuffer(),message->getCount());
+	cout<<" RelaySource="<<m_rank<<" RelayDestination="<<destination<<endl;
+	#endif
 
 	// re-route the message
 	message->setSource(m_rank);
@@ -235,8 +315,6 @@ MessageRouter::MessageRouter(){
 void MessageRouter::enable(StaticVector*inbox,StaticVector*outbox,RingAllocator*outboxAllocator,Rank rank,
 	string prefix,int numberOfRanks,string type,int degree){
 
-	m_relayCheckerActivated=false;
-	
 	m_graph.buildGraph(numberOfRanks,type,rank==MASTER_RANK,degree);
 
 	m_size=numberOfRanks;
@@ -251,34 +329,15 @@ void MessageRouter::enable(StaticVector*inbox,StaticVector*outbox,RingAllocator*
 	m_rank=rank;
 	m_enabled=true;
 
-
 	if(m_rank==MASTER_RANK)
 		m_graph.writeFiles(prefix);
 
 	m_deletionTime=0;
 }
 
-void MessageRouter::activateRelayChecker(){
-	m_relayCheckerActivated=true;
-}
-
-/**
- * TODO: remove me
- */
-void MessageRouter::addTagToCheckForRelayFrom0(MessageTag tag){
-	m_tagsToCheckForRelayFrom0.insert(tag);
-}
-
-/**
- * TODO: remove me
- */
-void MessageRouter::addTagToCheckForRelayTo0(MessageTag tag){
-	m_tagsToCheckForRelayTo0.insert(tag);
-}
-
 bool MessageRouter::hasCompletedRelayEvents(){
 
-	int duration=16; // 10 seconds
+	int duration=16;
 
 	if(m_deletionTime==0){
 		m_deletionTime=time(NULL);
@@ -289,114 +348,115 @@ bool MessageRouter::hasCompletedRelayEvents(){
 	time_t now=time(NULL);
 
 	return now >= (m_deletionTime+duration);
-
-	#if 0
-	// check relay events from 0
-	int expected=m_graph.getRelaysFrom0(m_rank);
-
-	for(set<MessageTag>::iterator i=m_tagsToCheckForRelayFrom0.begin();
-		i!=m_tagsToCheckForRelayFrom0.end();i++){
-
-		MessageTag tag=*i;
-		int actual=m_relayedMessagesFrom0[tag];
-
-		if(actual!=expected){
-			return false;
-		}
-	}
-	
-	// check relay events to 0
-	expected=m_graph.getRelaysTo0(m_rank);
-
-	for(set<MessageTag>::iterator i=m_tagsToCheckForRelayTo0.begin();
-		i!=m_tagsToCheckForRelayTo0.end();i++){
-
-		MessageTag tag=*i;
-		int actual=m_relayedMessagesTo0[tag];
-
-		if(actual!=expected){
-			return false;
-		}
-	}
-
-	return true;
-
-	#endif
 }
 
-
-
 /*
- * To do so, the tag attribute of a message is converted to 
- * a composite tag which contains:
- *
- * int tag
- *
- * bits 0 to 7: tag (8 bits, values from 0 to 255, 256 possible values)
- * bits 8 to 19: true source (12 bits, values from 0 to 4095, 4096 possible values)
- * bits 20 to 31: true destination (12 bits, values from 0 to 4095, 4096 possible values)
- *
- * 8+12+12=32
+ * just add a magic number
  */
-RoutingTag MessageRouter::getRoutingTag(MessageTag tag,Rank source,Rank destination){
-	uint64_t routingTag=0;
+MessageTag MessageRouter::getRoutingTag(MessageTag tag){
+	#ifdef ASSERT
+	assert(tag>=0);
+	assert(tag<32768);
+	#endif
 
-	uint64_t largeTag=tag;
-	largeTag<<=RAY_ROUTING_TAG_TAG_OFFSET;
-	routingTag|=largeTag;
-	
-	uint64_t largeSource=source;
-	largeSource<<=RAY_ROUTING_TAG_SOURCE_OFFSET;
-	routingTag|=largeSource;
-
-	uint64_t largeDestination=destination;
-	largeDestination<<=RAY_ROUTING_TAG_DESTINATION_OFFSET;
-	routingTag|=largeDestination;
-
-	// should be alright because we use 31 bits only.
-	RoutingTag result=routingTag;
-
-	return result;
+	return tag+__ROUTING_TAG_BASE;
 }
 
 ConnectionGraph*MessageRouter::getGraph(){
 	return &m_graph;
 }
 
-
-//_-------------------------------------------------
-// routing tag stuff
-// TODO: should be a class
-
-bool isRoutingTag(MessageTag tag){
-	// the only case that could be an issue is sender=0 receiver=0
-	// but in this case, no routing is required (self send)
-	return getSourceFromRoutingTag(tag)>0||getDestinationFromRoutingTag(tag)>0;
+bool MessageRouter::isRoutingTag(MessageTag tag){
+	return tag>=__ROUTING_TAG_BASE;
 }
 
-/**
- */
-int getMessageTagFromRoutingTag(int tag){
-	uint64_t data=tag;
-	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_TAG_OFFSET+RAY_ROUTING_TAG_TAG_SIZE));
-	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_TAG_SIZE);
-	return data;
+MessageTag MessageRouter::getMessageTagFromRoutingTag(MessageTag tag){
+
+	#ifdef ASSERT
+	assert(isRoutingTag(tag));
+	assert(tag>=__ROUTING_TAG_BASE);
+	#endif
+
+	tag-=__ROUTING_TAG_BASE;
+
+	#ifdef ASSERT
+	assert(tag>=0);
+	#endif
+
+	return tag;
 }
 
-/**
- */
-Rank getSourceFromRoutingTag(int tag){
-	uint64_t data=tag;
-	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_SOURCE_OFFSET+RAY_ROUTING_TAG_SOURCE_SIZE));
-	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_SOURCE_SIZE);
-	return data;
+Rank MessageRouter::getSourceFromBuffer(MessageUnit*buffer,int count){
+	#ifdef ASSERT
+	assert(count>=1);
+	assert(buffer!=NULL);
+	#endif
+
+	uint32_t*routingInformation=(uint32_t*)(buffer+__ROUTING_OFFSET(count));
+
+	Rank rank=routingInformation[__ROUTING_SOURCE];
+
+	#ifdef ASSERT
+	assert(rank>=0);
+	assert(rank<m_size);
+	#endif
+
+	return rank;
 }
 
-/**
- */
-Rank getDestinationFromRoutingTag(int tag){
-	uint64_t data=tag;
-	data<<=(sizeof(uint64_t)*8-(RAY_ROUTING_TAG_DESTINATION_OFFSET+RAY_ROUTING_TAG_DESTINATION_SIZE));
-	data>>=(sizeof(uint64_t)*8-RAY_ROUTING_TAG_DESTINATION_SIZE);
-	return data;
+Rank MessageRouter::getDestinationFromBuffer(MessageUnit*buffer,int count){
+
+	#ifdef ASSERT
+	assert(count>=1);
+	assert(buffer!=NULL);
+	#endif
+
+	uint32_t*routingInformation=(uint32_t*)(buffer+__ROUTING_OFFSET(count));
+
+	Rank rank=routingInformation[__ROUTING_DESTINATION];
+
+	#ifdef ASSERT
+	assert(rank>=0);
+	assert(rank<m_size);
+	#endif
+
+	return rank;
 }
+
+void MessageRouter::setSourceInBuffer(MessageUnit*buffer,int count,Rank source){
+
+	#ifdef CONFIG_ROUTING_VERBOSITY
+	cout<<"[setSourceInBuffer] buffer="<<buffer<<" source="<<source<<endl;
+	#endif
+
+	#ifdef ASSERT
+	assert(count>=1);
+	assert(buffer!=NULL);
+	assert(source>=0);
+	assert(source<m_size);
+	#endif
+
+	uint32_t*routingInformation=(uint32_t*)(buffer+__ROUTING_OFFSET(count));
+
+	routingInformation[__ROUTING_SOURCE]=source;
+}
+
+void MessageRouter::setDestinationInBuffer(MessageUnit*buffer,int count,Rank destination){
+
+	#ifdef CONFIG_ROUTING_VERBOSITY
+	cout<<"[setDestinationInBuffer] buffer="<<buffer<<" destination="<<destination<<endl;
+	#endif
+
+	#ifdef ASSERT
+	assert(count>=1);
+	assert(buffer!=NULL);
+	assert(destination>=0);
+	assert(destination<m_size);
+	#endif
+
+	uint32_t*routingInformation=(uint32_t*)(buffer+__ROUTING_OFFSET(count));
+
+	routingInformation[__ROUTING_DESTINATION]=destination;
+}
+
+

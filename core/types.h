@@ -32,8 +32,6 @@ typedef int SlaveMode;
 
 typedef int MasterMode;
 
-typedef int RoutingTag;
-
 typedef int Distance;
 
 #define MAXIMUM_NUMBER_OF_MASTER_HANDLERS 64

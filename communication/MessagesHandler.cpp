@@ -132,9 +132,12 @@ void MessagesHandler::printDirtyBuffers(){
 			Rank destination=m_dirtyBuffers[i].m_destination;
 			Rank routingSource=m_rank;
 			Rank routingDestination=destination;
-			RoutingTag routingTag=tag;
 
 			bool isRoutingTagValue=false;
+
+/* TODO we don't have easy access to this information */
+#if 0
+			RoutingTag routingTag=tag;
 
 			if(isRoutingTag(tag)){
 				tag=getMessageTagFromRoutingTag(routingTag);
@@ -143,6 +146,7 @@ void MessagesHandler::printDirtyBuffers(){
 
 				isRoutingTagValue=true;
 			}
+#endif
 
 			cout<<" MessageTag: "<<MESSAGE_TAGS[tag]<<" ("<<tag<<")"<<endl;
 			cout<<" Source: "<<m_rank<<endl;

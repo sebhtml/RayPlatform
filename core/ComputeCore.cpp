@@ -39,7 +39,6 @@ using namespace std;
 //#define CONFIG_DEBUG_CORE
 
 ComputeCore::ComputeCore(){
-	m_hasMaximumNumberOfOutboxBuffers=false;
 }
 
 void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler object){
@@ -123,6 +122,11 @@ void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,
  */
 void ComputeCore::run(){
 
+	// ask the router if it is enabled
+	// the virtual router will disable itself if there were
+	// problems during configuration
+	m_routerIsEnabled=m_router.isEnabled();
+
 	if(!m_resolvedSymbols)
 		resolveSymbols();
 
@@ -133,7 +137,7 @@ void ComputeCore::run(){
 
 	m_startingTimeMicroseconds = getMicroseconds();
 
-	if(m_router.isEnabled())
+	if(m_routerIsEnabled)
 		m_router.getGraph()->start(m_rank);
 
 	if(m_runProfiler){
@@ -142,7 +146,7 @@ void ComputeCore::run(){
 		runVanilla();
 	}
 
-	if(m_router.isEnabled())
+	if(m_routerIsEnabled)
 		m_router.getGraph()->printStatus();
 
 }
@@ -158,7 +162,7 @@ void ComputeCore::runVanilla(){
 	cout<<"m_alive= "<<m_alive<<endl;
 	#endif
 
-	while(m_alive || (m_router.isEnabled() && !m_router.hasCompletedRelayEvents())){
+	while(m_alive || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		
 		// 1. receive the message (0 or 1 message is received)
 		// blazing fast, receives 0 or 1 message, never more, never less, other messages will wait for the next iteration !
@@ -215,7 +219,7 @@ void ComputeCore::runWithProfiler(){
 
 	bool profilerVerbose=m_profilerVerbose; 
 
-	while(m_alive  || (m_router.isEnabled() && !m_router.hasCompletedRelayEvents())){
+	while(m_alive  || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		uint64_t t=getMilliSeconds();
 		if(t>=(lastTime+resolution)/parts*parts){
 
@@ -404,7 +408,7 @@ void ComputeCore::processMessages(){
 
 	// if routing is enabled, we want to strip the routing tags if it
 	// is required
-	if(m_router.isEnabled()){
+	if(m_routerIsEnabled){
 		if(m_router.routeIncomingMessages()){
 			// if the message has routing tag, we don't need to process it...
 			return;
@@ -456,10 +460,14 @@ void ComputeCore::sendMessages(){
 		uint8_t tag=m_outbox[0]->getTag();
 		cout<<"Tag="<<tag<<" n="<<messagesToSend<<" max="<<m_maximumNumberOfOutboxMessages<<endl;
 	}
+
+	// can not send more than m_size messages !
+	assert(messagesToSend<=m_size);
+
 	#endif
 
 	// route messages if the router is enabled
-	if(m_router.isEnabled()){
+	if(m_routerIsEnabled){
 		// if message routing is enabled,
 		// generate routing tags.
 		m_router.routeOutcomingMessages();
@@ -653,15 +661,34 @@ void ComputeCore::constructor(int*argc,char***argv){
 	// for cases with sizeof(MessageUnit)>=4 bytes
 
 	const char verifyMessages[]="-verify-message-integrity";
+	const char router[]="-route-messages";
+
+	m_routerIsEnabled=false;
+
+	int match=0;
 
 	for(int i=0;i<(*argc);i++){
-		if(strcmp( ((*argv)[i]), verifyMessages) == 0){
+		if(strcmp( ((*argv)[i]), verifyMessages) == match){
 			m_doChecksum=true;
+		}else if(strcmp( ((*argv)[i]),router) == match){
+			m_routerIsEnabled=true;
 		}
 	}
 
 	m_argumentCount=*argc;
 	m_argumentValues=*argv;
+
+	int minimumNumberOfBuffers=128;
+
+	int availableBuffers=minimumNumberOfBuffers;
+
+	// even a message with a NULL buffer requires a buffer for routing
+	if(m_routerIsEnabled)
+		availableBuffers=m_size*2;
+
+	// this will occur when using the virtual router with a few processes
+	if(availableBuffers<minimumNumberOfBuffers)
+		availableBuffers=minimumNumberOfBuffers;
 
 	m_resolvedSymbols=false;
 
@@ -672,7 +699,6 @@ void ComputeCore::constructor(int*argc,char***argv){
 	m_hasFirstMode=false;
 
 	srand(portableProcessId() * getMicroseconds());
-
 
 	m_alive=true;
 
@@ -698,39 +724,30 @@ void ComputeCore::constructor(int*argc,char***argv){
 	m_virtualProcessor.constructor(&m_outbox,&m_inbox,&m_outboxAllocator,
 		&m_virtualCommunicator);
 
-	m_maximumNumberOfOutboxMessages=m_size;
-	m_maximumNumberOfInboxMessages=1;
+	m_maximumAllocatedInboxBuffers=1;
+	m_maximumAllocatedOutboxBuffers=availableBuffers;
 	
-	if(!m_hasMaximumNumberOfOutboxBuffers){
-		m_maximumAllocatedOutboxBuffers=m_size;
-		m_hasMaximumNumberOfOutboxBuffers=true;
-	}
-
-	// we need more outbox messages
-	// this case will occur when the number of processor cores is < the number of requested outbox buffers
-	if(m_maximumNumberOfOutboxMessages < m_maximumAllocatedOutboxBuffers){
-		m_maximumNumberOfOutboxMessages = m_maximumAllocatedOutboxBuffers;
-	}
+	m_maximumNumberOfInboxMessages=1;
+	m_maximumNumberOfOutboxMessages=availableBuffers;
 
 	// broadcasting messages
 	// this case will occur when the number of requested outbox buffers is < the number of processor cores.
 	if(m_maximumNumberOfOutboxMessages < m_size){
-		m_maximumNumberOfOutboxMessages = m_size;
+		m_maximumNumberOfOutboxMessages=m_size;
 	}
 
-	m_maximumAllocatedInboxBuffers=1;
+	getInbox()->constructor(m_maximumNumberOfInboxMessages,"RAY_MALLOC_TYPE_INBOX_VECTOR",false);
+	cout<<"[ComputeCore] the inbox capacity is "<<m_maximumNumberOfInboxMessages<<" message"<<endl;
 
-
-	// configure the switchman
-	
-	getInbox()->constructor(getMaximumNumberOfAllocatedInboxMessages(),"RAY_MALLOC_TYPE_INBOX_VECTOR",false);
-	getOutbox()->constructor(getMaximumNumberOfAllocatedOutboxMessages(),"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
+	getOutbox()->constructor(m_maximumNumberOfOutboxMessages,"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
+	cout<<"[ComputeCore] the outbox capacity is "<<m_maximumNumberOfOutboxMessages<<" message"<<endl;
 
 	int maximumMessageSizeInByte=MAXIMUM_MESSAGE_SIZE_IN_BYTES;
 
-	// add a message unit to store the checksum
+	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
-	if(m_doChecksum){
+	// TODO: RayPlatform can not do both routing and checksums 
+	if(m_doChecksum || m_routerIsEnabled){
 		if(sizeof(MessageUnit)>=4){
 			maximumMessageSizeInByte+=sizeof(MessageUnit);
 		}else if(sizeof(MessageUnit)>=2){
@@ -740,15 +757,17 @@ void ComputeCore::constructor(int*argc,char***argv){
 		}
 	}
 
-	int availableBuffers=128;
+	m_inboxAllocator.constructor(m_maximumAllocatedInboxBuffers,
+		maximumMessageSizeInByte,
+		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
 
-	m_outboxAllocator.constructor(availableBuffers,
+	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
+
+	m_outboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
 
-	m_inboxAllocator.constructor(getMaximumNumberOfAllocatedInboxBuffers(),
-		maximumMessageSizeInByte,
-		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
+	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedOutboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for outbox messages"<<endl;
 
 	for(int i=0;i<MAXIMUM_NUMBER_OF_MASTER_HANDLERS;i++){
 		strcpy(MASTER_MODES[i],"UnnamedMasterMode");
@@ -824,27 +843,6 @@ VirtualProcessor*ComputeCore::getVirtualProcessor(){
 
 VirtualCommunicator*ComputeCore::getVirtualCommunicator(){
 	return &m_virtualCommunicator;
-}
-
-int ComputeCore::getMaximumNumberOfAllocatedOutboxBuffers(){
-	return m_maximumAllocatedOutboxBuffers;
-}
-
-int ComputeCore::getMaximumNumberOfAllocatedInboxBuffers(){
-	return m_maximumAllocatedInboxBuffers;
-}
-
-int ComputeCore::getMaximumNumberOfAllocatedInboxMessages(){
-	return m_maximumNumberOfInboxMessages;
-}
-
-int ComputeCore::getMaximumNumberOfAllocatedOutboxMessages(){
-	return m_maximumNumberOfOutboxMessages;
-}
-
-void ComputeCore::setMaximumNumberOfOutboxBuffers(int maxNumberOfBuffers){
-	m_maximumAllocatedOutboxBuffers=maxNumberOfBuffers;
-	m_hasMaximumNumberOfOutboxBuffers=true;
 }
 
 void ComputeCore::registerPlugin(CorePlugin*plugin){
