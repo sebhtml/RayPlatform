@@ -678,17 +678,6 @@ void ComputeCore::constructor(int*argc,char***argv){
 	m_argumentCount=*argc;
 	m_argumentValues=*argv;
 
-	int minimumNumberOfBuffers=128;
-
-	int availableBuffers=minimumNumberOfBuffers;
-
-	// even a message with a NULL buffer requires a buffer for routing
-	if(m_routerIsEnabled)
-		availableBuffers=m_size*2;
-
-	// this will occur when using the virtual router with a few processes
-	if(availableBuffers<minimumNumberOfBuffers)
-		availableBuffers=minimumNumberOfBuffers;
 
 	m_resolvedSymbols=false;
 
@@ -714,6 +703,20 @@ void ComputeCore::constructor(int*argc,char***argv){
 	if(m_doChecksum){
 		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message."<<" ("<<verifyMessages<<")"<<endl;
 	}
+
+	// set the number of buffers to use
+	int minimumNumberOfBuffers=128;
+
+	int availableBuffers=minimumNumberOfBuffers;
+
+	// even a message with a NULL buffer requires a buffer for routing
+	if(m_routerIsEnabled)
+		availableBuffers=m_size*2;
+
+	// this will occur when using the virtual router with a few processes
+	if(availableBuffers<minimumNumberOfBuffers)
+		availableBuffers=minimumNumberOfBuffers;
+
 
 	m_switchMan.constructor(m_rank,m_size);
 
