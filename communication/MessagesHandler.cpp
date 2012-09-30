@@ -36,6 +36,8 @@ using namespace std;
 
 // #define COMMUNICATION_IS_VERBOSE
 
+#define __NOT_SET -1
+
 /**
  * TODO Instead of a true/false state, increase and decrease requests
  * using a particular buffer. Otherwise, there may be a problem when 
@@ -83,18 +85,10 @@ void MessagesHandler::checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int i
 void MessagesHandler::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
 
 /**
- * don't do any linear sweep
+ * don't do any linear sweep if we still have plenty of free cells
  */
 	if(m_numberOfDirtyBuffers<m_minimumNumberOfDirtyBuffersForSweep)
 		return;
-
-	#if 0
-	if(m_numberOfDirtyBuffers>=m_minimumNumberOfDirtyBuffersForWarning){
-		cout<<"[MessagesHandler] before linear sweep: "<<m_numberOfDirtyBuffers<<"/";
-		cout<<m_dirtyBufferSlots<<" are dirty."<<endl;
-		printDirtyBuffers();
-	}
-	#endif
 
 	#ifdef ASSERT
 	assert(m_numberOfDirtyBuffers>0);
@@ -148,7 +142,11 @@ void MessagesHandler::printDirtyBuffers(){
 			}
 #endif
 
-			cout<<" MessageTag: "<<MESSAGE_TAGS[tag]<<" ("<<tag<<")"<<endl;
+			uint8_t index=tag;
+			cout<<" MessageTag: "<<MESSAGE_TAGS[index]<<" ("<<(int)index<<") ";
+			if(index<tag){
+				cout<<"[this is a routing tag]"<<endl;
+			}
 			cout<<" Source: "<<m_rank<<endl;
 			cout<<" Destination: "<<destination<<endl;
 
@@ -175,6 +173,8 @@ void MessagesHandler::printDirtyBuffers(){
  */
 void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator){
 
+	// initialize the dirty buffer counters
+	// this is done only once
 	if(m_dirtyBuffers==NULL){
 		m_dirtyBufferSlots=outboxBufferAllocator->getNumberOfBuffers();
 
@@ -184,6 +184,11 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		for(int i=0;i<m_dirtyBufferSlots;i++){
 			m_dirtyBuffers[i].m_buffer=NULL;
 		}
+
+		// configure the real-time sweeper.
+
+		m_minimumNumberOfDirtyBuffersForSweep=m_dirtyBufferSlots/4;
+		m_minimumNumberOfDirtyBuffersForWarning=m_dirtyBufferSlots/2;
 	}
 
 	cleanDirtyBuffers(outboxBufferAllocator);
@@ -550,15 +555,15 @@ void MessagesHandler::constructor(int*argc,char***argv){
 	m_linearSweeps=0;
 
 /**
- * internally, there are 128 buffers for MPI_Isend. However,
+ * internally, there are N buffers for MPI_Isend. However,
  * these slots become dirty when they are used and become
  * clean again when MPI_Test says so.
  * But we don't want to do too much sweep operations. Instead,
  * we want amortized operations.
  */
 
-	m_minimumNumberOfDirtyBuffersForSweep=32;
-	m_minimumNumberOfDirtyBuffersForWarning=64;
+	m_minimumNumberOfDirtyBuffersForSweep=__NOT_SET;
+	m_minimumNumberOfDirtyBuffersForWarning=__NOT_SET;
 }
 
 void MessagesHandler::createBuffers(){
