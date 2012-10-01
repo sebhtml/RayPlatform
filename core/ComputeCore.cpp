@@ -461,9 +461,6 @@ void ComputeCore::sendMessages(){
 		cout<<"Tag="<<tag<<" n="<<messagesToSend<<" max="<<m_maximumNumberOfOutboxMessages<<endl;
 	}
 
-	// can not send more than m_size messages !
-	assert(messagesToSend<=m_size);
-
 	#endif
 
 	// route messages if the router is enabled
