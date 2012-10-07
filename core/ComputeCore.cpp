@@ -411,6 +411,14 @@ void ComputeCore::processMessages(){
 	if(m_routerIsEnabled){
 		if(m_router.routeIncomingMessages()){
 			// if the message has routing tag, we don't need to process it...
+
+/*
+ * If a message is routed, the original message needs to be destroyed 
+ * with fire. Otherwise, a slave mode or a master mode will pick it up, 
+ * which will cause silly behaviors.
+ */
+			m_inbox.clear();
+
 			return;
 		}
 	}
