@@ -65,13 +65,14 @@
  * Probing any message, then receive it.
  * This model is used by Converse/CHARM++/NAMD.
  */
-//#define CONFIG_COMM_IPROBE_ANY_SOURCE
+#define CONFIG_COMM_IPROBE_ANY_SOURCE
 
 /*
  * Non-blocking reception. This was suggested by Pavan Balaji
  * and Jeff Squyres.
+ * It does not work that well on the IBM Blue Gene /Q.
  */
-#define CONFIG_COMM_IRECV_TESTANY
+//#define CONFIG_COMM_IRECV_TESTANY
 
 #include <mpi.h> // this is the only reference to MPI
 
