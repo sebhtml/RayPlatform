@@ -22,9 +22,7 @@
 #ifndef _MessagesHandler
 #define _MessagesHandler
 
-
-
-/* 3 communication models are implemented:
+/* Many communication models are implemented:
  * latencies are for a system with 36 cores (or 120 cores), QLogic interconnect, 
  *  and Performance scaled messaging
  * - CONFIG_COMM_IPROBE_ANY_SOURCE  
@@ -40,7 +38,10 @@
      	latency(36): 28 micro seconds
 	latency(120): 75 microseconds
 	no fairness, possible starvation
- *
+ * - CONFIG_COMM_IRECV_TESTANY (no data)
+ */
+
+/*
  * only one must be set
  */
 
@@ -48,7 +49,6 @@
  * Persistent communication pumps the message more rapidly
  * on some systems
  */
-
 //#define CONFIG_COMM_PERSISTENT
 
 /**
@@ -61,16 +61,17 @@
 /* this is only useful with CONFIG_COMM_IPROBE_ROUND_ROBIN */
 //#define CONFIG_ONE_IPROBE_PER_TICK
 
+/*
+ * Probing any message, then receive it.
+ * This model is used by Converse/CHARM++/NAMD.
+ */
+//#define CONFIG_COMM_IPROBE_ANY_SOURCE
 
-#define CONFIG_COMM_IPROBE_ANY_SOURCE
-
-
-
-
-
-
-
-
+/*
+ * Non-blocking reception. This was suggested by Pavan Balaji
+ * and Jeff Squyres.
+ */
+#define CONFIG_COMM_IRECV_TESTANY
 
 #include <mpi.h> // this is the only reference to MPI
 
@@ -99,11 +100,23 @@ public:
 };
 
 /**
- * software layer to handler messages
- * it uses persistant communication
- * MessagesHandler is the only part of Ray that is aware of the message-passing interface.
+ * Software layer to handle messages.
+ * MessagesHandler is the only part of Ray that is aware of the 
+ * message-passing interface.
  * All the other parts rely only on a simple inbox and a simple outbox.
- * This boxes of messages could be implemented with something else than message-passing interface.
+ * These boxes of messages could be implemented with something else 
+ * than message-passing interface.
+ *
+ * Messages are sent with MPI_Isend and buffers are managed by a dirty buffer
+ * laundry list.
+ *
+ * 4 communication models are implemented:
+ *
+ * CONFIG_COMM_IPROBE_ANY_SOURCE -> MPI_Iprobe with any source + MPI_Recv
+ * CONFIG_COMM_IRECV_TESTANY -> MPI_Irecv + MPI_Testany
+ * CONFIG_COMM_IPROBE_ROUND_ROBIN -> MPI_Iprobe with round-robin source + MPI_Recv
+ * CONFIG_COMM_PERSISTENT -> MPI_Recv_init + MPI_Test 
+ *
  * \author Sébastien Boisvert
  */
 class MessagesHandler: public CorePlugin{
@@ -130,7 +143,30 @@ class MessagesHandler: public CorePlugin{
 
 	vector<int> m_connections;
 
-	#ifdef USE_PERSISTENT_COMMUNICATION
+	Rank m_rank;
+	int m_size;
+	/** this variable stores counts for sent messages */
+	uint64_t*m_messageStatistics;
+
+	/** messages sent */
+	uint64_t m_sentMessages;
+	/** messages received */
+	uint64_t m_receivedMessages;
+
+/**
+ * 	In Ray, all messages have buffer of the same type
+ */
+	MPI_Datatype m_datatype;
+
+	string m_processorName;
+
+#ifdef CONFIG_COMM_IPROBE_ROUND_ROBIN
+	/** round-robin head */
+	int m_currentRankIndexToTryToReceiveFrom;
+#endif /* CONFIG_COMM_IPROBE_ROUND_ROBIN */
+
+#ifdef CONFIG_COMM_PERSISTENT
+
 	/** the number of buffered messages in the persistent layer */
 	int m_bufferedMessages;
 
@@ -139,23 +175,6 @@ class MessagesHandler: public CorePlugin{
 
 	/** linked lists */
 	MessageNode**m_tails;
-
-	#endif
-
-	/** round-robin head */
-	int m_currentRankIndexToTryToReceiveFrom;
-
-	/** messages sent */
-	uint64_t m_sentMessages;
-	/** messages received */
-	uint64_t m_receivedMessages;
-
-	/**
- * 	In Ray, all messages have buffer of the same type
- */
-	MPI_Datatype m_datatype;
-
-	string m_processorName;
 
 	/** the number of persistent requests in the ring */
 	int m_ringSize;
@@ -169,12 +188,17 @@ class MessagesHandler: public CorePlugin{
 	/** the ring of buffers for persistent requests */
 	uint8_t*m_buffers;
 
+#endif /* CONFIG_COMM_PERSISTENT */
 
-	int m_rank;
-	int m_size;
 
-	/** this variable stores counts for sent messages */
-	uint64_t*m_messageStatistics;
+#ifdef CONFIG_COMM_IRECV_TESTANY
+
+	int m_numberOfNonBlockingReceives;
+	MPI_Request*m_requests;
+	uint8_t*m_receptionBuffers;
+	int m_bufferSize;
+
+#endif /* CONFIG_COMM_IRECV_TESTANY */
 
 	/** initialize persistent communication parameters */
 	void initialiseMembers();
@@ -192,12 +216,22 @@ class MessagesHandler: public CorePlugin{
 	void roundRobinReception(StaticVector*inbox,RingAllocator*inboxAllocator);
 #endif /* CONFIG_COMM_IPROBE_ROUND_ROBIN */
 
+#ifdef CONFIG_COMM_IRECV_TESTANY
+
+	void receiveMessages_irecv_testany(StaticVector*inbox,RingAllocator*inboxAllocator);
+	void init_irecv_testany(RingAllocator*inboxAllocator);
+	void destroy_irecv_testany();
+	void startNonBlockingReception(int handle);
+
+#endif /* CONFIG_COMM_IRECV_TESTANY */
 
 	void createBuffers();
 
 	void checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int i);
 	void cleanDirtyBuffers(RingAllocator*outboxBufferAllocator);
 	uint64_t m_linearSweeps;
+	void initializeDirtyBuffers(RingAllocator*outboxBufferAllocator);
+
 public:
 	/** initialize the message handler
  * 	*/
@@ -247,6 +281,6 @@ public:
 	void resolveSymbols(ComputeCore*core);
 };
 
-#endif
+#endif /* _MessagesHandler */
 
 

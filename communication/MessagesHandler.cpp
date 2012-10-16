@@ -158,6 +158,24 @@ void MessagesHandler::printDirtyBuffers(){
 	}
 }
 
+void MessagesHandler::initializeDirtyBuffers(RingAllocator*outboxBufferAllocator){
+
+	m_dirtyBufferSlots=outboxBufferAllocator->getNumberOfBuffers();
+
+	m_dirtyBuffers=(DirtyBuffer*)__Malloc(m_dirtyBufferSlots*sizeof(DirtyBuffer),
+		"m_dirtyBuffers",false);
+
+	for(int i=0;i<m_dirtyBufferSlots;i++){
+		m_dirtyBuffers[i].m_buffer=NULL;
+	}
+
+	// configure the real-time sweeper.
+
+	m_minimumNumberOfDirtyBuffersForSweep=m_dirtyBufferSlots/4;
+	m_minimumNumberOfDirtyBuffersForWarning=m_dirtyBufferSlots/2;
+
+}
+
 /*
  * send messages,
  *
@@ -175,21 +193,8 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 	// initialize the dirty buffer counters
 	// this is done only once
-	if(m_dirtyBuffers==NULL){
-		m_dirtyBufferSlots=outboxBufferAllocator->getNumberOfBuffers();
-
-		m_dirtyBuffers=(DirtyBuffer*)__Malloc(m_dirtyBufferSlots*sizeof(DirtyBuffer),
-			"m_dirtyBuffers",false);
-
-		for(int i=0;i<m_dirtyBufferSlots;i++){
-			m_dirtyBuffers[i].m_buffer=NULL;
-		}
-
-		// configure the real-time sweeper.
-
-		m_minimumNumberOfDirtyBuffersForSweep=m_dirtyBufferSlots/4;
-		m_minimumNumberOfDirtyBuffersForWarning=m_dirtyBufferSlots/2;
-	}
+	if(m_dirtyBuffers==NULL)
+		initializeDirtyBuffers(outboxBufferAllocator);
 
 	cleanDirtyBuffers(outboxBufferAllocator);
 
@@ -211,7 +216,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 		// this assertion is invalid when using checksum calculation.
 		//assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
-		#endif
+		#endif /* ASSERT */
 
 		MPI_Request dummyRequest;
 
@@ -312,7 +317,6 @@ Once you use the data related to the receive, just do an MPI_Start on your reque
 This approach will minimize the unexpected messages, and drain the connections faster. 
 Moreover, at the end it is very easy to MPI_Cancel all the receives not yet matched.
 
-    george. 
  */
 void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAllocator*inboxAllocator){
 
@@ -361,7 +365,7 @@ void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAlloc
 void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator){
 	#if defined CONFIG_COMM_IPROBE_ROUND_ROBIN
 
-	// round-robin reception seems to avoid starvation 
+// round-robin reception seems to avoid starvation 
 /** round robin with Iprobe will increase the latency because there will be a lot of calls to
  MPI_Iprobe that yield no messages at all */
 
@@ -380,8 +384,139 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 
 	probeAndRead(MPI_ANY_SOURCE,MPI_ANY_TAG,inbox,inboxAllocator);
 
+	#elif defined CONFIG_COMM_IRECV_TESTANY
+
+	receiveMessages_irecv_testany(inbox,inboxAllocator);
+
+	#else
+
+	#error "No communication model is selected."
+
 	#endif
 }
+
+#ifdef CONFIG_COMM_IRECV_TESTANY
+
+/*
+ * Implementation of the communication layer using
+ * MPI_Irecv, MPI_Isend, and MPI_Testany
+ *
+ * According to Pavan Balaji (MPICH2) and Jeff Squyres (Open-MPI),
+ * this should produce the best performance.
+ */
+
+/**
+ * Starts a non-blocking reception
+ */
+void MessagesHandler::startNonBlockingReception(int handle){
+	
+	#ifdef ASSERT
+	assert(handle<m_numberOfNonBlockingReceives);
+	assert(handle>=0);
+	#endif /* ASSERT */
+
+	void*buffer=m_receptionBuffers+handle*m_bufferSize;
+
+	MPI_Request*request=m_requests+handle;
+
+	#ifdef ASSERT
+	assert(buffer!=NULL);
+	assert(request!=NULL);
+	#endif /* ASSERT */
+
+	MPI_Irecv(buffer,m_bufferSize/sizeof(MessageUnit),m_datatype,
+		MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,request);
+}
+
+void MessagesHandler::init_irecv_testany(RingAllocator*inboxAllocator){
+
+	m_bufferSize=inboxAllocator->getSize();
+	m_numberOfNonBlockingReceives=m_size+10;
+
+	m_requests=(MPI_Request*)__Malloc(sizeof(MPI_Request)*m_numberOfNonBlockingReceives,
+		"CONFIG_COMM_IRECV_TESTANY",false);
+	m_receptionBuffers=(uint8_t*)__Malloc(m_bufferSize*m_numberOfNonBlockingReceives,
+		"CONFIG_COMM_IRECV_TESTANY",false);
+	
+	#ifdef ASSERT
+	assert(m_requests!=NULL);
+	#endif
+
+	for(int i=0;i<m_numberOfNonBlockingReceives;i++)
+		startNonBlockingReception(i);
+}
+
+void MessagesHandler::destroy_irecv_testany(){
+
+	if(m_requests==NULL)
+		return;
+
+	for(int i=0;i<m_numberOfNonBlockingReceives;i++){
+		MPI_Cancel(m_requests+i);
+		MPI_Request_free(m_requests+i);
+	}
+
+	__Free(m_requests,"CONFIG_COMM_IRECV_TESTANY",false);
+	m_requests=NULL;
+	__Free(m_receptionBuffers,"CONFIG_COMM_IRECV_TESTANY",false);
+	m_receptionBuffers=NULL;
+
+}
+
+void MessagesHandler::receiveMessages_irecv_testany(StaticVector*inbox,RingAllocator*inboxAllocator){
+
+	if(m_requests==NULL)
+		init_irecv_testany(inboxAllocator);
+
+	int indexOfCompletedRequest=MPI_UNDEFINED;
+	int hasCompleted=0;
+	MPI_Status status;
+
+	#ifdef ASSERT
+	int returnValue=
+	#endif /* ASSERT */
+
+	MPI_Testany(m_numberOfNonBlockingReceives,m_requests,
+		&indexOfCompletedRequest,&hasCompleted,&status);
+
+	#ifdef ASSERT
+	assert(returnValue==MPI_SUCCESS);
+	#endif /* ASSERT */
+
+	if(hasCompleted==0)
+		return;
+
+	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
+	MessageTag actualTag=status.MPI_TAG;
+	Rank actualSource=status.MPI_SOURCE;
+	int count=-1;
+	MPI_Get_count(&status,datatype,&count);
+
+	uint8_t*populatedBuffer=m_receptionBuffers+indexOfCompletedRequest*m_bufferSize;
+
+	#ifdef ASSERT
+	assert(count >= 0);
+	#endif
+
+	MessageUnit*incoming=NULL;
+	if(count > 0){
+		incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
+		memcpy(incoming,populatedBuffer,count*sizeof(MessageUnit));
+	}
+
+	Message aMessage(incoming,count,m_rank,actualTag,actualSource);
+	inbox->push_back(aMessage);
+
+	#ifdef ASSERT
+	assert(aMessage.getDestination() == m_rank);
+	#endif
+
+	m_receivedMessages++;
+
+	startNonBlockingReception(indexOfCompletedRequest);
+}
+
+#endif /* CONFIG_COMM_IRECV_TESTANY */
 
 #ifdef CONFIG_COMM_IPROBE_ROUND_ROBIN
 
@@ -421,9 +556,7 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 		if(inbox->size()>0){
 			break;
 		}
-
 	}
-
 
 	#ifdef COMMUNICATION_IS_VERBOSE
 	if(inbox->size() > 0){
@@ -508,6 +641,11 @@ void MessagesHandler::initialiseMembers(){
 }
 
 void MessagesHandler::freeLeftovers(){
+
+	#ifdef CONFIG_COMM_IRECV_TESTANY
+	destroy_irecv_testany();
+	#endif /* CONFIG_COMM_IRECV_TESTANY */
+
 	#ifdef CONFIG_COMM_PERSISTENT
 
 	for(int i=0;i<m_ringSize;i++){
@@ -520,10 +658,10 @@ void MessagesHandler::freeLeftovers(){
 	__Free(m_buffers,"RAY_MALLOC_TYPE_PERSISTENT_MESSAGE_BUFFERS",false);
 	m_buffers=NULL;
 
+	#endif /* CONFIG_COMM_PERSISTENT */
+
 	__Free(m_messageStatistics,"RAY_MALLOC_TYPE_MESSAGE_STATISTICS",false);
 	m_messageStatistics=NULL;
-
-	#endif /* CONFIG_COMM_PERSISTENT */
 }
 
 void MessagesHandler::constructor(int*argc,char***argv){
@@ -564,6 +702,10 @@ void MessagesHandler::constructor(int*argc,char***argv){
 
 	m_minimumNumberOfDirtyBuffersForSweep=__NOT_SET;
 	m_minimumNumberOfDirtyBuffersForWarning=__NOT_SET;
+
+	#ifdef CONFIG_COMM_IRECV_TESTANY
+	m_requests=NULL;
+	#endif
 }
 
 void MessagesHandler::createBuffers(){
@@ -576,9 +718,10 @@ void MessagesHandler::createBuffers(){
 		}
 	}
 
+	#ifdef CONFIG_COMM_IPROBE_ROUND_ROBIN
 	// start with the first connection
 	m_currentRankIndexToTryToReceiveFrom=0;
-
+	#endif /* CONFIG_COMM_IPROBE_ROUND_ROBIN */
 
 	// initialize connections
 	for(int i=0;i<m_size;i++)
@@ -597,6 +740,9 @@ void MessagesHandler::destructor(){
 		MPI_Finalize();
 		m_destroyed=true;
 	}
+
+	freeLeftovers();
+
 }
 
 string*MessagesHandler::getName(){
@@ -741,3 +887,4 @@ void MessagesHandler::registerPlugin(ComputeCore*core){
 void MessagesHandler::resolveSymbols(ComputeCore*core){
 	RAY_MPI_TAG_DUMMY=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_DUMMY");
 }
+
