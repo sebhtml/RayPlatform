@@ -37,7 +37,7 @@ void MasterModeExecutor::callHandler(MasterMode mode){
 
 	/** otherwise, fetch the method and call it*/
 
-	object();
+	object->call();
 }
 
 MasterModeExecutor::MasterModeExecutor(){

@@ -28,6 +28,18 @@
 using namespace std;
 
 /**
+ * A data model for storing dirty buffers
+ */
+class DirtyBuffer{
+public:
+	void*m_buffer;
+	MPI_Request m_messageRequest;
+	Rank m_destination;
+	MessageTag m_messageTag;
+};
+
+
+/**
  * This class is a ring buffer. No !, it is an allocator. Thus, referred to as a ring allocator.
  *
  * This is an allocator that can allocate up to <m_chunks> allocations of exactly <m_max> bytes.
@@ -35,6 +47,14 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class RingAllocator{
+
+	DirtyBuffer*m_dirtyBuffers;
+
+	int m_numberOfDirtyBuffers;
+	int m_maximumDirtyBuffers;
+	int m_dirtyBufferSlots;
+
+
 /** the number of call to allocate() since the last hard reset */
 	int m_count;
 

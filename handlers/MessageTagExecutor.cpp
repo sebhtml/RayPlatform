@@ -35,7 +35,7 @@ void MessageTagExecutor::callHandler(MessageTag messageTag,Message*message){
 	if(object==NULL)
 		return;
 
-	object(message);
+	object->call(message);
 }
 
 MessageTagExecutor::MessageTagExecutor(){

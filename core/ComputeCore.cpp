@@ -122,6 +122,8 @@ void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,
  */
 void ComputeCore::run(){
 
+	initLock();
+
 	// ask the router if it is enabled
 	// the virtual router will disable itself if there were
 	// problems during configuration
@@ -148,7 +150,8 @@ void ComputeCore::run(){
 
 	if(m_routerIsEnabled)
 		m_router.getGraph()->printStatus();
-
+	
+	destroyLock();
 }
 
 /**
@@ -164,6 +167,8 @@ void ComputeCore::runVanilla(){
 
 	while(m_alive || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		
+		lock();// lock the whole iteration
+
 		// 1. receive the message (0 or 1 message is received)
 		// blazing fast, receives 0 or 1 message, never more, never less, other messages will wait for the next iteration !
 		receiveMessages(); 
@@ -179,6 +184,19 @@ void ComputeCore::runVanilla(){
 		// 4. send messages
 		// fast, sends at most 17 messages. In most case it is either 0 or 1 message.,..
 		sendMessages();
+
+		unlock();
+
+/* wait for the rank to pick up messages to be delivered...
+ */
+
+		bool wait=true;
+		while(false){
+			lock();
+			if(m_outbox->size()==0)
+				wait=false;
+			unlock();
+		}
 	}
 
 	#ifdef CONFIG_DEBUG_CORE
@@ -441,6 +459,12 @@ void ComputeCore::processMessages(){
 }
 
 void ComputeCore::sendMessages(){
+
+/* 
+ * clear the inbox for the next iteration
+ */
+	m_inbox.clear();
+
 	// assert that we did not overflow the ring
 	#ifdef ASSERT
 	if(m_outboxAllocator.getCount() > m_maximumAllocatedOutboxBuffers){
@@ -498,7 +522,14 @@ void ComputeCore::sendMessages(){
 	}
 
 	// finally, send the messages
-	m_messagesHandler.sendMessages(&m_outbox,&m_outboxAllocator);
+	//m_messagesHandler.sendMessages(&m_outbox,&m_outboxAllocator);
+
+/*
+ * We need to wait for the communication thread to pull
+ * the messages.
+ *
+ * Or, give the messages directly to the upstream object.
+ */
 }
 
 void ComputeCore::addMessageChecksums(){
@@ -590,8 +621,9 @@ void ComputeCore::verifyMessageChecksums(){
  * next ComputeCore cycle.
  */
 void ComputeCore::receiveMessages(){
-	m_inbox.clear();
-	m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
+
+	//m_inbox.clear();
+	//m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
 
 	// verify checksums and remove them
 	if(m_doChecksum){
@@ -805,10 +837,6 @@ void ComputeCore::enableProfilerVerbosity(){
 	m_profilerVerbose=true;
 }
 
-MessagesHandler*ComputeCore::getMessagesHandler(){
-	return &m_messagesHandler;
-}
-
 Profiler*ComputeCore::getProfiler(){
 	return &m_profiler;
 }
@@ -885,7 +913,6 @@ void ComputeCore::resolveSymbols(){
 }
 
 void ComputeCore::destructor(){
-	getMessagesHandler()->destructor();
 }
 
 void ComputeCore::stop(){
@@ -1669,3 +1696,21 @@ int ComputeCore::getNumberOfArguments(){
 char**ComputeCore::getArgumentValues(){
 	return m_argumentValues;
 }
+
+
+void ComputeCore::initLock(){
+	pthread_mutex_init(&m_mutex,NULL);
+}
+
+void ComputeCore::destroyLock(){
+	pthread_mutex_destroy(&m_mutex,NULL);
+}
+
+void ComputeCore::lock(){
+	pthread_mutex_lock(&m_mutex);
+}
+
+void ComputeCore::unlock(){
+	pthread_mutex_unlock(&m_mutex);
+}
+

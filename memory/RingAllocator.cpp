@@ -220,3 +220,190 @@ int RingAllocator::getCount(){
 int RingAllocator::getNumberOfBuffers(){
 	return m_chunks;
 }
+
+void RingAllocator::initializeDirtyBuffers(){
+
+	m_dirtyBufferSlots=getNumberOfBuffers();
+
+	m_dirtyBuffers=(DirtyBuffer*)__Malloc(m_dirtyBufferSlots*sizeof(DirtyBuffer),
+		"m_dirtyBuffers",false);
+
+	for(int i=0;i<m_dirtyBufferSlots;i++){
+		m_dirtyBuffers[i].m_buffer=NULL;
+	}
+
+	// configure the real-time sweeper.
+
+	m_minimumNumberOfDirtyBuffersForSweep=m_dirtyBufferSlots/4;
+	m_minimumNumberOfDirtyBuffersForWarning=m_dirtyBufferSlots/2;
+
+}
+
+DirtyBuffer*RingAllocator::getDirtyBuffers(){
+	return m_dirtyBuffers;
+}
+
+/**
+ * TODO Instead of a true/false state, increase and decrease requests
+ * using a particular buffer. Otherwise, there may be a problem when 
+ * a buffer is re-used several times for many requests.
+ */
+void RingAllocator::checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int index){
+
+	#ifdef ASSERT
+	assert(m_numberOfDirtyBuffers>0);
+	#endif
+
+	if(m_dirtyBuffers[index].m_buffer==NULL)// this entry is empty...
+		return;
+
+	// check the buffer and free it if it is finished.
+	MPI_Status status;
+	MPI_Request*request=&(m_dirtyBuffers[index].m_messageRequest);
+
+	int flag=0;
+
+	MPI_Test(request,&flag,&status);
+
+	if(!flag)// this slot is not ready
+		return;
+
+	#ifdef ASSERT
+	assert( flag );
+	#endif /* ASSERT */
+
+	void*buffer=m_dirtyBuffers[index].m_buffer;
+	outboxBufferAllocator->salvageBuffer(buffer);
+	m_numberOfDirtyBuffers--;
+
+	#ifdef COMMUNICATION_IS_VERBOSE
+	cout<<"From checkDirtyBuffer flag= "<<flag<<endl;
+	#endif /* COMMUNICATION_IS_VERBOSE */
+
+	#ifdef ASSERT
+	assert(*request == MPI_REQUEST_NULL);
+	#endif /* ASSERT */
+
+	m_dirtyBuffers[index].m_buffer=NULL;
+}
+
+void RingAllocator::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
+
+/**
+ * don't do any linear sweep if we still have plenty of free cells
+ */
+	if(m_numberOfDirtyBuffers<m_minimumNumberOfDirtyBuffersForSweep)
+		return;
+
+	#ifdef ASSERT
+	assert(m_numberOfDirtyBuffers>0);
+	#endif
+
+	m_linearSweeps++;
+
+	// update the dirty buffer list.
+	for(int i=0;i<m_dirtyBufferSlots;i++){
+		if(m_numberOfDirtyBuffers==0)
+			return;
+
+		checkDirtyBuffer(outboxBufferAllocator,i);
+	}
+
+	if(m_numberOfDirtyBuffers>=m_minimumNumberOfDirtyBuffersForWarning){
+		cout<<"[MessagesHandler] Warning: dirty buffers are still dirty after linear sweep."<<endl;
+		printDirtyBuffers();
+	}
+}
+
+void RingAllocator::printDirtyBuffers(){
+
+	cout<<"[MessagesHandler] Dirty buffers: "<<m_numberOfDirtyBuffers<<"/";
+	cout<<m_dirtyBufferSlots<<endl;
+
+	for(int i=0;i<m_dirtyBufferSlots;i++){
+		cout<<"DirtyBuffer # "<<i<<"    State: ";
+		if(m_dirtyBuffers[i].m_buffer==NULL){
+			cout<<"Available"<<endl;
+		}else{
+			cout<<"Dirty"<<endl;
+
+			MessageTag tag=m_dirtyBuffers[i].m_messageTag;
+			Rank destination=m_dirtyBuffers[i].m_destination;
+			Rank routingSource=m_rank;
+			Rank routingDestination=destination;
+
+			bool isRoutingTagValue=false;
+
+/* TODO we don't have easy access to this information */
+#if 0
+			RoutingTag routingTag=tag;
+
+			if(isRoutingTag(tag)){
+				tag=getMessageTagFromRoutingTag(routingTag);
+				routingSource=getSourceFromRoutingTag(routingTag);
+				routingDestination=getDestinationFromRoutingTag(routingTag);
+
+				isRoutingTagValue=true;
+			}
+#endif
+
+			uint8_t index=tag;
+			cout<<" MessageTag: "<<MESSAGE_TAGS[index]<<" ("<<(int)index<<") ";
+			if(index<tag){
+				cout<<"[this is a routing tag]"<<endl;
+			}
+			cout<<" Source: "<<m_rank<<endl;
+			cout<<" Destination: "<<destination<<endl;
+
+			if(isRoutingTagValue){
+				cout<<" RoutingSource: "<<routingSource<<endl;
+				cout<<" RoutingDestination: "<<routingDestination<<endl;
+			}
+		}
+	}
+}
+
+MPI_Request*RingAllocator::registerBuffer(void*buffer){
+
+	int handle=outboxBufferAllocator->getBufferHandle(buffer);
+	bool mustRegister=false;
+
+	MPI_Request*request=NULL;
+
+	// this buffer is not registered.
+	if(handle >=0 && m_dirtyBuffers[handle].m_buffer==NULL)
+		mustRegister=true;
+
+	#ifdef ASSERT
+	assert(m_dirtyBuffers[handle].m_buffer==NULL);
+	#endif
+
+	/* register the buffer for processing */
+	if(mustRegister){
+		#ifdef ASSERT
+		assert(m_dirtyBuffers[handle].m_buffer==NULL);
+		#endif
+
+		m_dirtyBuffers[handle].m_buffer=buffer;
+		m_dirtyBuffers[handle].m_destination=destination;
+		m_dirtyBuffers[handle].m_messageTag=tag;
+
+		#ifdef ASSERT
+		assert(m_dirtyBuffers[handle].m_buffer!=NULL);
+		#endif
+
+		request=&(m_dirtyBuffers[handle].m_messageRequest);
+
+		/* this is O(1) */
+		outboxBufferAllocator->markBufferAsDirty(buffer);
+
+		m_numberOfDirtyBuffers++;
+
+		// update the maximum number of dirty buffers
+		// observed since the beginning.
+		if(m_numberOfDirtyBuffers > m_maximumDirtyBuffers)
+			m_maximumDirtyBuffers=m_numberOfDirtyBuffers;
+	}
+
+	return request;
+}

@@ -1,0 +1,129 @@
+Mini ranks
+Sébastien Boisvert
+2012-10-17, Argonne National Laboratory
+
+The processing machinery of a computer is hierarchical with
+this progression:
+
+	socket -> processor -> core -> thread
+
+The MPI programming model only gives MPI ranks that send messages to each
+other. Usually a MPI Rank is mapped to a single process. And a process runs
+on a single core.
+
+Figure 1: The MPI programming model.
+
+            +--------------------+
+	    |   MPI_COMM_WORLD   |           MPI communicator
+            +---------+----------+
+	              |
+    +------+------+---+--+------+------+
+    |      |      |      |      |      |
+  +---+  +---+  +---+  +---+  +---+  +---+ 
+  | 0 |  | 1 |  | 2 |  | 3 |  | 4 |  | 5 |    MPI ranks
+  +---+  +---+  +---+  +---+  +---+  +---+
+
+
+Mini ranks can be thought as ranks within ranks.
+
+
+Figure 2: The MPI programming model, with mini ranks.
+
+            +--------------------+
+	    |   MPI_COMM_WORLD   |           MPI communicator
+            +---------+----------+
+	              |
+    +------+------+---+--+------+------+
+    |      |      |      |      |      |
+  +---+  +---+  +---+  +---+  +---+  +---+ 
+  | 0 |  | 1 |  | 2 |  | 3 |  | 4 |  | 5 |    MPI ranks   (1 VirtualMachine.cpp instance per rank)
+  +---+  +---+  +---+  +---+  +---+  +---+                    with the main for MPI calls
+  |   |  |   |  |   |  |   |  |   |  |   |
+  | 0 |  | 4 |  | 8 |  |12 |  |16 |  |20 |  |                
+  | 1 |  | 5 |  | 9 |  |13 |  |17 |  |21 |  | => mini ranks
+  | 2 |  | 6 |  |10 |  |14 |  |18 |  |22 |  |
+  | 3 |  | 7 |  |11 |  |15 |  |19 |  |23 |  |  (1 Minirank instance per minirank (in 1 pthread))
+  |   |  |   |  |   |  |   |  |   |  |   |
+  +---+  +---+  +---+  +---+  +---+  +---+       (will wrap Machine.cpp and ComputeCore.cpp)
+
+Current programming model:
+
+Each MPI rank runs one 
+
+class Machine.cpp (in Ray)
+this class create application plugins and starts the main loop
+
+the main loop is in RayPlatform.
+
+
+
+
+Future software design:
+
+
+class VirtualMachine.cpp  (runs as 1 MPI rank)
+
+             (1 pthread doing the MPI calls)
+		- picks up stuff from mini rank outbox
+		- copy these buffers into another one that will be used by
+		Mailman
+		- deposit incoming messages into the inbox of miniranks
+
+
+	class Machine.cpp  (running a mini rank in 1 pthread)
+		plugins see only a inbox and a outbox
+
+		buffers of mini ranks are pristine, they can not be dirty
+		they can also call barrier on RayPlatform
+
+		class ComputeCore.cpp  (with the main loop)
+
+			- add locks on inbox and outbox.
+
+
+As of Ray v2.0.0, each MPI rank is running as a Machine.cpp
+
+Machine.cpp is not in RayPlatform however.
+
+
+
+For adapters, the current implementation is that each plugin is a singleton.
+This must be changed. Instead, each static variable in a plugin must be an
+array of plugin.
+
+Then, the callbacks will take an extra parameter: the index of the minirank
+within the rank.
+
+
+
+
+## Message reception
+
+1. rank receives message with MPI
+2. rank locks the corresponding minirank inbox
+3. rank push the message to the minirank inbox
+4. rank unlocks the minirank inbox
+5. The minirank locks its inbox
+6. The minirank consumes its message
+7. The minirank unlocks its inbox
+
+## Sending a message
+
+1. The minirank puts a message in its outbox
+2. The minirank locks the rank outbox
+3. The minirank pushes onto the rank outbox
+4. The minirank unlocks the rank outbox
+5. The rank locks its outbox
+6. The rank pushes messages onto the network
+7. The rank unlocks its outbox
+
+
+
+Tasks:
+
+- [DONE]add VirtualMachine
+- [DONE] add MiniRank
+- propagate mini rank numbers instead of ranks
+- compile Ray without errors
+- port plugin to the old adapter architecture
+

@@ -33,7 +33,7 @@ void SlaveModeExecutor::callHandler(SlaveMode mode){
 		return;
 
 	// call it
-	object();
+	object->call();
 }
 
 SlaveModeExecutor::SlaveModeExecutor(){

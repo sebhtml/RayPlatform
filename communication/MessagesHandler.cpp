@@ -38,142 +38,19 @@ using namespace std;
 
 #define __NOT_SET -1
 
-/**
- * TODO Instead of a true/false state, increase and decrease requests
- * using a particular buffer. Otherwise, there may be a problem when 
- * a buffer is re-used several times for many requests.
- */
-void MessagesHandler::checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int index){
+void MessagesHandler::sendMessagesForMiniRanks(MiniRank**miniRanks,int miniRanksPerRank){
 
-	#ifdef ASSERT
-	assert(m_numberOfDirtyBuffers>0);
-	#endif
+	for(int i=0;i<miniRanksPerRank;i++){
+		ComputeCore*core=miniRanks[i]->getCore();
 
-	if(m_dirtyBuffers[index].m_buffer==NULL)// this entry is empty...
-		return;
+		core->lock();
 
-	// check the buffer and free it if it is finished.
-	MPI_Status status;
-	MPI_Request*request=&(m_dirtyBuffers[index].m_messageRequest);
-
-	int flag=0;
-
-	MPI_Test(request,&flag,&status);
-
-	if(!flag)// this slot is not ready
-		return;
-
-	#ifdef ASSERT
-	assert( flag );
-	#endif /* ASSERT */
-
-	void*buffer=m_dirtyBuffers[index].m_buffer;
-	outboxBufferAllocator->salvageBuffer(buffer);
-	m_numberOfDirtyBuffers--;
-
-	#ifdef COMMUNICATION_IS_VERBOSE
-	cout<<"From checkDirtyBuffer flag= "<<flag<<endl;
-	#endif /* COMMUNICATION_IS_VERBOSE */
-
-	#ifdef ASSERT
-	assert(*request == MPI_REQUEST_NULL);
-	#endif /* ASSERT */
-
-	m_dirtyBuffers[index].m_buffer=NULL;
-}
-
-void MessagesHandler::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
-
-/**
- * don't do any linear sweep if we still have plenty of free cells
- */
-	if(m_numberOfDirtyBuffers<m_minimumNumberOfDirtyBuffersForSweep)
-		return;
-
-	#ifdef ASSERT
-	assert(m_numberOfDirtyBuffers>0);
-	#endif
-
-	m_linearSweeps++;
-
-	// update the dirty buffer list.
-	for(int i=0;i<m_dirtyBufferSlots;i++){
-		if(m_numberOfDirtyBuffers==0)
-			return;
-
-		checkDirtyBuffer(outboxBufferAllocator,i);
-	}
-
-	if(m_numberOfDirtyBuffers>=m_minimumNumberOfDirtyBuffersForWarning){
-		cout<<"[MessagesHandler] Warning: dirty buffers are still dirty after linear sweep."<<endl;
-		printDirtyBuffers();
-	}
-}
-
-void MessagesHandler::printDirtyBuffers(){
-
-	cout<<"[MessagesHandler] Dirty buffers: "<<m_numberOfDirtyBuffers<<"/";
-	cout<<m_dirtyBufferSlots<<endl;
-
-	for(int i=0;i<m_dirtyBufferSlots;i++){
-		cout<<"DirtyBuffer # "<<i<<"    State: ";
-		if(m_dirtyBuffers[i].m_buffer==NULL){
-			cout<<"Available"<<endl;
-		}else{
-			cout<<"Dirty"<<endl;
-
-			MessageTag tag=m_dirtyBuffers[i].m_messageTag;
-			Rank destination=m_dirtyBuffers[i].m_destination;
-			Rank routingSource=m_rank;
-			Rank routingDestination=destination;
-
-			bool isRoutingTagValue=false;
-
-/* TODO we don't have easy access to this information */
-#if 0
-			RoutingTag routingTag=tag;
-
-			if(isRoutingTag(tag)){
-				tag=getMessageTagFromRoutingTag(routingTag);
-				routingSource=getSourceFromRoutingTag(routingTag);
-				routingDestination=getDestinationFromRoutingTag(routingTag);
-
-				isRoutingTagValue=true;
-			}
-#endif
-
-			uint8_t index=tag;
-			cout<<" MessageTag: "<<MESSAGE_TAGS[index]<<" ("<<(int)index<<") ";
-			if(index<tag){
-				cout<<"[this is a routing tag]"<<endl;
-			}
-			cout<<" Source: "<<m_rank<<endl;
-			cout<<" Destination: "<<destination<<endl;
-
-			if(isRoutingTagValue){
-				cout<<" RoutingSource: "<<routingSource<<endl;
-				cout<<" RoutingDestination: "<<routingDestination<<endl;
-			}
+		if(core->getOutbox()->size()!=0){
+			sendMessages(core->getOutbox(),core->getOutboxAllocator(),miniRanksPerRank);
 		}
+
+		core->unlock();
 	}
-}
-
-void MessagesHandler::initializeDirtyBuffers(RingAllocator*outboxBufferAllocator){
-
-	m_dirtyBufferSlots=outboxBufferAllocator->getNumberOfBuffers();
-
-	m_dirtyBuffers=(DirtyBuffer*)__Malloc(m_dirtyBufferSlots*sizeof(DirtyBuffer),
-		"m_dirtyBuffers",false);
-
-	for(int i=0;i<m_dirtyBufferSlots;i++){
-		m_dirtyBuffers[i].m_buffer=NULL;
-	}
-
-	// configure the real-time sweeper.
-
-	m_minimumNumberOfDirtyBuffersForSweep=m_dirtyBufferSlots/4;
-	m_minimumNumberOfDirtyBuffersForWarning=m_dirtyBufferSlots/2;
-
 }
 
 /*
@@ -189,19 +66,26 @@ void MessagesHandler::initializeDirtyBuffers(RingAllocator*outboxBufferAllocator
  * in order to avoid the situation in which
  * all the buffer for the outbox are dirty/used.
  */
-void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator){
+void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator,
+	int miniRanksPerRank){
 
 	// initialize the dirty buffer counters
 	// this is done only once
-	if(m_dirtyBuffers==NULL)
-		initializeDirtyBuffers(outboxBufferAllocator);
+	if(outboxBufferAllocator->getDirtyBuffers()==NULL)
+		outboxBufferAllocator->initializeDirtyBuffers(outboxBufferAllocator);
 
-	cleanDirtyBuffers(outboxBufferAllocator);
+	outboxBufferAllocator->cleanDirtyBuffers();
 
 	// send messages.
 	for(int i=0;i<(int)outbox->size();i++){
 		Message*aMessage=((*outbox)[i]);
-		Rank destination=aMessage->getDestination();
+
+		int miniRankDestination=aMessage->getDestination();
+		int miniRankSource=aMessage->getSource();
+
+		Rank destination=miniRankDestination/miniRanksPerRank;
+		Rank source=miniRankSource/miniRanksPerRank;
+
 		void*buffer=aMessage->getBuffer();
 		int count=aMessage->getCount();
 		MessageTag tag=aMessage->getTag();
@@ -218,72 +102,25 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		//assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
 		#endif /* ASSERT */
 
-		MPI_Request dummyRequest;
+		void*theBuffer=outboxBufferAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+		memcpy(theBuffer,buffer,count*sizeof(MessageUnit));
 
-		MPI_Request*request=&dummyRequest;
+/*
+ * store minirank information too.
+ */
+		theBuffer[count++]=miniRankSource;
+		theBuffer[count++]=miniRankDestination;
 
-		int handle=-1;
-
-		/* compute the handle, this is O(1) */
-		if(buffer!=NULL)
-			handle=outboxBufferAllocator->getBufferHandle(buffer);
-
-		bool mustRegister=false;
-
-		// this buffer is not registered.
-		if(handle >=0 && m_dirtyBuffers[handle].m_buffer==NULL)
-			mustRegister=true;
-
-		/* register the buffer for processing */
-		if(mustRegister){
-			#ifdef ASSERT
-			assert(m_dirtyBuffers[handle].m_buffer==NULL);
-			#endif
-
-			m_dirtyBuffers[handle].m_buffer=buffer;
-			m_dirtyBuffers[handle].m_destination=destination;
-			m_dirtyBuffers[handle].m_messageTag=tag;
-
-			#ifdef ASSERT
-			assert(m_dirtyBuffers[handle].m_buffer!=NULL);
-			#endif
-
-			request=&(m_dirtyBuffers[handle].m_messageRequest);
-
-			/* this is O(1) */
-			outboxBufferAllocator->markBufferAsDirty(buffer);
-
-			m_numberOfDirtyBuffers++;
-
-			// update the maximum number of dirty buffers
-			// observed since the beginning.
-			if(m_numberOfDirtyBuffers > m_maximumDirtyBuffers)
-				m_maximumDirtyBuffers=m_numberOfDirtyBuffers;
-		}
+		MPI_Request*request=outboxBufferAllocator->registerBuffer(theBuffer);
 
 		#ifdef ASSERT
 		assert(request!=NULL);
+		assert(count>=2);
 		#endif
 
 		//  MPI_Isend
 		//      Synchronous nonblocking. 
-		MPI_Isend(buffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
-
-		// if the buffer is NULL, we free the request right now
-		// because we there is no buffer to protect.
-		if(!mustRegister){
-
-			#ifdef COMMUNICATION_IS_VERBOSE
-			cout<<" From sendMessages"<<endl;
-			#endif
-
-			MPI_Request_free(request);
-
-			#ifdef ASSERT
-			assert(*request==MPI_REQUEST_NULL);
-			#endif
-
-		}
+		MPI_Isend(theBuffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
 
 		// if the message was re-routed, we don't care
 		// we only fetch the tag for statistics
@@ -362,7 +199,8 @@ void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAlloc
 
 #endif /* CONFIG_COMM_PERSISTENT */
 
-void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator){
+void MessagesHandler::receiveMessages(MiniRank*miniRanks){
+
 	#if defined CONFIG_COMM_IPROBE_ROUND_ROBIN
 
 // round-robin reception seems to avoid starvation 
@@ -382,7 +220,7 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 	// it is assumed that MPI is fair
 	// otherwise there may be some starvation
 
-	probeAndRead(MPI_ANY_SOURCE,MPI_ANY_TAG,inbox,inboxAllocator);
+	probeAndRead(MPI_ANY_SOURCE,MPI_ANY_TAG,miniRanks);
 
 	#elif defined CONFIG_COMM_IRECV_TESTANY
 
@@ -574,7 +412,7 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
  * not compatible because the number of persistent requests can be a limitation.
  */
 void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
-	StaticVector*inbox,RingAllocator*inboxAllocator){
+	MiniRank**miniRanks,int miniRanksPerRank){
 
 	// the code here will probe from rank source
 	// with MPI_Iprobe
@@ -602,22 +440,42 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	assert(count >= 0);
 	#endif
 
+	MessageUnit staticBuffer[MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)+2];
+
+	MPI_Recv(staticBuffer,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
+
+	int miniRankSource=staticBuffer[count-2];
+	int miniRankDestination=staticBuffer[count-1];
+
+	int miniRankIndex=miniRankDestination%miniRanksPerRank;
+
+	count-=2;
+
 	MessageUnit*incoming=NULL;
+
+	ComputeCore*core=miniRanks[miniRankIndex]->getCore();
+
+/*
+ * Lock the core and distribute the message.
+ */
+	core->lock();
+
 	if(count > 0){
-		incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
+		incoming=(MessageUnit*)core->getinboxAllocator->allocate(count*sizeof(MessageUnit));
+
+		memcpy(incoming,staticBuffer,count*sizeof(MessageUnit));
 	}
 
-	MPI_Recv(incoming,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
+	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
+	core->getInbox()->push_back(aMessage);
 
-	Message aMessage(incoming,count,m_rank,actualTag,actualSource);
-	inbox->push_back(aMessage);
+	core->unlock();
 
 	#ifdef ASSERT
 	assert(aMessage.getDestination() == m_rank);
 	#endif
 
 	m_receivedMessages++;
-
 }
 
 void MessagesHandler::initialiseMembers(){

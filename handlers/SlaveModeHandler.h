@@ -24,19 +24,40 @@
 #include <core/slave_modes.h>
 #include <core/types.h>
 
+/* this is a macro to create the header code for an adapter */
+#define ____CreateSlaveModeAdapterDeclaration(corePlugin,handle) \
+class Adapter_ ## handle : public SlaveModeHandler{ \
+	corePlugin *m_object; \
+public: \
+	void setObject(corePlugin *object); \
+	void call(); \
+};
+
 /* this is a macro to create the cpp code for an adapter */
-#define __CreateSlaveModeAdapter( corePlugin,handle ) \
-void __GetAdapter( corePlugin, handle ) () { \
-	__GetPlugin( corePlugin ) -> __GetMethod( handle ) () ; \
-} 
+#define ____CreateSlaveModeAdapterImplementation(corePlugin,handle)\
+void Adapter_ ## handle ::setObject( corePlugin *object){ \
+	m_object=object; \
+} \
+ \
+void Adapter_ ## handle ::call(){ \
+	m_object->call_ ## handle(); \
+}
+
+
 
 /**
  * base class for handling slave modes 
  * \author Sébastien Boisvert
  * with help from Élénie Godzaridis for the design
- * \date 2012-08-08 replaced this with function pointers
  */
-typedef void (*SlaveModeHandler) () /* */ ;
+class SlaveModeHandler{
 
+public:
+
+	virtual void call() = 0;
+
+
+	virtual ~SlaveModeHandler();
+};
 
 #endif

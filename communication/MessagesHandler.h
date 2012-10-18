@@ -89,16 +89,6 @@ class ComputeCore;
 #include <vector>
 using namespace std;
 
-/**
- * A data model for storing dirty buffers
- */
-class DirtyBuffer{
-public:
-	void*m_buffer;
-	MPI_Request m_messageRequest;
-	Rank m_destination;
-	MessageTag m_messageTag;
-};
 
 /**
  * Software layer to handle messages.
@@ -132,11 +122,6 @@ class MessagesHandler: public CorePlugin{
 	// the number of peers for communication
 	int m_peers;
 
-	DirtyBuffer*m_dirtyBuffers;
-
-	int m_numberOfDirtyBuffers;
-	int m_maximumDirtyBuffers;
-	int m_dirtyBufferSlots;
 
 	MessageTag RAY_MPI_TAG_DUMMY;
 
@@ -234,22 +219,21 @@ class MessagesHandler: public CorePlugin{
 	void initializeDirtyBuffers(RingAllocator*outboxBufferAllocator);
 
 public:
-	/** initialize the message handler
- * 	*/
+/** 
+ * initialize the message handler
+*/
 	void constructor(int*argc,char***argv);
 
-	/**
+/**
  *  send a message or more
  */
 	void sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator);
 
-
-
-	/**
+/**
  * receive one or zero message.
  * the others, if any, will be picked up in the next iteration
  */
-	void receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator);
+	void receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator,MiniRank*miniRanks);
 
 	/** free the ring elements */
 	void freeLeftovers();

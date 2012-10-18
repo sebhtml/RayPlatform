@@ -28,7 +28,6 @@
 #include <handlers/MasterModeHandler.h>
 #include <handlers/MasterModeExecutor.h>
 #include <handlers/SlaveModeExecutor.h>
-#include <communication/MessagesHandler.h>
 #include <profiling/Profiler.h>
 #include <structures/StaticVector.h>
 #include <communication/Message.h>
@@ -57,6 +56,8 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class ComputeCore{
+
+	pthread_mutex_t m_mutex;
 
 	int m_argumentCount;
 	char**m_argumentValues;
@@ -128,8 +129,6 @@ class ComputeCore{
 	StaticVector m_outbox;
 	StaticVector m_inbox;
 
-	/** middleware to handle messages */
-	MessagesHandler m_messagesHandler;
 
 /** this object handles messages */
 	MessageTagExecutor m_messageTagExecutor;
@@ -195,9 +194,6 @@ class ComputeCore{
 public:
 	/** this is the main method */
 	void run();
-
-	/** get the middleware object */
-	MessagesHandler*getMessagesHandler();
 
 	void constructor(int*argc,char***argv);
 
