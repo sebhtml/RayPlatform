@@ -2,6 +2,11 @@ Mini-ranks
 Sébastien Boisvert
 2012-10-17, Argonne National Laboratory
 
+Disclaimer: this document contains ideas and blueprints, but the true design
+is in the source code with corresponding comments therein.
+
+2012-10-17 10:00 UTC/GMT-5:
+
 This idea was discussed during a meeting with Professor Rick Stevens.
 
 The concept of mini-rank in electronics was introduced in 2008 in the paper
@@ -191,6 +196,8 @@ mpiexec -n 16 -bynode Ray -mini-ranks-per-rank 3
 With Open-MPI, the --bind-to-socket will be very nice.
 The -bynode option is necessary.
 
+2012-10-17 20:00 UTC/GMT-5:00:
+
 Tasks:
 
 - [DONE]add VirtualMachine
@@ -199,3 +206,102 @@ Tasks:
 - compile Ray without errors
 - port plugin to the old adapter architecture
 - implement the case with 1 minirank per rank (no pthread)
+
+
+2012-10-18 10:44 UTF/GMT -5:00:
+
+
+
+An example of layout on the Colosse super computer at Laval University:
+
+mpiexec -n 8 -bynode Ray -mini-ranks-per-rank 7
+
+
+- assumes no HyperThreading(R)
+- assumes 8 nodes, 2 sockets / node, 1 CPU / socket, 4 cores / CPU, 1 thread / core 
+- assumes 8 MPI ranks, 7 mini-ranks / MPI rank
+- total of 56 miniranks, 8 MPI ranks
+
+The plugin code only know about mini-ranks. So the plugin code is portable.
+
+   MPI rank 0
+      control thread (communication thread, don't use pthread because it's the main thread)
+      mini-rank 0 (addr [0,0], 1 pthread)
+      mini-rank 1 (addr [0,1], 1 pthread)
+      mini-rank 2 (addr [0,2], 1 pthread)
+      mini-rank 3 (addr [0,3], 1 pthread)
+      mini-rank 4 (addr [0,4], 1 pthread)
+      mini-rank 5 (addr [0,5], 1 pthread)
+      mini-rank 6 (addr [0,6], 1 pthread)
+
+   MPI rank 1
+      control thread (communication thread, don't use pthread because it's the main thread)
+      mini-rank 7 (addr [1,0], 1 pthread)
+      mini-rank 8 (addr [1,1], 1 pthread)
+      mini-rank 9 (addr [1,2], 1 pthread)
+      mini-rank 10 (addr [1,3], 1 pthread)
+      mini-rank 11 (addr [1,4], 1 pthread)
+      mini-rank 12 (addr [1,5], 1 pthread)
+      mini-rank 13 (addr [1,6], 1 pthread)
+
+   MPI rank 2
+      control thread (communication thread, don't use pthread because it's the main thread)
+      mini-rank 14 (addr [2,0], 1 pthread)
+      mini-rank 15 (addr [2,1], 1 pthread)
+      mini-rank 16 (addr [2,2], 1 pthread)
+      mini-rank 17 (addr [2,3], 1 pthread)
+      mini-rank 18 (addr [2,4], 1 pthread)
+      mini-rank 19 (addr [2,5], 1 pthread)
+      mini-rank 20 (addr [2,6], 1 pthread)
+
+   MPI rank 3
+      control thread (communication thread, don't use pthread because it's the main thread)
+      mini-rank 21 (addr [3,0], 1 pthread)
+      mini-rank 22 (addr [3,1], 1 pthread)
+      mini-rank 23 (addr [3,2], 1 pthread)
+      mini-rank 24 (addr [3,3], 1 pthread)
+      mini-rank 25 (addr [3,4], 1 pthread)
+      mini-rank 26 (addr [3,5], 1 pthread)
+      mini-rank 27 (addr [3,6], 1 pthread)
+
+   MPI rank 4
+      control thread (communication thread, don't use pthread because it's the main thread)
+      mini-rank 28 (addr [4,0], 1 pthread)
+      mini-rank 29 (addr [4,1], 1 pthread)
+      mini-rank 30 (addr [4,2], 1 pthread)
+      mini-rank 31 (addr [4,3], 1 pthread)
+      mini-rank 32 (addr [4,4], 1 pthread)
+      mini-rank 33 (addr [4,5], 1 pthread)
+      mini-rank 34 (addr [4,6], 1 pthread)
+
+   MPI rank 5
+      control thread (communication thread, don't use pthread because it's the main thread)
+      mini-rank 35 (addr [5,0], 1 pthread)
+      mini-rank 36 (addr [5,1], 1 pthread)
+      mini-rank 37 (addr [5,2], 1 pthread)
+      mini-rank 38 (addr [5,3], 1 pthread)
+      mini-rank 39 (addr [5,4], 1 pthread)
+      mini-rank 40 (addr [5,5], 1 pthread)
+      mini-rank 41 (addr [5,6], 1 pthread)
+
+   MPI rank 6
+      control thread (communication thread, don't use pthread because it's the main thread)
+      mini-rank 42 (addr [6,0], 1 pthread)
+      mini-rank 43 (addr [6,1], 1 pthread)
+      mini-rank 44 (addr [6,2], 1 pthread)
+      mini-rank 45 (addr [6,3], 1 pthread)
+      mini-rank 46 (addr [6,4], 1 pthread)
+      mini-rank 47 (addr [6,5], 1 pthread)
+      mini-rank 48 (addr [6,6], 1 pthread)
+
+   MPI rank 7
+      control thread (communication thread, don't use pthread because it's the main thread)
+      mini-rank 49 (addr [7,0], 1 pthread)
+      mini-rank 50 (addr [7,1], 1 pthread)
+      mini-rank 51 (addr [7,2], 1 pthread)
+      mini-rank 52 (addr [7,3], 1 pthread)
+      mini-rank 53 (addr [7,4], 1 pthread)
+      mini-rank 54 (addr [7,5], 1 pthread)
+      mini-rank 55 (addr [7,6], 1 pthread)
+
+
