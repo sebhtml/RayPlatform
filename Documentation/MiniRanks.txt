@@ -1,6 +1,16 @@
-Mini ranks
+Mini-ranks
 Sébastien Boisvert
 2012-10-17, Argonne National Laboratory
+
+This idea was discussed during a meeting with Professor Rick Stevens.
+
+The concept of mini-rank in electronics was introduced in 2008 in the paper
+
+"Mini-rank: Adaptive DRAM architecture for improving memory power efficiency"
+http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.182.4308&rep=rep1&type=pdf
+
+
+Here, we use the concept in the context of MPI ranks, not memory ranks.
 
 The processing machinery of a computer is hierarchical with
 this progression:
@@ -86,6 +96,7 @@ As of Ray v2.0.0, each MPI rank is running as a Machine.cpp
 Machine.cpp is not in RayPlatform however.
 
 
+## Adapters
 
 For adapters, the current implementation is that each plugin is a singleton.
 This must be changed. Instead, each static variable in a plugin must be an
@@ -94,10 +105,12 @@ array of plugin.
 Then, the callbacks will take an extra parameter: the index of the minirank
 within the rank.
 
-
+The current code was reverted to the virtual methods.
 
 
 ## Message reception
+
+Designed in collaboration with Fangfang Xia
 
 1. rank receives message with MPI
 2. rank locks the corresponding minirank inbox
@@ -109,6 +122,8 @@ within the rank.
 
 ## Sending a message
 
+Designed in collaboration with Fangfang Xia
+
 1. The minirank puts a message in its outbox
 2. The minirank locks the rank outbox
 3. The minirank pushes onto the rank outbox
@@ -119,6 +134,63 @@ within the rank.
 
 
 
+1 important aspect is that the rank has no buffering system at all.
+All the buffering systems are in the miniranks. For MPI_Recv, the virtual
+machine uses the buffer from the corresponding minirank. 
+For MPI_Isend, the virtual machine uses the buffer from the minirank.
+The dirty/cleaning subsystem is local to each minirank.
+
+
+For a system with 8 nodes, 2 processors per node, and with 4 cores per processor,
+we have 16 processors and a total of 64 cores.
+
+Case 1:
+It can be run like with the classic MPI programming model using 1 MPI rank per
+core -- 64 MPI ranks. Thus we would have 64 processes.
+
+
+mpiexec -n 64 Ray -mini-ranks-per-rank 1
+
+  (the default for -mini-ranks-per-rank is 1)
+
+ - 8 nodes
+ - 16 processors
+ - 64 cores
+ - 64 MPI ranks
+ - 64 processes
+ - 64 threads (1-to-1)
+
+Case 2:
+An alternative is to have 1 MPI rank per node. Each MPI rank has 7 miniranks.
+Each minirank runs in a thread. There is one extra thread for communication too.
+
+mpiexec -n 8 -bynode Ray -mini-ranks-per-rank 7
+
+ - 8 nodes
+ - 16 processors
+ - 64 cores
+ - 8 MPI ranks
+ - 8 processes
+ - 8*7=54 mini-rank threads
+ - 8 comm. threads (1-to-1)
+
+Case 3:
+We can also use 1 MPI rank per processor, and 3 miniranks per rank.
+
+mpiexec -n 16 -bynode Ray -mini-ranks-per-rank 3
+
+ - 8 nodes
+ - 16 processors
+ - 64 cores
+ - 16 MPI ranks
+ - 16 processes
+ - 16*3=48 mini-rank threads
+ - 16*1=16 comm. threads (1-to-1)
+
+
+With Open-MPI, the --bind-to-socket will be very nice.
+The -bynode option is necessary.
+
 Tasks:
 
 - [DONE]add VirtualMachine
@@ -126,4 +198,4 @@ Tasks:
 - propagate mini rank numbers instead of ranks
 - compile Ray without errors
 - port plugin to the old adapter architecture
-
+- implement the case with 1 minirank per rank (no pthread)
