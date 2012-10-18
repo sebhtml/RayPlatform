@@ -36,7 +36,7 @@
  */
 class VirtualMachine{
 
-	pthread_mutex_t m_mutex;
+	pthread_spinlock_t m_lock;
 
 	int m_deadMiniRanks;
 

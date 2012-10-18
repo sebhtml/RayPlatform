@@ -1699,18 +1699,18 @@ char**ComputeCore::getArgumentValues(){
 
 
 void ComputeCore::initLock(){
-	pthread_mutex_init(&m_mutex,NULL);
+	pthread_spin_init(&m_lock,NULL);
 }
 
 void ComputeCore::destroyLock(){
-	pthread_mutex_destroy(&m_mutex,NULL);
+	pthread_spin_destroy(&m_lock,NULL);
 }
 
 void ComputeCore::lock(){
-	pthread_mutex_lock(&m_mutex);
+	pthread_spin_lock(&m_lock);
 }
 
 void ComputeCore::unlock(){
-	pthread_mutex_unlock(&m_mutex);
+	pthread_spin_unlock(&m_lock);
 }
 

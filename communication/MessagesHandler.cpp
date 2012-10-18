@@ -199,7 +199,7 @@ void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAlloc
 
 #endif /* CONFIG_COMM_PERSISTENT */
 
-void MessagesHandler::receiveMessages(MiniRank*miniRanks){
+void MessagesHandler::receiveMessagesForMiniRanks(MiniRank*miniRanks){
 
 	#if defined CONFIG_COMM_IPROBE_ROUND_ROBIN
 

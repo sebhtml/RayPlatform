@@ -56,7 +56,7 @@ void VirtualMachine_startMiniRank(void*object){
 
 void VirtualMachine::run(){
 
-	pthread_mutex_init(&m_mutex,NULL);
+	pthread_spin_init(&m_lock,NULL);
 
 	#ifdef ASSERT
 	assert(m_numberOfMiniRanksPerRank==m_numberOfInstalledMiniRanks);
@@ -81,7 +81,7 @@ void VirtualMachine::run(){
 		unlock();
 	}
 
-	pthread_mutex_destroy(&m_mutex,NULL);
+	pthread_spin_destroy(&m_lock,NULL);
 }
 
 void VirtualMachine::destructor(){
@@ -94,7 +94,7 @@ MessagesHandler*ComputeCore::getMessagesHandler(){
 
 void VirtualMachine::receiveMessages(){
 
-	m_messagesHandler.receiveMessages(MiniRank**miniRanks,int miniRanksPerRank);
+	m_messagesHandler.receiveMessagesForMiniRanks(MiniRank**miniRanks,int miniRanksPerRank);
 
 }
 
@@ -104,9 +104,9 @@ void VirtualMachine::sendMessages(){
 }
 
 void VirtualMachine::lock(){
-	pthread_mutex_lock(&m_mutex);
+	pthread_spin_lock(&m_lock);
 }
 
 void VirtualMachine::unlock(){
-	pthread_mutex_unlock(&m_mutex);
+	pthread_spin_unlock(&m_lock);
 }
