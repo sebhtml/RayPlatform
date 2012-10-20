@@ -24,6 +24,28 @@
 
 #include <core/types.h>
 
+#ifdef CONFIG_MINI_RANKS
+
+#define __GetPlugin(corePlugin)
+#define __GetMethod(handle)
+
+/*
+ * Get the adapter
+ */
+#define __GetAdapter(corePlugin,handle) \
+	&m_adapter_  ## handle 
+
+/*
+ * Add an adapter in a plugin
+ */
+#define __AddAdapter(corePlugin,handle) \
+	Adapter_  ## handle m_adapter_  ## handle ;
+
+#define __CreatePlugin( corePlugin ) 
+#define __BindPlugin( corePlugin ) 
+
+#else
+
 /** get the static name for the variable **/
 #define __GetPlugin(corePlugin) \
 	staticPlugin_ ## corePlugin
@@ -42,6 +64,9 @@
 
 #define __BindPlugin( corePlugin ) \
 	__GetPlugin( corePlugin ) = this;
+
+#endif /* CONFIG_MINI_RANKS */
+
 
 class ComputeCore;
 

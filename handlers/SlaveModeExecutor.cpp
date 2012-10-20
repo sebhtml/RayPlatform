@@ -26,7 +26,7 @@
 #include <stdlib.h> /* for NULL */
 
 void SlaveModeExecutor::callHandler(SlaveMode mode){
-	SlaveModeHandler object=m_objects[mode];
+	SlaveModeHandlerReference object=m_objects[mode];
 
 	// don't call it if it is NULL
 	if(object==NULL)
@@ -42,7 +42,7 @@ SlaveModeExecutor::SlaveModeExecutor(){
 	}
 }
 
-void SlaveModeExecutor::setObjectHandler(SlaveMode mode,SlaveModeHandler object){
+void SlaveModeExecutor::setObjectHandler(SlaveMode mode,SlaveModeHandlerReference object){
 
 	#ifdef ASSERT
 	assert(mode>=0);

@@ -63,4 +63,9 @@ typedef uint64_t MessageUnit;
 #define MAX_NUMBER_OF_MPI_PROCESSES 1000000
 #define INVALID_RANK MAX_NUMBER_OF_MPI_PROCESSES
 
+/*
+ * Enable the mini-ranks technology
+ */
+#define CONFIG_MINI_RANKS
+
 #endif

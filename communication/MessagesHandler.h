@@ -74,14 +74,15 @@
  */
 //#define CONFIG_COMM_IRECV_TESTANY
 
-#include <mpi.h> // this is the only reference to MPI
+// this is one of the two includes for mpi.h
+#include <mpi.h> 
 
 #include <memory/MyAllocator.h>
 #include <communication/Message.h>
 //#include <core/common_functions.h>
 #include <memory/RingAllocator.h>
 #include <structures/StaticVector.h>
-#include <plugins/CorePlugin.h>
+#include "core/MiniRank.h"
 
 class ComputeCore;
 
@@ -89,6 +90,18 @@ class ComputeCore;
 #include <vector>
 using namespace std;
 
+
+/*
+ Open-MPI eager threshold is 4k (4096), and this include Open-MPI's metadata.
+ tests show that 4096-100 bytes are sent eagerly, too.
+ divide that by eight and you get the number of 64-bit integers 
+ allowed in a single eager communication
+
+ * "4096 is rendezvous. For eager, try 4000 or lower. "
+ *  --Eugene Loh  (Oracle)
+ *  http://www.open-mpi.org/community/lists/devel/2010/11/8700.php
+ *
+ */
 
 /**
  * Software layer to handle messages.
@@ -110,20 +123,11 @@ using namespace std;
  *
  * \author Sébastien Boisvert
  */
-class MessagesHandler: public CorePlugin{
+class MessagesHandler{
 
-	int m_minimumNumberOfDirtyBuffersForSweep;
-
-	int m_minimumNumberOfDirtyBuffersForWarning;
-
-/** prints dirty buffers **/
-	void printDirtyBuffers();
 
 	// the number of peers for communication
 	int m_peers;
-
-
-	MessageTag RAY_MPI_TAG_DUMMY;
 
 	bool m_destroyed;
 
@@ -189,8 +193,13 @@ class MessagesHandler: public CorePlugin{
 	/** initialize persistent communication parameters */
 	void initialiseMembers();
 
+#ifdef CONFIG_MINI_RANKS
+
+	void probeAndRead(int source,int tag,ComputeCore**cores,int miniRanksPerRank);
+#else
 	/** probe and read a message -- this method is not utilised */
 	void probeAndRead(int source,int tag,StaticVector*inbox,RingAllocator*inboxAllocator);
+#endif
 
 #ifdef CONFIG_COMM_PERSISTENT
 	/** pump a message from the persistent ring */
@@ -213,10 +222,6 @@ class MessagesHandler: public CorePlugin{
 
 	void createBuffers();
 
-	void checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int i);
-	void cleanDirtyBuffers(RingAllocator*outboxBufferAllocator);
-	uint64_t m_linearSweeps;
-	void initializeDirtyBuffers(RingAllocator*outboxBufferAllocator);
 
 public:
 /** 
@@ -227,13 +232,14 @@ public:
 /**
  *  send a message or more
  */
-	void sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator);
+	void sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator,int miniRanksPerRank);
 
 /**
  * receive one or zero message.
  * the others, if any, will be picked up in the next iteration
  */
-	void receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator,MiniRank*miniRanks);
+	void receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator,ComputeCore**miniRanks);
+	void receiveMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank);
 
 	/** free the ring elements */
 	void freeLeftovers();
@@ -261,6 +267,8 @@ public:
 	string getMessagePassingInterfaceImplementation();
 
 	void setConnections(vector<int>*connections);
+
+	void sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank);
 
 	void registerPlugin(ComputeCore*core);
 	void resolveSymbols(ComputeCore*core);

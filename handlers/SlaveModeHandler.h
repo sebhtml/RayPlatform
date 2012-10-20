@@ -24,6 +24,13 @@
 #include <core/slave_modes.h>
 #include <core/types.h>
 
+#ifdef CONFIG_MINI_RANKS
+
+#define SlaveModeHandlerReference SlaveModeHandler*
+
+#define __CreateSlaveModeAdapter ____CreateSlaveModeAdapterImplementation
+#define __DeclareSlaveModeAdapter ____CreateSlaveModeAdapterDeclaration
+
 /* this is a macro to create the header code for an adapter */
 #define ____CreateSlaveModeAdapterDeclaration(corePlugin,handle) \
 class Adapter_ ## handle : public SlaveModeHandler{ \
@@ -59,5 +66,25 @@ public:
 
 	virtual ~SlaveModeHandler();
 };
+
+#else
+
+/* this is a macro to create the cpp code for an adapter */
+#define __CreateSlaveModeAdapter( corePlugin,handle ) \
+void __GetAdapter( corePlugin, handle ) () { \
+	__GetPlugin( corePlugin ) -> __GetMethod( handle ) () ; \
+} 
+
+/**
+ * base class for handling slave modes 
+ * \author Sébastien Boisvert
+ * with help from Élénie Godzaridis for the design
+ * \date 2012-08-08 replaced this with function pointers
+ */
+typedef void (*SlaveModeHandler) () /* */ ;
+
+#define SlaveModeHandlerReference SlaveModeHandler
+
+#endif
 
 #endif

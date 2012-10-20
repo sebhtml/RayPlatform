@@ -32,6 +32,9 @@ using namespace std;
 #define BUFFER_STATE_AVAILABLE 0x0
 #define BUFFER_STATE_DIRTY 0x1
 
+#define __NOT_SET -1
+
+
 void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 
 	resetCount();
@@ -86,6 +89,26 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 	assert(m_chunks>0);
 	assert(m_max>0);
 	#endif /* ASSERT */
+
+	m_linearSweeps=0;
+
+/**
+ * internally, there are N buffers for MPI_Isend. However,
+ * these slots become dirty when they are used and become
+ * clean again when MPI_Test says so.
+ * But we don't want to do too much sweep operations. Instead,
+ * we want amortized operations.
+ */
+
+	m_minimumNumberOfDirtyBuffersForSweep=__NOT_SET;
+	m_minimumNumberOfDirtyBuffersForWarning=__NOT_SET;
+
+	m_numberOfDirtyBuffers=0;
+
+	m_maximumDirtyBuffers=m_numberOfDirtyBuffers;
+
+	m_dirtyBuffers=NULL;
+
 }
 
 RingAllocator::RingAllocator(){}
@@ -248,7 +271,7 @@ DirtyBuffer*RingAllocator::getDirtyBuffers(){
  * using a particular buffer. Otherwise, there may be a problem when 
  * a buffer is re-used several times for many requests.
  */
-void RingAllocator::checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int index){
+void RingAllocator::checkDirtyBuffer(int index){
 
 	#ifdef ASSERT
 	assert(m_numberOfDirtyBuffers>0);
@@ -273,7 +296,7 @@ void RingAllocator::checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int ind
 	#endif /* ASSERT */
 
 	void*buffer=m_dirtyBuffers[index].m_buffer;
-	outboxBufferAllocator->salvageBuffer(buffer);
+	salvageBuffer(buffer);
 	m_numberOfDirtyBuffers--;
 
 	#ifdef COMMUNICATION_IS_VERBOSE
@@ -287,7 +310,7 @@ void RingAllocator::checkDirtyBuffer(RingAllocator*outboxBufferAllocator,int ind
 	m_dirtyBuffers[index].m_buffer=NULL;
 }
 
-void RingAllocator::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
+void RingAllocator::cleanDirtyBuffers(){
 
 /**
  * don't do any linear sweep if we still have plenty of free cells
@@ -306,7 +329,7 @@ void RingAllocator::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
 		if(m_numberOfDirtyBuffers==0)
 			return;
 
-		checkDirtyBuffer(outboxBufferAllocator,i);
+		checkDirtyBuffer(i);
 	}
 
 	if(m_numberOfDirtyBuffers>=m_minimumNumberOfDirtyBuffersForWarning){
@@ -317,6 +340,7 @@ void RingAllocator::cleanDirtyBuffers(RingAllocator*outboxBufferAllocator){
 
 void RingAllocator::printDirtyBuffers(){
 
+	#if 0
 	cout<<"[MessagesHandler] Dirty buffers: "<<m_numberOfDirtyBuffers<<"/";
 	cout<<m_dirtyBufferSlots<<endl;
 
@@ -361,11 +385,13 @@ void RingAllocator::printDirtyBuffers(){
 			}
 		}
 	}
+
+	#endif
 }
 
 MPI_Request*RingAllocator::registerBuffer(void*buffer){
 
-	int handle=outboxBufferAllocator->getBufferHandle(buffer);
+	int handle=this->getBufferHandle(buffer);
 	bool mustRegister=false;
 
 	MPI_Request*request=NULL;
@@ -385,8 +411,11 @@ MPI_Request*RingAllocator::registerBuffer(void*buffer){
 		#endif
 
 		m_dirtyBuffers[handle].m_buffer=buffer;
+
+		#if 0
 		m_dirtyBuffers[handle].m_destination=destination;
 		m_dirtyBuffers[handle].m_messageTag=tag;
+		#endif
 
 		#ifdef ASSERT
 		assert(m_dirtyBuffers[handle].m_buffer!=NULL);
@@ -395,7 +424,7 @@ MPI_Request*RingAllocator::registerBuffer(void*buffer){
 		request=&(m_dirtyBuffers[handle].m_messageRequest);
 
 		/* this is O(1) */
-		outboxBufferAllocator->markBufferAsDirty(buffer);
+		this->markBufferAsDirty(buffer);
 
 		m_numberOfDirtyBuffers++;
 
@@ -406,4 +435,14 @@ MPI_Request*RingAllocator::registerBuffer(void*buffer){
 	}
 
 	return request;
+}
+
+void RingAllocator::printStatus(){
+	
+	#if 0
+	cout<<"Rank "<<m_rank<<": the maximum number of dirty buffers was "<<m_maximumDirtyBuffers<<endl;
+	cout<<"Rank "<<m_rank<<": "<<m_linearSweeps<<" linear sweep operations (threshold: ";
+	cout<<m_minimumNumberOfDirtyBuffersForSweep<<" dirty buffers)"<<endl;
+	#endif
+
 }

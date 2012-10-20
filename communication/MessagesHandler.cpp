@@ -36,12 +36,10 @@ using namespace std;
 
 // #define COMMUNICATION_IS_VERBOSE
 
-#define __NOT_SET -1
-
-void MessagesHandler::sendMessagesForMiniRanks(MiniRank**miniRanks,int miniRanksPerRank){
+void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank){
 
 	for(int i=0;i<miniRanksPerRank;i++){
-		ComputeCore*core=miniRanks[i]->getCore();
+		ComputeCore*core=cores[i];
 
 		core->lock();
 
@@ -72,7 +70,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 	// initialize the dirty buffer counters
 	// this is done only once
 	if(outboxBufferAllocator->getDirtyBuffers()==NULL)
-		outboxBufferAllocator->initializeDirtyBuffers(outboxBufferAllocator);
+		outboxBufferAllocator->initializeDirtyBuffers();
 
 	outboxBufferAllocator->cleanDirtyBuffers();
 
@@ -84,7 +82,10 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		int miniRankSource=aMessage->getSource();
 
 		Rank destination=miniRankDestination/miniRanksPerRank;
+
+		#if 0
 		Rank source=miniRankSource/miniRanksPerRank;
+		#endif
 
 		void*buffer=aMessage->getBuffer();
 		int count=aMessage->getCount();
@@ -102,7 +103,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		//assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
 		#endif /* ASSERT */
 
-		void*theBuffer=outboxBufferAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+		MessageUnit*theBuffer=(MessageUnit*)outboxBufferAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 		memcpy(theBuffer,buffer,count*sizeof(MessageUnit));
 
 /*
@@ -122,12 +123,14 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		//      Synchronous nonblocking. 
 		MPI_Isend(theBuffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
 
+		#if 0
 		// if the message was re-routed, we don't care
 		// we only fetch the tag for statistics
 		uint8_t shortTag=tag;
 
 		/** update statistics */
 		m_messageStatistics[destination*RAY_MPI_TAG_DUMMY+shortTag]++;
+		#endif
 
 		m_sentMessages++;
 	}
@@ -199,7 +202,7 @@ void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAlloc
 
 #endif /* CONFIG_COMM_PERSISTENT */
 
-void MessagesHandler::receiveMessagesForMiniRanks(MiniRank*miniRanks){
+void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank){
 
 	#if defined CONFIG_COMM_IPROBE_ROUND_ROBIN
 
@@ -220,7 +223,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(MiniRank*miniRanks){
 	// it is assumed that MPI is fair
 	// otherwise there may be some starvation
 
-	probeAndRead(MPI_ANY_SOURCE,MPI_ANY_TAG,miniRanks);
+	probeAndRead(MPI_ANY_SOURCE,MPI_ANY_TAG,cores,miniRanksPerRank);
 
 	#elif defined CONFIG_COMM_IRECV_TESTANY
 
@@ -412,7 +415,7 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
  * not compatible because the number of persistent requests can be a limitation.
  */
 void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
-	MiniRank**miniRanks,int miniRanksPerRank){
+	ComputeCore**cores,int miniRanksPerRank){
 
 	// the code here will probe from rank source
 	// with MPI_Iprobe
@@ -453,7 +456,7 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 
 	MessageUnit*incoming=NULL;
 
-	ComputeCore*core=miniRanks[miniRankIndex]->getCore();
+	ComputeCore*core=cores[miniRankIndex];
 
 /*
  * Lock the core and distribute the message.
@@ -461,7 +464,7 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	core->lock();
 
 	if(count > 0){
-		incoming=(MessageUnit*)core->getinboxAllocator->allocate(count*sizeof(MessageUnit));
+		incoming=(MessageUnit*)core->getInboxAllocator()->allocate(count*sizeof(MessageUnit));
 
 		memcpy(incoming,staticBuffer,count*sizeof(MessageUnit));
 	}
@@ -518,8 +521,10 @@ void MessagesHandler::freeLeftovers(){
 
 	#endif /* CONFIG_COMM_PERSISTENT */
 
+	#if 0
 	__Free(m_messageStatistics,"RAY_MALLOC_TYPE_MESSAGE_STATISTICS",false);
 	m_messageStatistics=NULL;
+	#endif
 }
 
 void MessagesHandler::constructor(int*argc,char***argv){
@@ -542,32 +547,18 @@ void MessagesHandler::constructor(int*argc,char***argv){
 	initialiseMembers();
 	m_processorName=serverName;
 
-	m_numberOfDirtyBuffers=0;
 
-	m_maximumDirtyBuffers=m_numberOfDirtyBuffers;
-
-	m_dirtyBuffers=NULL;
-
-	m_linearSweeps=0;
-
-/**
- * internally, there are N buffers for MPI_Isend. However,
- * these slots become dirty when they are used and become
- * clean again when MPI_Test says so.
- * But we don't want to do too much sweep operations. Instead,
- * we want amortized operations.
- */
-
-	m_minimumNumberOfDirtyBuffersForSweep=__NOT_SET;
-	m_minimumNumberOfDirtyBuffersForWarning=__NOT_SET;
 
 	#ifdef CONFIG_COMM_IRECV_TESTANY
 	m_requests=NULL;
 	#endif
+
+	createBuffers();
 }
 
 void MessagesHandler::createBuffers(){
 
+	#if 0
 	/** initialize message statistics to 0 */
 	m_messageStatistics=(uint64_t*)__Malloc(RAY_MPI_TAG_DUMMY*m_size*sizeof(uint64_t),"RAY_MALLOC_TYPE_MESSAGE_STATISTICS",false);
 	for(int rank=0;rank<m_size;rank++){
@@ -575,6 +566,7 @@ void MessagesHandler::createBuffers(){
 			m_messageStatistics[rank*RAY_MPI_TAG_DUMMY+tag]=0;
 		}
 	}
+	#endif
 
 	#ifdef CONFIG_COMM_IPROBE_ROUND_ROBIN
 	// start with the first connection
@@ -624,6 +616,7 @@ void MessagesHandler::version(int*a,int*b){
 }
 
 void MessagesHandler::appendStatistics(const char*file){
+	#if 0
 	/** add an entry for RAY_MPI_TAG_GOOD_JOB_SEE_YOU_SOON_REPLY
  * 	because this message is sent after writting the current file
  *
@@ -653,17 +646,21 @@ void MessagesHandler::appendStatistics(const char*file){
 	}
 	fp.close();
 
+	#endif 
+
 	cout<<"[MessagesHandler] Hello, this is the layered communication vessel, status follows."<<endl;
 	cout<<"Rank "<<m_rank<<": sent "<<m_sentMessages<<" messages, received "<<m_receivedMessages<<" messages."<<endl;
-	cout<<"Rank "<<m_rank<<": the maximum number of dirty buffers was "<<m_maximumDirtyBuffers<<endl;
-	cout<<"Rank "<<m_rank<<": "<<m_linearSweeps<<" linear sweep operations (threshold: ";
-	cout<<m_minimumNumberOfDirtyBuffersForSweep<<" dirty buffers)"<<endl;
+
+	#if 0
+	outboxBufferAllocator->printStatus()
+
 	cout<<"Rank "<<m_rank<<": Active peers (including self): "<<activePeers.size()<<" list:";
 
 	for(int i=0;i<(int)activePeers.size();i++){
 		cout<<" "<<activePeers[i];
 	}
 	cout<<endl;
+	#endif
 
 	cout<<"[MessagesHandler] Over and out."<<endl;
 }
@@ -728,21 +725,4 @@ void MessagesHandler::setConnections(vector<int>*connections){
 	m_peers=m_connections.size();
 }
 
-void MessagesHandler::registerPlugin(ComputeCore*core){
-	m_plugin=core->allocatePluginHandle();
-
-	core->setPluginName(m_plugin,"MessagesHandler");
-	core->setPluginDescription(m_plugin,"MPI wrapper with round-robin policy (bundled with RayPlatform)");
-	core->setPluginAuthors(m_plugin,"Sébastien Boisvert");
-	core->setPluginLicense(m_plugin,"GNU Lesser General License version 3");
-
-	RAY_MPI_TAG_DUMMY=core->allocateMessageTagHandle(m_plugin);
-	core->setMessageTagSymbol(m_plugin,RAY_MPI_TAG_DUMMY,"RAY_MPI_TAG_DUMMY");
-
-	createBuffers();
-}
-
-void MessagesHandler::resolveSymbols(ComputeCore*core){
-	RAY_MPI_TAG_DUMMY=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_DUMMY");
-}
 

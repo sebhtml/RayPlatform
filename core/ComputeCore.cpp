@@ -41,7 +41,7 @@ using namespace std;
 ComputeCore::ComputeCore(){
 }
 
-void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler object){
+void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandlerReference object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -67,7 +67,7 @@ void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,S
 	m_plugins[plugin].addRegisteredSlaveModeHandler(mode);
 }
 
-void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandler object){
+void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandlerReference object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -91,7 +91,7 @@ void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode
 	m_plugins[plugin].addRegisteredMasterModeHandler(mode);
 }
 
-void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler object){
+void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandlerReference object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -122,7 +122,6 @@ void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,
  */
 void ComputeCore::run(){
 
-	initLock();
 
 	// ask the router if it is enabled
 	// the virtual router will disable itself if there were
@@ -151,7 +150,6 @@ void ComputeCore::run(){
 	if(m_routerIsEnabled)
 		m_router.getGraph()->printStatus();
 	
-	destroyLock();
 }
 
 /**
@@ -191,9 +189,9 @@ void ComputeCore::runVanilla(){
  */
 
 		bool wait=true;
-		while(false){
+		while(wait){
 			lock();
-			if(m_outbox->size()==0)
+			if(m_outbox.size()==0)
 				wait=false;
 			unlock();
 		}
@@ -258,27 +256,27 @@ void ComputeCore::runWithProfiler(){
 			m_profiler.clearGranularities();
 
 			if(receivedTags.size() > 0 && profilerVerbose){
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" received in receiveMessages:"<<endl;
+				cout<<"Rank "<<m_rank<<" received in receiveMessages:"<<endl;
 				for(map<int,int>::iterator i=receivedTags.begin();i!=receivedTags.end();i++){
 					int tag=i->first;
 					int count=i->second;
-					cout<<"Rank "<<m_messagesHandler.getRank()<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
+					cout<<"Rank "<<m_rank<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
 				}
 			}
 
 			if(sentTagsInProcessMessages.size() > 0 && profilerVerbose){
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" sent in processMessages:"<<endl;
+				cout<<"Rank "<<m_rank<<" sent in processMessages:"<<endl;
 				for(map<int,int>::iterator i=sentTagsInProcessMessages.begin();i!=sentTagsInProcessMessages.end();i++){
 					int tag=i->first;
 					int count=i->second;
-					cout<<"Rank "<<m_messagesHandler.getRank()<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
+					cout<<"Rank "<<m_rank<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
 				}
 
 /*
 				int average1=getAverage(&distancesForProcessMessages);
 				int deviation1=getStandardDeviation(&distancesForProcessMessages);
 			
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" distance between processMessages messages: average= "<<average1<<", stddev= "<<deviation1<<
+				cout<<"Rank "<<m_rank<<" distance between processMessages messages: average= "<<average1<<", stddev= "<<deviation1<<
 					", n= "<<distancesForProcessMessages.size()<<endl;
 				
 */
@@ -287,7 +285,7 @@ void ComputeCore::runWithProfiler(){
 				for(int i=0;i<(int)distancesForProcessMessages.size();i++){
 					distribution1[distancesForProcessMessages[i]]++;
 				}
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" distribution: "<<endl;
+				cout<<"Rank "<<m_rank<<" distribution: "<<endl;
 				for(map<int,int>::iterator i=distribution1.begin();i!=distribution1.end();i++){
 					cout<<i->first<<" "<<i->second<<endl;
 				}
@@ -298,17 +296,17 @@ void ComputeCore::runWithProfiler(){
 			distancesForProcessMessages.clear();
 
 			if(sentTagsInProcessData.size() > 0 && profilerVerbose){
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" sent in processData:"<<endl;
+				cout<<"Rank "<<m_rank<<" sent in processData:"<<endl;
 				for(map<int,int>::iterator i=sentTagsInProcessData.begin();i!=sentTagsInProcessData.end();i++){
 					int tag=i->first;
 					int count=i->second;
-					cout<<"Rank "<<m_messagesHandler.getRank()<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
+					cout<<"Rank "<<m_rank<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
 				}
 /*
 				int average2=getAverage(&distancesForProcessData);
 				int deviation2=getStandardDeviation(&distancesForProcessData);
 	
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" distance between processData messages: average= "<<average2<<", stddev= "<<deviation2<<
+				cout<<"Rank "<<m_rank<<" distance between processData messages: average= "<<average2<<", stddev= "<<deviation2<<
 					", n= "<<distancesForProcessData.size()<<endl;
 				
 */
@@ -317,7 +315,7 @@ void ComputeCore::runWithProfiler(){
 				for(int i=0;i<(int)distancesForProcessData.size();i++){
 					distribution2[distancesForProcessData[i]]++;
 				}
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" distribution: "<<endl;
+				cout<<"Rank "<<m_rank<<" distribution: "<<endl;
 				for(map<int,int>::iterator i=distribution2.begin();i!=distribution2.end();i++){
 					cout<<i->first<<" "<<i->second<<endl;
 				}
@@ -728,14 +726,13 @@ void ComputeCore::constructor(int*argc,char***argv){
 
 	m_alive=true;
 
-	m_messagesHandler.constructor(argc,argv);
 
 	m_runProfiler=false;
 	m_showCommunicationEvents=false;
 	m_profilerVerbose=false;
 
-	m_rank=m_messagesHandler.getRank();
-	m_size=m_messagesHandler.getSize();
+	m_rank=-1;
+	m_size=-1;
 
 	if(m_doChecksum){
 		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message."<<" ("<<verifyMessages<<")"<<endl;
@@ -825,6 +822,12 @@ void ComputeCore::constructor(int*argc,char***argv){
 
 }
 
+void ComputeCore::setMiniRank(int miniRank,int numberOfMiniRanks){
+
+	m_rank=miniRank;
+	m_size=numberOfMiniRanks;
+}
+
 void ComputeCore::enableProfiler(){
 	m_runProfiler=true;
 }
@@ -902,7 +905,7 @@ void ComputeCore::resolveSymbols(){
 	if(m_resolvedSymbols)
 		return;
 
-	registerPlugin(&m_messagesHandler); // must be the last registered
+	registerDummyPlugin();
 
 	for(int i=0;i<(int)m_listOfPlugins.size();i++){
 		CorePlugin*plugin=m_listOfPlugins[i];
@@ -910,6 +913,20 @@ void ComputeCore::resolveSymbols(){
 	}
 
 	m_resolvedSymbols=true;
+}
+
+void ComputeCore::registerDummyPlugin(){
+	ComputeCore*core=this;
+	PluginHandle plugin=core->allocatePluginHandle();
+
+	core->setPluginName(plugin,"DummySun");
+	core->setPluginDescription(plugin,"Dummy plugin, does nothing.");
+	core->setPluginAuthors(plugin,"Sébastien Boisvert");
+	core->setPluginLicense(plugin,"GNU Lesser General License version 3");
+
+	RAY_MPI_TAG_DUMMY=core->allocateMessageTagHandle(plugin);
+	core->setMessageTagSymbol(plugin,RAY_MPI_TAG_DUMMY,"RAY_MPI_TAG_DUMMY");
+
 }
 
 void ComputeCore::destructor(){
@@ -1697,13 +1714,18 @@ char**ComputeCore::getArgumentValues(){
 	return m_argumentValues;
 }
 
+bool ComputeCore::hasFinished(){
+	bool alive=*(getLife());
+
+	return !alive;
+}
 
 void ComputeCore::initLock(){
-	pthread_spin_init(&m_lock,NULL);
+	pthread_spin_init(&m_lock,PTHREAD_PROCESS_PRIVATE);
 }
 
 void ComputeCore::destroyLock(){
-	pthread_spin_destroy(&m_lock,NULL);
+	pthread_spin_destroy(&m_lock);
 }
 
 void ComputeCore::lock(){

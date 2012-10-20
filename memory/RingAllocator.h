@@ -1,6 +1,6 @@
 /*
- 	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+ 	RayPlatform
+    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -22,9 +22,10 @@
 #ifndef _RingAllocator
 #define _RingAllocator
 
-#include<set>
-#include<stdint.h>
+#include <set>
+#include <stdint.h>
 #include <core/types.h> 
+#include <mpi.h>
 using namespace std;
 
 /**
@@ -47,6 +48,13 @@ public:
  * \author Sébastien Boisvert
  */
 class RingAllocator{
+
+	int m_minimumNumberOfDirtyBuffersForSweep;
+	int m_minimumNumberOfDirtyBuffersForWarning;
+	uint64_t m_linearSweeps;
+/** prints dirty buffers **/
+	void printDirtyBuffers();
+
 
 	DirtyBuffer*m_dirtyBuffers;
 
@@ -118,6 +126,14 @@ public:
  * get the handle for a buffer
  */
 	int getBufferHandle(void*buffer);
+
+	void checkDirtyBuffer(int i);
+	void cleanDirtyBuffers();
+	void initializeDirtyBuffers();
+	DirtyBuffer*getDirtyBuffers();
+	MPI_Request*registerBuffer(void*buffer);
+
+	void printStatus();
 };
 
 

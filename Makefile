@@ -3,11 +3,11 @@
 # based on http://www.ravnborg.org/kbuild/makefiles.html
 #
 
-VERSION = 1
-PATCHLEVEL = 1
+VERSION = 5
+PATCHLEVEL = 0
 SUBLEVEL = 0
-EXTRAVERSION = -rc0
-NAME = Chariot of Complexity
+EXTRAVERSION = -devel
+NAME = Nested Squirrels of Luck
 
 RAYPLATFORM_VERSION = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 

@@ -31,7 +31,7 @@
 class SlaveModeExecutor{
 
 /** table of slave objects */
-	SlaveModeHandler m_objects[MAXIMUM_NUMBER_OF_SLAVE_HANDLERS];
+	SlaveModeHandlerReference m_objects[MAXIMUM_NUMBER_OF_SLAVE_HANDLERS];
 
 public:
 
@@ -42,7 +42,7 @@ public:
 	SlaveModeExecutor();
 
 /** set the object to call for a slave mode */
-	void setObjectHandler(SlaveMode mode,SlaveModeHandler object);
+	void setObjectHandler(SlaveMode mode,SlaveModeHandlerReference object);
 
 };
 

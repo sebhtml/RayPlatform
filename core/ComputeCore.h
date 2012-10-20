@@ -1,5 +1,5 @@
 /*
- 	Ray
+ 	RayPlatform
     Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 using namespace std;
+
 
 /** this class is a compute core
  * to use it, you must set the handlers of your program
@@ -129,6 +130,7 @@ class ComputeCore{
 	StaticVector m_outbox;
 	StaticVector m_inbox;
 
+	MessageTag RAY_MPI_TAG_DUMMY;
 
 /** this object handles messages */
 	MessageTagExecutor m_messageTagExecutor;
@@ -191,6 +193,8 @@ class ComputeCore{
 
 	void verifyMessageChecksums();
 	void addMessageChecksums();
+
+	void registerDummyPlugin();
 public:
 	/** this is the main method */
 	void run();
@@ -260,7 +264,7 @@ public:
 	MasterMode getMasterModeFromSymbol(PluginHandle plugin,const char*symbol);
 
 /** add a master mode handler */
-	void setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandler object);
+	void setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandlerReference object);
 
 /** sets the master mode switch for a master mode
  * this tells the core which message tag is to be automaticalled broadcasted for 
@@ -288,7 +292,7 @@ Not all master modes have yet been ported to that list.
 	void setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const char*symbol);
 
 /** add a slave mode handler */
-	void setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler object);
+	void setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandlerReference object);
 
 /** get a slave mode from its symbol **/
 	SlaveMode getSlaveModeFromSymbol(PluginHandle plugin,const char*symbol);
@@ -305,7 +309,7 @@ Not all master modes have yet been ported to that list.
 	MessageTag getMessageTagFromSymbol(PluginHandle plugin,const char*symbol);
 
 /** add a message tag handler */
-	void setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler object);
+	void setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandlerReference object);
 
 /** sets the slave switch for a slave mode
  * this tells the core which slave mode to switch to when receiving a particular message tag **/
@@ -330,6 +334,16 @@ Not all master modes have yet been ported to that list.
 
 	int getNumberOfArguments();
 	char**getArgumentValues();
+
+	void lock();
+	void unlock();
+
+	void initLock();
+	void destroyLock();
+
+	void setMiniRank(int miniRank,int numberOfMiniRanks);
+
+	bool hasFinished();
 };
 
 #endif

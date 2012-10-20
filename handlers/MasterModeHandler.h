@@ -21,6 +21,15 @@
 #ifndef _MasterModeHandler_h
 #define _MasterModeHandler_h
 
+#include <core/types.h>
+#include <core/master_modes.h>
+
+#ifdef CONFIG_MINI_RANKS
+
+#define MasterModeHandlerReference MasterModeHandler*
+
+#define __CreateMasterModeAdapter ____CreateMasterModeAdapterImplementation
+#define __DeclareMasterModeAdapter ____CreateMasterModeAdapterDeclaration
 
 /* this is a macro to create the header code for an adapter */
 #define ____CreateMasterModeAdapterDeclaration(corePlugin,handle) \
@@ -41,9 +50,6 @@ void Adapter_ ## handle ::call(){ \
 	m_object->call_ ## handle(); \
 }
 
-#include <core/types.h>
-#include <core/master_modes.h>
-
 /**
  * base class for handling master modes 
  * \author Sébastien Boisvert
@@ -63,5 +69,25 @@ public:
 
 	virtual ~MasterModeHandler();
 };
+
+#else
+
+/* this is a macro to create the cpp code for an adapter */
+#define __CreateMasterModeAdapter( corePlugin,handle )\
+void __GetAdapter( corePlugin, handle ) () { \
+	__GetPlugin( corePlugin ) -> __GetMethod( handle ) () ; \
+} 
+
+/**
+ * base class for handling master modes 
+ * \author Sébastien Boisvert
+ * with help from Élénie Godzaridis for the design
+ * \date 2012-08-08 replaced this with function pointers
+ */
+typedef void (*MasterModeHandler) () /* */ ;
+
+#define MasterModeHandlerReference MasterModeHandler
+
+#endif
 
 #endif

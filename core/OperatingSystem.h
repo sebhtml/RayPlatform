@@ -26,23 +26,12 @@
 #define EXIT_NEEDS_ARGUMENTS 5
 #define EXIT_NO_MORE_MEMORY 42
 
-/*
- Open-MPI eager threshold is 4k (4096), and this include Open-MPI's metadata.
- tests show that 4096-100 bytes are sent eagerly, too.
- divide that by eight and you get the number of 64-bit integers 
- allowed in a single eager communication
-
- * "4096 is rendezvous. For eager, try 4000 or lower. "
- *  --Eugene Loh  (Oracle)
- *  http://www.open-mpi.org/community/lists/devel/2010/11/8700.php
- *
- */
-
 
 /** only this file knows the operating system */
 #include <string>
 //#include <core/constants.h> 
-#include <communication/MessagesHandler.h>
+//#include <communication/MessagesHandler.h>
+#include <stdint.h>
 using namespace std;
 
 /** show memory usage */

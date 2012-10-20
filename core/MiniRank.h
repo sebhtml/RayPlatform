@@ -22,8 +22,14 @@
 #ifndef _MiniRank_h
 #define _MiniRank_h
 
+#include "core/ComputeCore.h"
+
 /**
  * The class for a minirank.
+ * This is the only place in RayPlatform where there is
+ * any lock. Here, the design uses spinlocks.
+ *
+ * \author Sébastien Boisvert
  */
 class MiniRank{
 
@@ -33,7 +39,6 @@ public:
 
 	virtual void run()=0;
 	ComputeCore*getCore();
-
 };
 
 #endif

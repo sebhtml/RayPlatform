@@ -19,32 +19,28 @@
 
 */
 
-#ifndef _VirtualMachine_h
+#ifndef _RankProcess_h
 
-#define _VirtualMachine_h
+#define _RankProcess_h
 
 #include "communication/MessagesHandler.h"
-#include <pthread.h>
 
 #define MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK 64
 
 /**
- * The VirtualMachine is part of the layered minirank
+ * The Rank is part of the layered minirank
  * architecture.
  *
  * \author Sébastien Boisvert
  */
-class VirtualMachine{
-
-	pthread_spinlock_t m_lock;
-
-	int m_deadMiniRanks;
+class RankProcess{
 
 	/** middleware to handle messages */
 	MessagesHandler m_messagesHandler;
 
 	MiniRank*m_miniRanks[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
 	pthread_t m_threads[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
+	ComputeCore*m_cores[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
 
 	int m_numberOfMiniRanksPerRank;
 	int m_numberOfRanks;
@@ -54,12 +50,16 @@ class VirtualMachine{
 	/** get the middleware object */
 	MessagesHandler*getMessagesHandler();
 
+	bool allMiniRanksAreDead();
+	void sendMessages();
+	void receiveMessages();
 public:
-	void constructor(int numberOfMiniRanksPerRank);
+	void constructor(int numberOfMiniRanksPerRank,int ranks,int*argc,char***argv);
 	void addMiniRank(MiniRank*miniRank);
+	void destructor();
 
 	void run();
 };
 
-#endif /* _VirtualMachine_h */
+#endif /* _Rank_h */
 

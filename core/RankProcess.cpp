@@ -19,23 +19,30 @@
 
 */
 
-#include "core/VirtualMachine.h"
+#include "core/RankProcess.h"
 
-void VirtualMachine::constructor(int numberOfMiniRanksPerRank,int ranks){
+void RankProcess::constructor(int numberOfMiniRanksPerRank,int ranks,int*argc,char***argv){
 
 	m_numberOfMiniRanksPerRank=numberOfMiniRanksPerRank;
 	m_numberOfRanks=ranks;
 	m_numberOfMiniRanks=m_numberOfRanks*m_numberOfMiniRanksPerRank;
 	m_numberOfInstalledMiniRanks=0;
+
+	m_messagesHandler.constructor(argc,argv);
 }
 
-void VirtualMachine::addMiniRank(MiniRank*miniRank){
+void RankProcess::addMiniRank(MiniRank*miniRank){
 
 	#ifdef ASSERT
 	assert(m_numberOfInstalledMiniRanks<m_numberOfMiniRanksPerRank);
 	#endif
 
-	m_miniRanks[m_numberOfInstalledMiniRanks++]=miniRank;
+	m_miniRanks[m_numberOfInstalledMiniRanks]=miniRank;
+	m_cores[m_numberOfInstalledMiniRanks]=miniRank->getCore();
+
+	m_cores[m_numberOfInstalledMiniRanks]->initLock();
+
+	m_numberOfInstalledMiniRanks++;
 
 	#ifdef ASSERT
 	assert(m_numberOfInstalledMiniRanks<=m_numberOfMiniRanksPerRank);
@@ -43,70 +50,77 @@ void VirtualMachine::addMiniRank(MiniRank*miniRank){
 
 }
 
-void VirtualMachine_startMiniRank(void*object){
+void*Rank_startMiniRank(void*object){
 
 	((MiniRank*)object)->run();
 
-	lock();
-
-	m_deadMiniRanks++;
-
-	unlock();
+	return object;
 }
 
-void VirtualMachine::run(){
-
-	pthread_spin_init(&m_lock,NULL);
+void RankProcess::run(){
 
 	#ifdef ASSERT
 	assert(m_numberOfMiniRanksPerRank==m_numberOfInstalledMiniRanks);
 	#endif
 
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
-		pthread_create(m_threads+i,NULL,VirtualMachine_startMiniRank,m_miniRanks[i]);
+		pthread_create(m_threads+i,NULL,Rank_startMiniRank,m_miniRanks[i]);
 	}
 
 	bool communicate=true;
+
+	int i=0;
+	int periodForCheckingDeadMiniRanks=100000;
 
 	while(communicate){
 		receiveMessages();
 
 		sendMessages();
 
-		lock();
+		if(i%periodForCheckingDeadMiniRanks==0)
+			if(allMiniRanksAreDead())
+				communicate=false;
 
-		if(m_deadMiniRanks==m_numberOfMiniRanksPerRank)
-			communicate=false;
-
-		unlock();
+		i++;
 	}
 
-	pthread_spin_destroy(&m_lock,NULL);
+	for(int i=0;i<m_numberOfInstalledMiniRanks;i++)
+		m_cores[i]->destroyLock();
 }
 
-void VirtualMachine::destructor(){
+bool RankProcess::allMiniRanksAreDead(){
+
+	int count=0;
+
+	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
+		ComputeCore*core=m_cores[i];
+
+		core->lock();
+		if(core->hasFinished())
+			count++;
+		core->unlock();
+	}
+
+	return count==m_numberOfInstalledMiniRanks;
+}
+
+void RankProcess::destructor(){
 	getMessagesHandler()->destructor();
 }
 
-MessagesHandler*ComputeCore::getMessagesHandler(){
+MessagesHandler*RankProcess::getMessagesHandler(){
 	return &m_messagesHandler;
 }
 
-void VirtualMachine::receiveMessages(){
+void RankProcess::receiveMessages(){
 
-	m_messagesHandler.receiveMessagesForMiniRanks(MiniRank**miniRanks,int miniRanksPerRank);
+	m_messagesHandler.receiveMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank);
 
 }
 
-void VirtualMachine::sendMessages(){
+void RankProcess::sendMessages(){
 
-	m_messagesHandler.sendMessagesForMiniRanks(MiniRank**miniRanks,int miniRanksPerRank);
+	m_messagesHandler.sendMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank);
 }
 
-void VirtualMachine::lock(){
-	pthread_spin_lock(&m_lock);
-}
 
-void VirtualMachine::unlock(){
-	pthread_spin_unlock(&m_lock);
-}

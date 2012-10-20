@@ -21,7 +21,8 @@
 
 #include "core/MiniRank.h"
 
-ComputeCore*getCore(){
+ComputeCore*MiniRank::getCore(){
 	return &m_computeCore;
 }
+
 
