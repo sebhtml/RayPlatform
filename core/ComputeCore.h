@@ -39,7 +39,12 @@
 #include <communication/VirtualCommunicator.h>
 #include <plugins/CorePlugin.h>
 #include <plugins/RegisteredPlugin.h>
-#include <core/OperatingSystem.h>
+#include "core/OperatingSystem.h"
+
+/*
+ * For the runtime configuration parameters.
+ */
+#include "core/types.h"
 
 #include <iostream>
 #include <stdlib.h>
@@ -199,7 +204,7 @@ public:
 	/** this is the main method */
 	void run();
 
-	void constructor(int*argc,char***argv);
+	void constructor(int*argc,char***argv,int miniRankNumber,int numberOfMiniRanks);
 
 	void enableProfiler();
 	void showCommunicationEvents();

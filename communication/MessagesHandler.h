@@ -125,6 +125,8 @@ using namespace std;
  */
 class MessagesHandler{
 
+	bool m_hasReceivedMessage;
+	int m_lastMiniRank;
 
 	// the number of peers for communication
 	int m_peers;
@@ -272,6 +274,8 @@ public:
 
 	void registerPlugin(ComputeCore*core);
 	void resolveSymbols(ComputeCore*core);
+
+	bool hasReceivedMessage(int*miniRank);
 };
 
 #endif /* _MessagesHandler */

@@ -163,6 +163,7 @@ void ComputeCore::runVanilla(){
 	cout<<"m_alive= "<<m_alive<<endl;
 	#endif
 
+
 	while(m_alive || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		
 		lock();// lock the whole iteration
@@ -185,7 +186,8 @@ void ComputeCore::runVanilla(){
 
 		unlock();
 
-/* wait for the rank to pick up messages to be delivered...
+/* 
+ * Wait for the rank to pick up messages to be delivered.
  */
 
 		bool wait=true;
@@ -195,6 +197,7 @@ void ComputeCore::runVanilla(){
 				wait=false;
 			unlock();
 		}
+
 	}
 
 	#ifdef CONFIG_DEBUG_CORE
@@ -634,6 +637,10 @@ void ComputeCore::receiveMessages(){
 
 	#ifdef ASSERT
 	int receivedMessages=m_inbox.size();
+
+	if(receivedMessages>m_maximumNumberOfInboxMessages)
+		cout<<"[ComputeCore::receiveMessages] inbox has "<<receivedMessages<<" but maximum is "<<m_maximumNumberOfInboxMessages<<endl;
+
 	assert(receivedMessages<=m_maximumNumberOfInboxMessages);
 	#endif
 
@@ -688,7 +695,7 @@ void ComputeCore::processData(){
 	m_tickLogger.logSlaveTick(slave);
 }
 
-void ComputeCore::constructor(int*argc,char***argv){
+void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int numberOfMiniRanks){
 
 	m_doChecksum=false;
 
@@ -731,8 +738,8 @@ void ComputeCore::constructor(int*argc,char***argv){
 	m_showCommunicationEvents=false;
 	m_profilerVerbose=false;
 
-	m_rank=-1;
-	m_size=-1;
+	m_rank=miniRankNumber;
+	m_size=numberOfMiniRanks;
 
 	if(m_doChecksum){
 		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message."<<" ("<<verifyMessages<<")"<<endl;
@@ -750,7 +757,6 @@ void ComputeCore::constructor(int*argc,char***argv){
 	// this will occur when using the virtual router with a few processes
 	if(availableBuffers<minimumNumberOfBuffers)
 		availableBuffers=minimumNumberOfBuffers;
-
 
 	m_switchMan.constructor(m_rank,m_size);
 
@@ -1743,3 +1749,6 @@ int ComputeCore::getRank(){
 int ComputeCore::getSize(){
 	return m_size;
 }
+
+
+

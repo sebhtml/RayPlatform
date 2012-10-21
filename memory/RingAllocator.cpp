@@ -228,6 +228,12 @@ int RingAllocator::getSize(){
 }
 
 void RingAllocator::clear(){
+
+	cout<<"[RingAllocator::clear] "<<m_type<<endl;
+	#ifdef ASSERT
+	assert(m_memory!=NULL);
+	#endif
+
 	__Free(m_memory,m_type,m_show);
 	m_memory=NULL;
 }

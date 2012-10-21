@@ -35,6 +35,8 @@
  */
 class RankProcess{
 
+	bool m_mustWait[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
+
 /*
  * Middleware to handle messages.
  */

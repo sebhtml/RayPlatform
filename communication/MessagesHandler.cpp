@@ -44,6 +44,11 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
 		core->lock();
 
 		if(core->getOutbox()->size()!=0){
+
+			#ifdef CONFIG_DEBUG_MPI_RANK
+			cout<<"[MessagesHandler] mini-rank # "<<i<<" has outbox messages"<<endl;
+			#endif
+
 			sendMessages(core->getOutbox(),core->getOutboxAllocator(),miniRanksPerRank);
 		}
 
@@ -417,6 +422,8 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	ComputeCore**cores,int miniRanksPerRank){
 
+	m_hasReceivedMessage=false;
+
 	// the code here will probe from rank source
 	// with MPI_Iprobe
 
@@ -431,6 +438,8 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	// nothing to receive...
 	if(!flag)
 		return;
+
+	m_hasReceivedMessage=true;
 
 	/* read at most one message */
 	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
@@ -452,11 +461,28 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 
 	int miniRankIndex=miniRankDestination%miniRanksPerRank;
 
+	#ifdef CONFIG_DEBUG_MPI_RANK
+	cout<<"[MessagesHandler::probeAndRead] received message from "<<miniRanksPerRank<<" to "<<miniRankDestination;
+	cout<<" tag is "<<actualTag<<endl;
+	#endif
+
 	count-=2;
 
 	MessageUnit*incoming=NULL;
 
 	ComputeCore*core=cores[miniRankIndex];
+
+	m_lastMiniRank=miniRankIndex;
+/*
+ * We can not receive a message if the inbox is not
+ * empty.
+ */
+	#ifdef ASSERT
+	if(core->getInbox()->size()!=0)
+		cout<<"Error: mini-rank # "<<miniRankIndex<<" inbox has "<<core->getInbox()->size()<<" messages."<<endl;
+
+	assert(core->getInbox()->size()==0);
+	#endif
 
 /*
  * Lock the core and distribute the message.
@@ -475,7 +501,8 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	core->unlock();
 
 	#ifdef ASSERT
-	assert(aMessage.getDestination() == m_rank);
+	// this assertion is not valid for mini-ranks.
+	//assert(aMessage.getDestination() == m_rank);
 	#endif
 
 	m_receivedMessages++;
@@ -592,7 +619,6 @@ void MessagesHandler::destructor(){
 	}
 
 	freeLeftovers();
-
 }
 
 string*MessagesHandler::getName(){
@@ -725,4 +751,11 @@ void MessagesHandler::setConnections(vector<int>*connections){
 	m_peers=m_connections.size();
 }
 
+bool MessagesHandler::hasReceivedMessage(int*miniRank){
+	if(m_hasReceivedMessage){
+		*miniRank=m_lastMiniRank;
+	}
+
+	return m_hasReceivedMessage;
+}
 

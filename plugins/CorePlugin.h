@@ -29,17 +29,23 @@
 #define __GetPlugin(corePlugin)
 #define __GetMethod(handle)
 
+#define __GetAdapterObject( corePlugin, handle) \
+	m_adapter_  ## handle 
+
+#define __BindAdapter(corePlugin,handle) \
+	__GetAdapterObject( corePlugin, handle) . setObject( this )
+
 /*
  * Get the adapter
  */
 #define __GetAdapter(corePlugin,handle) \
-	&m_adapter_  ## handle 
+	& __GetAdapterObject (corePlugin, handle)
 
 /*
  * Add an adapter in a plugin
  */
 #define __AddAdapter(corePlugin,handle) \
-	Adapter_  ## handle m_adapter_  ## handle ;
+	Adapter_  ## handle m_adapter_  ## handle 
 
 #define __CreatePlugin( corePlugin ) 
 
