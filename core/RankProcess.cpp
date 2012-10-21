@@ -120,6 +120,8 @@ void RankProcess::run(){
 
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++)
 		m_cores[i]->destroyLock();
+
+	destructor();
 }
 
 bool RankProcess::allMiniRanksAreDead(){
