@@ -63,7 +63,7 @@ public:
 
 	virtual void call(Message*message) = 0;
 
-	virtual ~MessageTagHandler();
+	virtual ~MessageTagHandler(){}
 };
 
 #else
@@ -73,8 +73,6 @@ public:
 void __GetAdapter( corePlugin, handle) ( Message*message ) { \
 	__GetPlugin( corePlugin ) -> __GetMethod( handle ) ( message ) ; \
 } 
-
-
 
 /**
  * base class for handling message tags

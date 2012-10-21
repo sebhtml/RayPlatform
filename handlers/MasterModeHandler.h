@@ -67,7 +67,7 @@ public:
 
 	virtual void call() = 0;
 
-	virtual ~MasterModeHandler();
+	virtual ~MasterModeHandler(){}
 };
 
 #else

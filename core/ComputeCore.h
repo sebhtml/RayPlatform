@@ -344,6 +344,9 @@ Not all master modes have yet been ported to that list.
 	void setMiniRank(int miniRank,int numberOfMiniRanks);
 
 	bool hasFinished();
+
+	int getRank();
+	int getSize();
 };
 
 #endif

@@ -63,8 +63,7 @@ public:
 
 	virtual void call() = 0;
 
-
-	virtual ~SlaveModeHandler();
+	virtual ~SlaveModeHandler(){}
 };
 
 #else

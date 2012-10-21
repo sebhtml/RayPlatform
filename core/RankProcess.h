@@ -27,7 +27,7 @@
 
 #define MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK 64
 
-/**
+/*
  * The Rank is part of the layered minirank
  * architecture.
  *
@@ -35,30 +35,47 @@
  */
 class RankProcess{
 
-	/** middleware to handle messages */
+/*
+ * Middleware to handle messages.
+ */
 	MessagesHandler m_messagesHandler;
 
 	MiniRank*m_miniRanks[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
 	pthread_t m_threads[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
 	ComputeCore*m_cores[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
 
-	int m_numberOfMiniRanksPerRank;
-	int m_numberOfRanks;
-	int m_numberOfInstalledMiniRanks;
-	int m_numberOfMiniRanks;
+/**
+ * The number of this rank.
+ */
+	int m_rank;
 
-	/** get the middleware object */
-	MessagesHandler*getMessagesHandler();
+/** 
+ * The number of ranks.
+ */
+	int m_numberOfRanks;
+
+	int m_numberOfMiniRanksPerRank;
+	int m_numberOfInstalledMiniRanks;
+
+/*
+ * The total number of mini-ranks in ranks.
+ */
+	int m_numberOfMiniRanks;
 
 	bool allMiniRanksAreDead();
 	void sendMessages();
 	void receiveMessages();
 public:
-	void constructor(int numberOfMiniRanksPerRank,int ranks,int*argc,char***argv);
+	void constructor(int numberOfMiniRanksPerRank,int*argc,char***argv);
 	void addMiniRank(MiniRank*miniRank);
 	void destructor();
 
 	void run();
+
+/*
+ * Get the middleware object 
+ */
+	MessagesHandler*getMessagesHandler();
 };
 
 #endif /* _Rank_h */

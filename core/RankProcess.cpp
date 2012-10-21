@@ -21,14 +21,16 @@
 
 #include "core/RankProcess.h"
 
-void RankProcess::constructor(int numberOfMiniRanksPerRank,int ranks,int*argc,char***argv){
+void RankProcess::constructor(int numberOfMiniRanksPerRank,int*argc,char***argv){
 
 	m_numberOfMiniRanksPerRank=numberOfMiniRanksPerRank;
-	m_numberOfRanks=ranks;
 	m_numberOfMiniRanks=m_numberOfRanks*m_numberOfMiniRanksPerRank;
 	m_numberOfInstalledMiniRanks=0;
 
 	m_messagesHandler.constructor(argc,argv);
+
+	m_rank=m_messagesHandler.getRank();
+	m_numberOfRanks=m_messagesHandler.getSize();
 }
 
 void RankProcess::addMiniRank(MiniRank*miniRank){

@@ -42,7 +42,11 @@
 	Adapter_  ## handle m_adapter_  ## handle ;
 
 #define __CreatePlugin( corePlugin ) 
+
 #define __BindPlugin( corePlugin ) 
+
+#define __DeclarePlugin( corePlugin ) \
+class corePlugin;
 
 #else
 
@@ -58,12 +62,16 @@
 #define __GetAdapter(corePlugin,handle) \
 	Adapter_ ## corePlugin ## _call_ ## handle 
 
+#define __AddAdapter(corePlugin,handle)
+
 /* create the static core pluging thing. */
 #define __CreatePlugin( corePlugin ) \
 	static corePlugin * __GetPlugin( corePlugin ) ;
 
 #define __BindPlugin( corePlugin ) \
 	__GetPlugin( corePlugin ) = this;
+
+#define __DeclarePlugin( corePlugin ) \
 
 #endif /* CONFIG_MINI_RANKS */
 

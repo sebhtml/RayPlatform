@@ -1736,3 +1736,10 @@ void ComputeCore::unlock(){
 	pthread_spin_unlock(&m_lock);
 }
 
+int ComputeCore::getRank(){
+	return m_rank;
+}
+
+int ComputeCore::getSize(){
+	return m_size;
+}
