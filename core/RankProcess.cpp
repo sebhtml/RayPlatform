@@ -116,6 +116,8 @@ void RankProcess::run(){
 		i++;
 	}
 
+	cout<<"All mini-ranks are dead."<<endl;
+
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++)
 		m_cores[i]->destroyLock();
 }

@@ -697,6 +697,8 @@ void ComputeCore::processData(){
 
 void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int numberOfMiniRanks){
 
+
+
 	m_doChecksum=false;
 
 	// checksum calculation is only tested
@@ -719,7 +721,6 @@ void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int number
 
 	m_argumentCount=*argc;
 	m_argumentValues=*argv;
-
 
 	m_resolvedSymbols=false;
 
@@ -936,6 +937,13 @@ void ComputeCore::registerDummyPlugin(){
 }
 
 void ComputeCore::destructor(){
+
+	cout<<"Rank "<<m_rank<<" is cleaning the inbox allocator."<<endl;
+	m_inboxAllocator.clear();
+
+	cout<<"Rank "<<m_rank<<" is cleaning the outbox allocator."<<endl;
+	m_outboxAllocator.clear();
+
 }
 
 void ComputeCore::stop(){

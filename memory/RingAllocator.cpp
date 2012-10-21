@@ -37,6 +37,8 @@ using namespace std;
 
 void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 
+	cout<<"[RingAllocator::constructor] "<<type<<endl;
+
 	resetCount();
 
 	/* m_max should never be 0 */
@@ -64,6 +66,8 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 
 	m_memory=(uint8_t*)__Malloc(sizeof(uint8_t)*m_numberOfBytes,m_type,show);
 	m_bufferStates=(uint8_t*)__Malloc(m_chunks*sizeof(uint8_t),m_type,show);
+
+	cout<<"[RingAllocator::constructor] memory= "<<(void*)m_memory<<endl;
 
 	for(int i=0;i<m_chunks;i++)
 		m_bufferStates[i]= BUFFER_STATE_AVAILABLE;
@@ -229,7 +233,8 @@ int RingAllocator::getSize(){
 
 void RingAllocator::clear(){
 
-	cout<<"[RingAllocator::clear] "<<m_type<<endl;
+	cout<<"[RingAllocator::clear] "<<m_type<<" memory is "<<hex<<(void*)m_memory<<endl;
+
 	#ifdef ASSERT
 	assert(m_memory!=NULL);
 	#endif
