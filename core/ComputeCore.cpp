@@ -788,16 +788,22 @@ void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int number
 
 	int maximumMessageSizeInByte=MAXIMUM_MESSAGE_SIZE_IN_BYTES;
 
+	bool useMiniRanks=false;
+
+	#ifdef CONFIG_MINI_RANKS
+	useMiniRanks=true;
+	#endif
+
 	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
 	// TODO: RayPlatform can not do both routing and checksums 
-	if(m_doChecksum || m_routerIsEnabled){
+	if(useMiniRanks || m_doChecksum || m_routerIsEnabled){
 		if(sizeof(MessageUnit)>=4){
-			maximumMessageSizeInByte+=sizeof(MessageUnit);
-		}else if(sizeof(MessageUnit)>=2){
 			maximumMessageSizeInByte+=2*sizeof(MessageUnit);
+		}else if(sizeof(MessageUnit)>=2){
+			maximumMessageSizeInByte+=2*2*sizeof(MessageUnit);
 		}else{
-			maximumMessageSizeInByte+=4*sizeof(MessageUnit);
+			maximumMessageSizeInByte+=2*4*sizeof(MessageUnit);
 		}
 	}
 
