@@ -99,45 +99,23 @@ void RankProcess::run(){
 		pthread_create(m_threads+i,NULL,Rank_startMiniRank,m_miniRanks[i]);
 	}
 
-	bool communicate=true;
+	m_communicate=true;
 
-	int i=0;
-	int periodForCheckingDeadMiniRanks=100000;
+	while(m_communicate){
 
-	while(communicate){
 		receiveMessages();
 
 		sendMessages();
-
-		if(i%periodForCheckingDeadMiniRanks==0)
-			if(allMiniRanksAreDead())
-				communicate=false;
-
-		i++;
 	}
 
+	#ifdef CONFIG_DEBUG_MPI_RANK
 	cout<<"All mini-ranks are dead."<<endl;
+	#endif
 
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++)
 		m_cores[i]->destroyLock();
 
 	destructor();
-}
-
-bool RankProcess::allMiniRanksAreDead(){
-
-	int count=0;
-
-	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
-		ComputeCore*core=m_cores[i];
-
-		core->lock();
-		if(core->hasFinished())
-			count++;
-		core->unlock();
-	}
-
-	return count==m_numberOfInstalledMiniRanks;
 }
 
 void RankProcess::destructor(){
@@ -152,6 +130,8 @@ MessagesHandler*RankProcess::getMessagesHandler(){
 void RankProcess::receiveMessages(){
 
 /*
+ * TODO: move this in a single loop.
+ *
  * We must make sure that the last mini-rank that received
  * a message has consumed its message.
  * We need to do that because we can not receive a message for
@@ -160,14 +140,11 @@ void RankProcess::receiveMessages(){
 
 	for(int i=0;i<m_numberOfMiniRanksPerRank;i++){
 
-		if(!m_mustWait[i])
-			continue;
-
 		ComputeCore*core=m_cores[i];
 
-		core->lock();
+		core->lockInbox();
 		int inboxSize=core->getInbox()->size();
-		core->unlock();
+		core->unlockInbox();
 
 		if(inboxSize==0){
 			m_mustWait[i]=false;
@@ -177,15 +154,15 @@ void RankProcess::receiveMessages(){
 			cout<<"inboxSize= "<<inboxSize<<endl;
 			#endif
 		}else{
+		
+			#ifdef CONFIG_DEBUG_MPI_RANK
+			cout<<"Mini-rank # "<<i<<" is still consuming its message."<<endl;
+			#endif
+
 			return;// do something else, we can not receive anything
 		}
-
 	}
 
-
-	#ifdef CONFIG_DEBUG_MPI_RANK
-	cout<<"[RankProcess::receiveMessages]"<<endl;
-	#endif
 
 	m_messagesHandler.receiveMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank);
 
@@ -208,7 +185,7 @@ void RankProcess::sendMessages(){
 	cout<<"[RankProcess::sendMessages]"<<endl;
 	#endif
 
-	m_messagesHandler.sendMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank);
+	m_messagesHandler.sendMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank,&m_communicate);
 }
 
 

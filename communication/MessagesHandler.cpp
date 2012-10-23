@@ -35,13 +35,28 @@
 using namespace std;
 
 // #define COMMUNICATION_IS_VERBOSE
+//#define CONFIG_DEBUG_MPI_RANK
+//#define CONFIG_DEBUG_MINI_RANK_COMMUNICATION
 
-void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank){
+void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank,bool*communicate){
+
+	int deadMiniRanks=0;
 
 	for(int i=0;i<miniRanksPerRank;i++){
 		ComputeCore*core=cores[i];
 
-		core->lock();
+		core->lockOutboxIsFull();
+
+		if(core->hasFinished())
+			deadMiniRanks++;
+
+		bool hasMessages=core->getOutboxIsFull();
+		core->unlockOutboxIsFull();
+
+		if(!hasMessages)
+			continue;
+
+		core->lockOutbox();
 
 		if(core->getOutbox()->size()!=0){
 
@@ -52,8 +67,25 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
 			sendMessages(core->getOutbox(),core->getOutboxAllocator(),miniRanksPerRank);
 		}
 
-		core->unlock();
+		core->lockOutboxIsFull();
+		core->setOutboxIsFull(false);
+		core->unlockOutboxIsFull();
+
+		core->unlockOutbox();
 	}
+
+
+	#ifdef CONFIG_DEBUG_MPI_RANK
+	cout<<"[RankProcess::receiveMessages]"<<endl;
+	#endif
+
+
+/* 
+ * Since all mini-ranks died, it is no longer necessasry to do
+ * the communication.
+ */
+	if(deadMiniRanks==miniRanksPerRank)
+		(*communicate)=false;
 }
 
 /*
@@ -116,6 +148,10 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
  */
 		theBuffer[count++]=miniRankSource;
 		theBuffer[count++]=miniRankDestination;
+
+		#ifdef CONFIG_DEBUG_MINI_RANK_COMMUNICATION
+		cout<<"SEND Source= "<<miniRankSource<<" Destination= "<<miniRankDestination<<" Tag= "<<tag<<endl;
+		#endif /* CONFIG_DEBUG_MINI_RANK_COMMUNICATION */
 
 		MPI_Request*request=outboxBufferAllocator->registerBuffer(theBuffer);
 
@@ -456,8 +492,17 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 
 	MPI_Recv(staticBuffer,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
 
+/*
+ * Get the mini-rank source and mini-rank destination.
+ */
 	int miniRankSource=staticBuffer[count-2];
 	int miniRankDestination=staticBuffer[count-1];
+
+	#ifdef CONFIG_DEBUG_MINI_RANK_COMMUNICATION
+	cout<<"RECEIVE Source= "<<miniRankSource<<" Destination= "<<miniRankDestination<<" Tag= "<<actualTag<<endl;
+	#endif /* CONFIG_DEBUG_MINI_RANK_COMMUNICATION */
+
+	count-=2;
 
 	int miniRankIndex=miniRankDestination%miniRanksPerRank;
 
@@ -465,8 +510,6 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	cout<<"[MessagesHandler::probeAndRead] received message from "<<miniRanksPerRank<<" to "<<miniRankDestination;
 	cout<<" tag is "<<actualTag<<endl;
 	#endif
-
-	count-=2;
 
 	MessageUnit*incoming=NULL;
 
@@ -477,6 +520,9 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
  * We can not receive a message if the inbox is not
  * empty.
  */
+
+	core->lockInbox();
+
 	#ifdef ASSERT
 	if(core->getInbox()->size()!=0)
 		cout<<"Error: mini-rank # "<<miniRankIndex<<" inbox has "<<core->getInbox()->size()<<" messages."<<endl;
@@ -487,7 +533,11 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 /*
  * Lock the core and distribute the message.
  */
-	core->lock();
+
+	#ifdef CONFIG_DEBUG_MPI_RANK
+	cout<<"Rank tries to lock the inbox of minirank # "<<miniRankIndex<<endl;
+	#endif
+
 
 	if(count > 0){
 		incoming=(MessageUnit*)core->getInboxAllocator()->allocate(count*sizeof(MessageUnit));
@@ -498,7 +548,7 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
 	core->getInbox()->push_back(aMessage);
 
-	core->unlock();
+	core->unlockInbox();
 
 	#ifdef ASSERT
 	// this assertion is not valid for mini-ranks.
@@ -562,7 +612,33 @@ void MessagesHandler::constructor(int*argc,char***argv){
 	m_receivedMessages=0;
 	m_datatype=MPI_UNSIGNED_LONG_LONG;
 
+	#ifdef CONFIG_MINI_RANKS_disabled
+	
+	int provided;
+	MPI_Init_thread(argc,argv, MPI_THREAD_FUNNELED, &provided);
+	bool threads_ok = provided >= MPI_THREAD_FUNNELED;
+
+	cout<<"Level provided: ";
+
+	if(provided==MPI_THREAD_SINGLE)
+		cout<<"MPI_THREAD_SINGLE";
+	else if(provided==MPI_THREAD_FUNNELED)
+		cout<<"MPI_THREAD_FUNNELED";
+	else if(provided==MPI_THREAD_SERIALIZED)
+		cout<<"MPI_THREAD_SERIALIZED";
+	else if(provided==MPI_THREAD_MULTIPLE)
+		cout<<"MPI_THREAD_MULTIPLE";
+	cout<<endl;
+
+	#ifdef ASSERT
+	assert(threads_ok);
+	#endif
+
+	#else
+	// same as MPI_Init_thread with MPI_THREAD_SINGLE
+	// in some MPI libraries, MPI_THREAD_SINGLE and MPI_THREAD_FUNNELED are the same.
 	MPI_Init(argc,argv);
+	#endif
 
 	char serverName[1000];
 	int len;

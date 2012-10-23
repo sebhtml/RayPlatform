@@ -270,7 +270,7 @@ public:
 
 	void setConnections(vector<int>*connections);
 
-	void sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank);
+	void sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank,bool*communicate);
 
 	void registerPlugin(ComputeCore*core);
 	void resolveSymbols(ComputeCore*core);

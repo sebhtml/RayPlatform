@@ -63,7 +63,11 @@ using namespace std;
  */
 class ComputeCore{
 
-	pthread_spinlock_t m_lock;
+	bool m_outboxIsFull;
+
+	pthread_spinlock_t m_lockForInbox;
+	pthread_spinlock_t m_lockForOutbox;
+	pthread_spinlock_t m_lockForOutboxIsFull;
 
 	int m_argumentCount;
 	char**m_argumentValues;
@@ -340,8 +344,14 @@ Not all master modes have yet been ported to that list.
 	int getNumberOfArguments();
 	char**getArgumentValues();
 
-	void lock();
-	void unlock();
+	void lockInbox();
+	void unlockInbox();
+	void lockOutbox();
+	void unlockOutbox();
+	void unlockOutboxIsFull();
+	void lockOutboxIsFull();
+	void setOutboxIsFull(bool state);
+	bool getOutboxIsFull();
 
 	void initLock();
 	void destroyLock();

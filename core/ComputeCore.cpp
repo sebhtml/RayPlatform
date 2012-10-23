@@ -160,13 +160,32 @@ void ComputeCore::run(){
 void ComputeCore::runVanilla(){
 
 	#ifdef CONFIG_DEBUG_CORE
+	cout<<"Locking inbox for the loop."<<endl;
+	#endif
+
+	#ifdef CONFIG_DEBUG_CORE
 	cout<<"m_alive= "<<m_alive<<endl;
 	#endif
 
+/*
+ * The inbox is only unlocked before the receiveMessages() and
+ * after sendMessages().
+ *
+ * The outbox is only unlocked during sendMessages().
+ *
+ * The inbox is cleared at the end of processData()
+ * because some plugins picks up messages in the inbox
+ * instead of using the modular plugin architecture with
+ * the handlers for message tags.
+ *
+ * The outbox is cleared by the communication layer when it
+ * picks up the messages.
+ */
+	lockOutbox();
 
 	while(m_alive || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		
-		lock();// lock the whole iteration
+		lockInbox();
 
 		// 1. receive the message (0 or 1 message is received)
 		// blazing fast, receives 0 or 1 message, never more, never less, other messages will wait for the next iteration !
@@ -180,25 +199,14 @@ void ComputeCore::runVanilla(){
 		// should be fast, but apparently call_RAY_SLAVE_MODE_EXTENSION is slowish sometimes...
 		processData();
 
+		unlockInbox();
+
 		// 4. send messages
 		// fast, sends at most 17 messages. In most case it is either 0 or 1 message.,..
 		sendMessages();
-
-		unlock();
-
-/* 
- * Wait for the rank to pick up messages to be delivered.
- */
-
-		bool wait=true;
-		while(wait){
-			lock();
-			if(m_outbox.size()==0)
-				wait=false;
-			unlock();
-		}
-
 	}
+
+	unlockOutbox();
 
 	#ifdef CONFIG_DEBUG_CORE
 	cout<<"m_alive= "<<m_alive<<endl;
@@ -461,11 +469,6 @@ void ComputeCore::processMessages(){
 
 void ComputeCore::sendMessages(){
 
-/* 
- * clear the inbox for the next iteration
- */
-	m_inbox.clear();
-
 	// assert that we did not overflow the ring
 	#ifdef ASSERT
 	if(m_outboxAllocator.getCount() > m_maximumAllocatedOutboxBuffers){
@@ -530,7 +533,29 @@ void ComputeCore::sendMessages(){
  * the messages.
  *
  * Or, give the messages directly to the upstream object.
+ *
+ * Wait for the rank to pick up messages to be delivered.
+ *
+ * The problem is that if a mini-rank has nothing to send,
+ * then 
  */
+	if(m_outbox.size()>0){
+		lockOutboxIsFull();
+		setOutboxIsFull(true);
+		unlockOutboxIsFull();
+	}
+
+	bool wait=true;
+	while(wait){
+		unlockOutbox();
+
+		if(m_outbox.size()==0)
+			wait=false;
+		
+		lockOutbox();
+	}
+
+
 }
 
 void ComputeCore::addMessageChecksums(){
@@ -623,6 +648,25 @@ void ComputeCore::verifyMessageChecksums(){
  */
 void ComputeCore::receiveMessages(){
 
+/* 
+ * clear the inbox for the next iteration
+ */
+	//m_inbox.clear();
+
+#if 0
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"Mini-rank # "<<m_rank<<" opens a small window for its inbox"<<endl;
+	#endif
+
+	unlockInbox();
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"Mini-rank # "<<m_rank<<" locks its inbox again"<<endl;
+	#endif
+
+	lockInbox();
+#endif
+
 	//m_inbox.clear();
 	//m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
 
@@ -693,6 +737,12 @@ void ComputeCore::processData(){
 
 	m_slaveModeExecutor.callHandler(slave);
 	m_tickLogger.logSlaveTick(slave);
+
+/* 
+ * Clear the inbox for the next iteration.
+ * This is only useful if the RayPlatform runs with mini-ranks.
+ */
+	m_inbox.clear();
 }
 
 void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int numberOfMiniRanks){
@@ -781,10 +831,12 @@ void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int number
 	}
 
 	getInbox()->constructor(m_maximumNumberOfInboxMessages,"RAY_MALLOC_TYPE_INBOX_VECTOR",false);
-	cout<<"[ComputeCore] the inbox capacity is "<<m_maximumNumberOfInboxMessages<<" message"<<endl;
-
 	getOutbox()->constructor(m_maximumNumberOfOutboxMessages,"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"[ComputeCore] the inbox capacity is "<<m_maximumNumberOfInboxMessages<<" message"<<endl;
 	cout<<"[ComputeCore] the outbox capacity is "<<m_maximumNumberOfOutboxMessages<<" message"<<endl;
+	#endif
 
 	int maximumMessageSizeInByte=MAXIMUM_MESSAGE_SIZE_IN_BYTES;
 
@@ -811,13 +863,14 @@ void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int number
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
 
-	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
-
 	m_outboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
 
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
 	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedOutboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for outbox messages"<<endl;
+	#endif
 
 	for(int i=0;i<MAXIMUM_NUMBER_OF_MASTER_HANDLERS;i++){
 		strcpy(MASTER_MODES[i],"UnnamedMasterMode");
@@ -944,10 +997,16 @@ void ComputeCore::registerDummyPlugin(){
 
 void ComputeCore::destructor(){
 
+	#ifdef CONFIG_DEBUG_CORE
 	cout<<"Rank "<<m_rank<<" is cleaning the inbox allocator."<<endl;
+	#endif
+
 	m_inboxAllocator.clear();
 
+	#ifdef CONFIG_DEBUG_CORE
 	cout<<"Rank "<<m_rank<<" is cleaning the outbox allocator."<<endl;
+	#endif
+
 	m_outboxAllocator.clear();
 
 }
@@ -1741,19 +1800,71 @@ bool ComputeCore::hasFinished(){
 }
 
 void ComputeCore::initLock(){
-	pthread_spin_init(&m_lock,PTHREAD_PROCESS_PRIVATE);
+	pthread_spin_init(&m_lockForInbox,PTHREAD_PROCESS_PRIVATE);
+	pthread_spin_init(&m_lockForOutbox,PTHREAD_PROCESS_PRIVATE);
+	pthread_spin_init(&m_lockForOutboxIsFull,PTHREAD_PROCESS_PRIVATE);
 }
 
 void ComputeCore::destroyLock(){
-	pthread_spin_destroy(&m_lock);
+	pthread_spin_destroy(&m_lockForInbox);
+	pthread_spin_destroy(&m_lockForOutbox);
+	pthread_spin_destroy(&m_lockForOutboxIsFull);
 }
 
-void ComputeCore::lock(){
-	pthread_spin_lock(&m_lock);
+void ComputeCore::lockInbox(){
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"lockInbox, please wait"<<endl;
+	#endif
+
+	pthread_spin_lock(&m_lockForInbox);
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"acquired lock."<<endl;
+	#endif
+
 }
 
-void ComputeCore::unlock(){
-	pthread_spin_unlock(&m_lock);
+void ComputeCore::unlockInbox(){
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"unlockInbox"<<endl;
+	#endif
+
+	pthread_spin_unlock(&m_lockForInbox);
+}
+
+void ComputeCore::lockOutbox(){
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"lockOutbox"<<endl;
+	#endif
+
+	pthread_spin_lock(&m_lockForOutbox);
+}
+
+void ComputeCore::unlockOutbox(){
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"unlockOutbox"<<endl;
+	#endif
+
+	pthread_spin_unlock(&m_lockForOutbox);
+}
+
+void ComputeCore::lockOutboxIsFull(){
+	pthread_spin_lock(&m_lockForOutboxIsFull);
+}
+
+void ComputeCore::unlockOutboxIsFull(){
+	pthread_spin_unlock(&m_lockForOutboxIsFull);
+}
+
+bool ComputeCore::getOutboxIsFull(){
+	return m_outboxIsFull;
+}
+
+void ComputeCore::setOutboxIsFull(bool state){
+	m_outboxIsFull=state;
 }
 
 int ComputeCore::getRank(){

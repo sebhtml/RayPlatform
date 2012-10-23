@@ -37,7 +37,9 @@ using namespace std;
 
 void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 
+	#ifdef CONFIG_RING_VERBOSE
 	cout<<"[RingAllocator::constructor] "<<type<<endl;
+	#endif
 
 	resetCount();
 
@@ -233,7 +235,9 @@ int RingAllocator::getSize(){
 
 void RingAllocator::clear(){
 
-	cout<<"[RingAllocator::clear] "<<m_type<<" memory is "<<hex<<(void*)m_memory<<endl;
+	#ifdef CONFIG_RING_VERBOSE
+	cout<<"[RingAllocator::clear] "<<m_type<<" memory is "<<hex<<(void*)m_memory<<dec<<endl;
+	#endif
 
 	#ifdef ASSERT
 	assert(m_memory!=NULL);

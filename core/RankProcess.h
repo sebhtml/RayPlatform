@@ -35,6 +35,8 @@
  */
 class RankProcess{
 
+	bool m_communicate;
+
 	bool m_mustWait[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
 
 /*
@@ -64,7 +66,6 @@ class RankProcess{
  */
 	int m_numberOfMiniRanks;
 
-	bool allMiniRanksAreDead();
 	void sendMessages();
 	void receiveMessages();
 public:
