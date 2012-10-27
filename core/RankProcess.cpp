@@ -45,6 +45,8 @@ void RankProcess::constructor(int numberOfMiniRanksPerRank,int*argc,char***argv)
 	m_numberOfInstalledMiniRanks=0;
 
 	m_messagesHandler.constructor(argc,argv);
+	m_argc=*argc;
+	m_argv=*argv;
 
 	m_rank=m_messagesHandler.getRank();
 	m_numberOfRanks=m_messagesHandler.getSize();
@@ -67,8 +69,6 @@ void RankProcess::addMiniRank(MiniRank*miniRank){
 	m_miniRanks[m_numberOfInstalledMiniRanks]=miniRank;
 	m_cores[m_numberOfInstalledMiniRanks]=miniRank->getCore();
 
-	m_cores[m_numberOfInstalledMiniRanks]->initLock();
-
 	m_numberOfInstalledMiniRanks++;
 
 	#ifdef ASSERT
@@ -90,12 +90,36 @@ void RankProcess::run(){
 	assert(m_numberOfMiniRanksPerRank==m_numberOfInstalledMiniRanks);
 	#endif
 
+	bool useMiniRanks=m_numberOfMiniRanksPerRank>1;
+
+	int miniRankNumber=m_messagesHandler.getRank()*m_numberOfMiniRanksPerRank;
+	int numberOfMiniRanks=m_messagesHandler.getSize()*m_numberOfMiniRanksPerRank;
+
+	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
+
+		m_cores[i]->constructor(m_argc,m_argv,miniRankNumber+i,numberOfMiniRanks,useMiniRanks);
+	}
+
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
 
 		#ifdef CONFIG_DEBUG_MPI_RANK
 		cout<<"[RankProcess::run] starting mini-rank in parallel # "<<i<<""<<endl;
 		#endif
 
+/*
+ * TODO: possibly change the stack size -> pthread_attr_setstacksize
+ *
+ * pthread_attr_t attributes;
+ * int stackSize=8*1024*1024;
+ * int errorCode=pthread_attr_setstacksize(&attributes,stackSize);
+ * // manage error
+ *
+ * pthread_create(m_threads+i,&attributes,Rank_startMiniRank,m_miniRanks[i]);
+ *
+ * on Colosse (CentOS 5.7), the default is 10240 KiB
+ * on Fedora 16 and 17, it is 8192 KiB
+ *
+ */
 		pthread_create(m_threads+i,NULL,Rank_startMiniRank,m_miniRanks[i]);
 	}
 
@@ -113,7 +137,7 @@ void RankProcess::run(){
 	#endif
 
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++)
-		m_cores[i]->destroyLock();
+		m_cores[i]->destructor();
 
 	destructor();
 }
@@ -129,54 +153,7 @@ MessagesHandler*RankProcess::getMessagesHandler(){
 
 void RankProcess::receiveMessages(){
 
-/*
- * TODO: move this in a single loop.
- *
- * We must make sure that the last mini-rank that received
- * a message has consumed its message.
- * We need to do that because we can not receive a message for
- * this mini-rank before it has consumed the other message.
- */
-
-	for(int i=0;i<m_numberOfMiniRanksPerRank;i++){
-
-		ComputeCore*core=m_cores[i];
-
-		core->lockInbox();
-		int inboxSize=core->getInbox()->size();
-		core->unlockInbox();
-
-		if(inboxSize==0){
-			m_mustWait[i]=false;
-
-			#ifdef CONFIG_DEBUG_MPI_RANK
-			cout<<"Mini-rank # "<<i<<" consumed its message";
-			cout<<"inboxSize= "<<inboxSize<<endl;
-			#endif
-		}else{
-		
-			#ifdef CONFIG_DEBUG_MPI_RANK
-			cout<<"Mini-rank # "<<i<<" is still consuming its message."<<endl;
-			#endif
-
-			return;// do something else, we can not receive anything
-		}
-	}
-
-
 	m_messagesHandler.receiveMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank);
-
-	int lastMiniRank=-1;
-
-	bool received=m_messagesHandler.hasReceivedMessage(&lastMiniRank);
-
-	if(received){
-		m_mustWait[lastMiniRank]=true;
-
-		#ifdef CONFIG_DEBUG_MPI_RANK
-		cout<<"mustWait -> "<<m_mustWait[lastMiniRank]<<" mini-rank "<<lastMiniRank<<endl;
-		#endif
-	}
 }
 
 void RankProcess::sendMessages(){

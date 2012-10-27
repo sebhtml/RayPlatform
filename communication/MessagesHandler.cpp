@@ -38,47 +38,46 @@ using namespace std;
 //#define CONFIG_DEBUG_MPI_RANK
 //#define CONFIG_DEBUG_MINI_RANK_COMMUNICATION
 
+/**
+ *
+ */
 void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank,bool*communicate){
 
 	int deadMiniRanks=0;
 
 	for(int i=0;i<miniRanksPerRank;i++){
+
 		ComputeCore*core=cores[i];
+		MessageQueue*outbox=core->getBufferedOutbox();
 
-		core->lockOutboxIsFull();
+		outbox->lock();
 
-		if(core->hasFinished())
+		if(outbox->isDead())
 			deadMiniRanks++;
 
-		bool hasMessages=core->getOutboxIsFull();
-		core->unlockOutboxIsFull();
-
-		if(!hasMessages)
+		if(!outbox->hasContent()){
+			outbox->unlock();
 			continue;
-
-		core->lockOutbox();
-
-		if(core->getOutbox()->size()!=0){
-
-			#ifdef CONFIG_DEBUG_MPI_RANK
-			cout<<"[MessagesHandler] mini-rank # "<<i<<" has outbox messages"<<endl;
-			#endif
-
-			sendMessages(core->getOutbox(),core->getOutboxAllocator(),miniRanksPerRank);
 		}
 
-		core->lockOutboxIsFull();
-		core->setOutboxIsFull(false);
-		core->unlockOutboxIsFull();
+		#ifdef CONFIG_DEBUG_MPI_RANK
+		cout<<"[MessagesHandler] mini-rank # "<<i<<" has outbox messages"<<endl;
+		#endif
 
-		core->unlockOutbox();
+/*
+ * TODO: the RingAllocator outbox allocator is not thread safe -- the MessagesHandler should 
+ * have its own outbox allocator. Also, it is unclear at this point how the mini-rank should manage
+ * its buffers. Perhaps it should also use the RingAllocator, but without anything related to dirty
+ * buffers, just a rotating staircase round robin strategy.
+ */
+		sendMessages_miniRanks(outbox,core->getBufferedOutboxAllocator(),miniRanksPerRank);
+
+		outbox->unlock();
 	}
-
 
 	#ifdef CONFIG_DEBUG_MPI_RANK
 	cout<<"[RankProcess::receiveMessages]"<<endl;
 	#endif
-
 
 /* 
  * Since all mini-ranks died, it is no longer necessasry to do
@@ -101,7 +100,7 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
  * in order to avoid the situation in which
  * all the buffer for the outbox are dirty/used.
  */
-void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator,
+void MessagesHandler::sendMessages_miniRanks(MessageQueue*outbox,RingAllocator*outboxBufferAllocator,
 	int miniRanksPerRank){
 
 	// initialize the dirty buffer counters
@@ -112,8 +111,10 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 	outboxBufferAllocator->cleanDirtyBuffers();
 
 	// send messages.
-	for(int i=0;i<(int)outbox->size();i++){
-		Message*aMessage=((*outbox)[i]);
+	while(outbox->hasContent()){
+		Message message;
+		Message*aMessage=&message;
+		outbox->pop(aMessage);
 
 		int miniRankDestination=aMessage->getDestination();
 		int miniRankSource=aMessage->getSource();
@@ -144,7 +145,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		memcpy(theBuffer,buffer,count*sizeof(MessageUnit));
 
 /*
- * store minirank information too.
+ * Store minirank information too at the end.
  */
 		theBuffer[count++]=miniRankSource;
 		theBuffer[count++]=miniRankDestination;
@@ -153,6 +154,9 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		cout<<"SEND Source= "<<miniRankSource<<" Destination= "<<miniRankDestination<<" Tag= "<<tag<<endl;
 		#endif /* CONFIG_DEBUG_MINI_RANK_COMMUNICATION */
 
+/*
+ * Register the buffer as being dirty.
+ */
 		MPI_Request*request=outboxBufferAllocator->registerBuffer(theBuffer);
 
 		#ifdef ASSERT
@@ -175,8 +179,6 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 		m_sentMessages++;
 	}
-
-	outbox->clear();
 }
 
 #ifdef CONFIG_COMM_PERSISTENT
@@ -245,36 +247,107 @@ void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAlloc
 
 void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank){
 
-	#if defined CONFIG_COMM_IPROBE_ROUND_ROBIN
+	// the code here will probe from rank source
+	// with MPI_Iprobe
 
-// round-robin reception seems to avoid starvation 
-/** round robin with Iprobe will increase the latency because there will be a lot of calls to
- MPI_Iprobe that yield no messages at all */
+	#ifdef COMMUNICATION_IS_VERBOSE
+	cout<<"call to probeAndRead source="<<source<<""<<endl;
+	#endif /* COMMUNICATION_IS_VERBOSE */
 
-	roundRobinReception(inbox,inboxAllocator);
+	int flag=0;
+	MPI_Status status;
+	int source=MPI_ANY_SOURCE;
+	int tag=MPI_ANY_TAG;
 
-	#elif defined CONFIG_COMM_PERSISTENT
+	MPI_Iprobe(source,tag,MPI_COMM_WORLD,&flag,&status);
 
-	// use persistent communication
-	pumpMessageFromPersistentRing(inbox,inboxAllocator);
+	// nothing to receive...
+	if(!flag)
+		return;
 
-	#elif defined CONFIG_COMM_IPROBE_ANY_SOURCE
+/* read at most one message */
 
-	// receive any message
-	// it is assumed that MPI is fair
-	// otherwise there may be some starvation
+	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
+	int actualTag=status.MPI_TAG;
+	Rank actualSource=status.MPI_SOURCE;
+	int count=-1;
+	MPI_Get_count(&status,datatype,&count);
 
-	probeAndRead(MPI_ANY_SOURCE,MPI_ANY_TAG,cores,miniRanksPerRank);
-
-	#elif defined CONFIG_COMM_IRECV_TESTANY
-
-	receiveMessages_irecv_testany(inbox,inboxAllocator);
-
-	#else
-
-	#error "No communication model is selected."
-
+	#ifdef ASSERT
+	assert(count >= 0);
+	assert(count >= 2);// we need mini-rank numbers !
 	#endif
+
+/*
+ * We need a temporary buffer because we don't know yet 
+ * for which mini-rank the message is for.
+ */
+	MessageUnit staticBuffer[MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)+2];
+
+	MPI_Recv(staticBuffer,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
+
+/*
+ * Get the mini-rank source and mini-rank destination.
+ */
+	int miniRankSource=staticBuffer[count-2];
+	int miniRankDestination=staticBuffer[count-1];
+
+	#ifdef CONFIG_DEBUG_MINI_RANK_COMMUNICATION
+	cout<<"RECEIVE Source= "<<miniRankSource<<" Destination= "<<miniRankDestination<<" Tag= "<<actualTag<<endl;
+	#endif /* CONFIG_DEBUG_MINI_RANK_COMMUNICATION */
+
+	count-=2;
+
+	int miniRankIndex=miniRankDestination%miniRanksPerRank;
+
+	#ifdef CONFIG_DEBUG_MPI_RANK
+	cout<<"[MessagesHandler::probeAndRead] received message from "<<miniRanksPerRank<<" to "<<miniRankDestination;
+	cout<<" tag is "<<actualTag<<endl;
+	#endif
+
+	MessageUnit*incoming=NULL;
+
+	ComputeCore*core=cores[miniRankIndex];
+
+/*
+ * We can not receive a message if the inbox is not
+ * empty.
+ */
+
+	MessageQueue*inbox=core->getBufferedInbox();
+
+/*
+ * Lock the core and distribute the message.
+ */
+
+	#ifdef CONFIG_DEBUG_MPI_RANK
+	cout<<"Rank tries to lock the inbox of minirank # "<<miniRankIndex<<endl;
+	#endif
+
+	inbox->lock();
+
+	if(count > 0){
+		incoming=(MessageUnit*)core->getBufferedInboxAllocator()->allocate(count*sizeof(MessageUnit));
+
+		#ifdef ASSERT
+		assert(incoming!=NULL);
+		#endif
+
+		memcpy(incoming,staticBuffer,count*sizeof(MessageUnit));
+	}
+
+	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
+
+	inbox->push(&aMessage);
+	inbox->unlock();
+
+	#ifdef ASSERT
+	// this assertion is not valid for mini-ranks.
+	//assert(aMessage.getDestination() == m_rank);
+	#endif
+
+	m_receivedMessages++;
+
 }
 
 #ifdef CONFIG_COMM_IRECV_TESTANY
@@ -458,8 +531,6 @@ void MessagesHandler::roundRobinReception(StaticVector*inbox,RingAllocator*inbox
 void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	ComputeCore**cores,int miniRanksPerRank){
 
-	m_hasReceivedMessage=false;
-
 	// the code here will probe from rank source
 	// with MPI_Iprobe
 
@@ -474,8 +545,6 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	// nothing to receive...
 	if(!flag)
 		return;
-
-	m_hasReceivedMessage=true;
 
 	/* read at most one message */
 	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
@@ -515,30 +584,6 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 
 	ComputeCore*core=cores[miniRankIndex];
 
-	m_lastMiniRank=miniRankIndex;
-/*
- * We can not receive a message if the inbox is not
- * empty.
- */
-
-	core->lockInbox();
-
-	#ifdef ASSERT
-	if(core->getInbox()->size()!=0)
-		cout<<"Error: mini-rank # "<<miniRankIndex<<" inbox has "<<core->getInbox()->size()<<" messages."<<endl;
-
-	assert(core->getInbox()->size()==0);
-	#endif
-
-/*
- * Lock the core and distribute the message.
- */
-
-	#ifdef CONFIG_DEBUG_MPI_RANK
-	cout<<"Rank tries to lock the inbox of minirank # "<<miniRankIndex<<endl;
-	#endif
-
-
 	if(count > 0){
 		incoming=(MessageUnit*)core->getInboxAllocator()->allocate(count*sizeof(MessageUnit));
 
@@ -547,8 +592,6 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 
 	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
 	core->getInbox()->push_back(aMessage);
-
-	core->unlockInbox();
 
 	#ifdef ASSERT
 	// this assertion is not valid for mini-ranks.
@@ -709,10 +752,6 @@ int MessagesHandler::getSize(){
 	return m_size;
 }
 
-void MessagesHandler::barrier(){
-	MPI_Barrier(MPI_COMM_WORLD);
-}
-
 void MessagesHandler::version(int*a,int*b){
 	MPI_Get_version(a,b);
 }
@@ -827,11 +866,4 @@ void MessagesHandler::setConnections(vector<int>*connections){
 	m_peers=m_connections.size();
 }
 
-bool MessagesHandler::hasReceivedMessage(int*miniRank){
-	if(m_hasReceivedMessage){
-		*miniRank=m_lastMiniRank;
-	}
-
-	return m_hasReceivedMessage;
-}
 

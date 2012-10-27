@@ -234,13 +234,13 @@ public:
 /**
  *  send a message or more
  */
-	void sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator,int miniRanksPerRank);
+	void sendMessages_miniRanks(MessageQueue*outbox,RingAllocator*outboxBufferAllocator,int miniRanksPerRank);
 
 /**
  * receive one or zero message.
  * the others, if any, will be picked up in the next iteration
  */
-	void receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator,ComputeCore**miniRanks);
+	void receiveMessages_miniRanks(StaticVector*inbox,RingAllocator*inboxAllocator,ComputeCore**miniRanks);
 	void receiveMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank);
 
 	/** free the ring elements */
@@ -254,9 +254,6 @@ public:
 
 	/** get the number of ranks */
 	int getSize();
-
-	/** makes a barrier */
-	void barrier();
 
 	/** returns the version of the message passing interface standard that is available */
 	void version(int*a,int*b);
@@ -275,7 +272,6 @@ public:
 	void registerPlugin(ComputeCore*core);
 	void resolveSymbols(ComputeCore*core);
 
-	bool hasReceivedMessage(int*miniRank);
 };
 
 #endif /* _MessagesHandler */

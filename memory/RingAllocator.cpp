@@ -27,7 +27,7 @@
 #include <iostream>
 using namespace std;
 
-// #define CONFIG_RING_VERBOSE
+//#define CONFIG_RING_VERBOSE
 
 #define BUFFER_STATE_AVAILABLE 0x0
 #define BUFFER_STATE_DIRTY 0x1
@@ -38,7 +38,7 @@ using namespace std;
 void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 
 	#ifdef CONFIG_RING_VERBOSE
-	cout<<"[RingAllocator::constructor] "<<type<<endl;
+	cout<<"[RingAllocator::constructor] "<<type<<" this "<<hex<<this<<dec<<endl;
 	#endif
 
 	resetCount();
@@ -66,10 +66,21 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 	assert(m_numberOfBytes>0);
 	#endif /* ASSERT */
 
+	#ifdef ASSERT
+	assert(m_memory==NULL);
+	#endif
+
 	m_memory=(uint8_t*)__Malloc(sizeof(uint8_t)*m_numberOfBytes,m_type,show);
+
+	#ifdef ASSERT
+	assert(m_memory!=NULL);
+	#endif
+
 	m_bufferStates=(uint8_t*)__Malloc(m_chunks*sizeof(uint8_t),m_type,show);
 
+	#ifdef CONFIG_RING_VERBOSE
 	cout<<"[RingAllocator::constructor] memory= "<<(void*)m_memory<<endl;
+	#endif /* CONFIG_RING_VERBOSE */
 
 	for(int i=0;i<m_chunks;i++)
 		m_bufferStates[i]= BUFFER_STATE_AVAILABLE;
@@ -117,14 +128,30 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 
 }
 
-RingAllocator::RingAllocator(){}
+RingAllocator::RingAllocator(){
+
+	#if 0
+	cout<<"[RingAllocator::RingAllocator] "<<hex<<this<<dec<<endl;
+	#endif
+
+	m_memory=NULL;
+}
 
 /*
  * allocate a chunk of m_max bytes in constant time
  */
 void*RingAllocator::allocate(int a){
-	#ifdef ASSERT
+
 	m_count++;
+
+	#ifdef ASSERT
+	assert(m_chunks>0);
+	
+	if(m_memory==NULL)
+		cout<<"Error: you must call constructor() before calling allocate(), type="<<m_type<<" this "<<hex<<this<<dec<<endl;
+
+	assert(m_memory!=NULL);
+	
 	if(a>m_max){
 		cout<<"Request "<<a<<" but maximum is "<<m_max<<endl;
 	}
@@ -174,6 +201,10 @@ void*RingAllocator::allocate(int a){
 	if(m_current==m_chunks){
 		m_current=0;
 	}
+
+	#ifdef ASSERT
+	assert(address!=NULL);
+	#endif
 
 	return address;
 }

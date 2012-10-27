@@ -181,12 +181,8 @@ void ComputeCore::runVanilla(){
  * The outbox is cleared by the communication layer when it
  * picks up the messages.
  */
-	lockOutbox();
-
 	while(m_alive || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		
-		lockInbox();
-
 		// 1. receive the message (0 or 1 message is received)
 		// blazing fast, receives 0 or 1 message, never more, never less, other messages will wait for the next iteration !
 		receiveMessages(); 
@@ -199,18 +195,20 @@ void ComputeCore::runVanilla(){
 		// should be fast, but apparently call_RAY_SLAVE_MODE_EXTENSION is slowish sometimes...
 		processData();
 
-		unlockInbox();
-
 		// 4. send messages
 		// fast, sends at most 17 messages. In most case it is either 0 or 1 message.,..
 		sendMessages();
 	}
 
-	unlockOutbox();
-
 	#ifdef CONFIG_DEBUG_CORE
 	cout<<"m_alive= "<<m_alive<<endl;
 	#endif
+
+	if(m_miniRanksAreEnabled){
+		m_bufferedOutbox.lock();
+		m_bufferedOutbox.sendKillSignal();
+		m_bufferedOutbox.unlock();
+	}
 }
 
 /*
@@ -468,7 +466,19 @@ void ComputeCore::processMessages(){
 }
 
 void ComputeCore::sendMessages(){
+/*
+ * Don't do anything when there are no messages
+ * at all.
+ */
+	if(m_outbox.size()==0)
+		return;
 
+/*
+ * What follows is all the crap for checking some assertions and
+ * profiling events.
+ * The code that actually sends something is at the end
+ * of this method.
+ */
 	// assert that we did not overflow the ring
 	#ifdef ASSERT
 	if(m_outboxAllocator.getCount() > m_maximumAllocatedOutboxBuffers){
@@ -526,36 +536,24 @@ void ComputeCore::sendMessages(){
 	}
 
 	// finally, send the messages
-	//m_messagesHandler.sendMessages(&m_outbox,&m_outboxAllocator);
 
+	if(!m_miniRanksAreEnabled){
 /*
- * We need to wait for the communication thread to pull
- * the messages.
- *
- * Or, give the messages directly to the upstream object.
- *
- * Wait for the rank to pick up messages to be delivered.
- *
- * The problem is that if a mini-rank has nothing to send,
- * then 
+ * TODO: implement the old communication mode too.
  */
-	if(m_outbox.size()>0){
-		lockOutboxIsFull();
-		setOutboxIsFull(true);
-		unlockOutboxIsFull();
+		//m_messagesHandler.sendMessages(&m_outbox,&m_outboxAllocator);
+	}else{
+
+		m_bufferedOutbox.lock();
+		int messages=m_outbox.size();
+		for(int i=0;i<messages;i++){
+			Message*message=m_outbox[i];
+			m_bufferedOutbox.push(message);
+		}
+		m_bufferedOutbox.unlock();
 	}
 
-	bool wait=true;
-	while(wait){
-		unlockOutbox();
-
-		if(m_outbox.size()==0)
-			wait=false;
-		
-		lockOutbox();
-	}
-
-
+	m_outbox.clear();
 }
 
 void ComputeCore::addMessageChecksums(){
@@ -651,24 +649,23 @@ void ComputeCore::receiveMessages(){
 /* 
  * clear the inbox for the next iteration
  */
-	//m_inbox.clear();
+	m_inbox.clear();
 
-#if 0
-	#ifdef CONFIG_DEBUG_CORE
-	cout<<"Mini-rank # "<<m_rank<<" opens a small window for its inbox"<<endl;
-	#endif
+	if(!m_miniRanksAreEnabled){
+/*
+ * TODO: implement the old communication model.
+ */
+		//m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
+	}else{
 
-	unlockInbox();
-
-	#ifdef CONFIG_DEBUG_CORE
-	cout<<"Mini-rank # "<<m_rank<<" locks its inbox again"<<endl;
-	#endif
-
-	lockInbox();
-#endif
-
-	//m_inbox.clear();
-	//m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
+		m_bufferedInbox.lock();
+		if(m_bufferedInbox.hasContent()){
+			Message message;
+			m_bufferedInbox.pop(&message);
+			m_inbox.push_back(message);
+		}
+		m_bufferedInbox.unlock();
+	}
 
 	// verify checksums and remove them
 	if(m_doChecksum){
@@ -745,11 +742,17 @@ void ComputeCore::processData(){
 	m_inbox.clear();
 }
 
-void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int numberOfMiniRanks){
+void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks){
 
-
+	m_destroyed=false;
 
 	m_doChecksum=false;
+
+	m_miniRanksAreEnabled=useMiniRanks;
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"[ComputeCore::constructor] m_miniRanksAreEnabled= "<<m_miniRanksAreEnabled<<endl;
+	#endif
 
 	// checksum calculation is only tested
 	// for cases with sizeof(MessageUnit)>=4 bytes
@@ -761,16 +764,16 @@ void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int number
 
 	int match=0;
 
-	for(int i=0;i<(*argc);i++){
-		if(strcmp( ((*argv)[i]), verifyMessages) == match){
+	for(int i=0;i<(argc);i++){
+		if(strcmp( ((argv)[i]), verifyMessages) == match){
 			m_doChecksum=true;
-		}else if(strcmp( ((*argv)[i]),router) == match){
+		}else if(strcmp( ((argv)[i]),router) == match){
 			m_routerIsEnabled=true;
 		}
 	}
 
-	m_argumentCount=*argc;
-	m_argumentValues=*argv;
+	m_argumentCount=argc;
+	m_argumentValues=argv;
 
 	m_resolvedSymbols=false;
 
@@ -783,7 +786,6 @@ void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int number
 	srand(portableProcessId() * getMicroseconds());
 
 	m_alive=true;
-
 
 	m_runProfiler=false;
 	m_showCommunicationEvents=false;
@@ -833,18 +835,18 @@ void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int number
 	getInbox()->constructor(m_maximumNumberOfInboxMessages,"RAY_MALLOC_TYPE_INBOX_VECTOR",false);
 	getOutbox()->constructor(m_maximumNumberOfOutboxMessages,"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
 
+	if(m_miniRanksAreEnabled){
+		
+		getBufferedInbox()->constructor(m_maximumNumberOfOutboxMessages);
+		getBufferedOutbox()->constructor(m_maximumNumberOfOutboxMessages);
+	}
+
 	#ifdef CONFIG_DEBUG_CORE
 	cout<<"[ComputeCore] the inbox capacity is "<<m_maximumNumberOfInboxMessages<<" message"<<endl;
 	cout<<"[ComputeCore] the outbox capacity is "<<m_maximumNumberOfOutboxMessages<<" message"<<endl;
 	#endif
 
 	int maximumMessageSizeInByte=MAXIMUM_MESSAGE_SIZE_IN_BYTES;
-
-	bool useMiniRanks=false;
-
-	#ifdef CONFIG_MINI_RANKS
-	useMiniRanks=true;
-	#endif
 
 	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
@@ -866,6 +868,22 @@ void ComputeCore::constructor(int*argc,char***argv,int miniRankNumber,int number
 	m_outboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
+
+	if(m_miniRanksAreEnabled){
+
+		#if 0
+		cout<<"Building buffered inbox allocator."<<endl;
+		#endif
+
+		m_bufferedInboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
+			maximumMessageSizeInByte,
+			"RAY_MALLOC_TYPE_INBOX_ALLOCATOR/Buffered",false);
+
+		m_bufferedOutboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
+			maximumMessageSizeInByte,
+			"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR/Buffered",false);
+
+	}
 
 	#ifdef CONFIG_DEBUG_CORE
 	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
@@ -997,11 +1015,23 @@ void ComputeCore::registerDummyPlugin(){
 
 void ComputeCore::destructor(){
 
+	#if 0
+	cout<<"ComputeCore::destructor"<<endl;
+	#endif
+
+	if(m_destroyed)
+		return;
+
+	m_destroyed=true;
+
 	#ifdef CONFIG_DEBUG_CORE
 	cout<<"Rank "<<m_rank<<" is cleaning the inbox allocator."<<endl;
 	#endif
 
 	m_inboxAllocator.clear();
+
+	if(m_miniRanksAreEnabled)
+		m_bufferedInboxAllocator.clear();
 
 	#ifdef CONFIG_DEBUG_CORE
 	cout<<"Rank "<<m_rank<<" is cleaning the outbox allocator."<<endl;
@@ -1009,6 +1039,13 @@ void ComputeCore::destructor(){
 
 	m_outboxAllocator.clear();
 
+	if(m_miniRanksAreEnabled)
+		m_bufferedOutboxAllocator.clear();
+
+	if(m_miniRanksAreEnabled){
+		m_bufferedInbox.destructor();
+		m_bufferedOutbox.destructor();
+	}
 }
 
 void ComputeCore::stop(){
@@ -1799,74 +1836,6 @@ bool ComputeCore::hasFinished(){
 	return !alive;
 }
 
-void ComputeCore::initLock(){
-	pthread_spin_init(&m_lockForInbox,PTHREAD_PROCESS_PRIVATE);
-	pthread_spin_init(&m_lockForOutbox,PTHREAD_PROCESS_PRIVATE);
-	pthread_spin_init(&m_lockForOutboxIsFull,PTHREAD_PROCESS_PRIVATE);
-}
-
-void ComputeCore::destroyLock(){
-	pthread_spin_destroy(&m_lockForInbox);
-	pthread_spin_destroy(&m_lockForOutbox);
-	pthread_spin_destroy(&m_lockForOutboxIsFull);
-}
-
-void ComputeCore::lockInbox(){
-	#ifdef CONFIG_DEBUG_CORE
-	cout<<"lockInbox, please wait"<<endl;
-	#endif
-
-	pthread_spin_lock(&m_lockForInbox);
-
-	#ifdef CONFIG_DEBUG_CORE
-	cout<<"acquired lock."<<endl;
-	#endif
-
-}
-
-void ComputeCore::unlockInbox(){
-
-	#ifdef CONFIG_DEBUG_CORE
-	cout<<"unlockInbox"<<endl;
-	#endif
-
-	pthread_spin_unlock(&m_lockForInbox);
-}
-
-void ComputeCore::lockOutbox(){
-
-	#ifdef CONFIG_DEBUG_CORE
-	cout<<"lockOutbox"<<endl;
-	#endif
-
-	pthread_spin_lock(&m_lockForOutbox);
-}
-
-void ComputeCore::unlockOutbox(){
-
-	#ifdef CONFIG_DEBUG_CORE
-	cout<<"unlockOutbox"<<endl;
-	#endif
-
-	pthread_spin_unlock(&m_lockForOutbox);
-}
-
-void ComputeCore::lockOutboxIsFull(){
-	pthread_spin_lock(&m_lockForOutboxIsFull);
-}
-
-void ComputeCore::unlockOutboxIsFull(){
-	pthread_spin_unlock(&m_lockForOutboxIsFull);
-}
-
-bool ComputeCore::getOutboxIsFull(){
-	return m_outboxIsFull;
-}
-
-void ComputeCore::setOutboxIsFull(bool state){
-	m_outboxIsFull=state;
-}
-
 int ComputeCore::getRank(){
 	return m_rank;
 }
@@ -1875,5 +1844,18 @@ int ComputeCore::getSize(){
 	return m_size;
 }
 
+MessageQueue*ComputeCore::getBufferedInbox(){
+	return &m_bufferedInbox;
+}
 
+MessageQueue*ComputeCore::getBufferedOutbox(){
+	return &m_bufferedOutbox;
+}
 
+RingAllocator*ComputeCore::getBufferedOutboxAllocator(){
+	return &m_bufferedOutboxAllocator;
+}
+
+RingAllocator*ComputeCore::getBufferedInboxAllocator(){
+	return &m_bufferedInboxAllocator;
+}

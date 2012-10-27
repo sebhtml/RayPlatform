@@ -2,7 +2,7 @@
  	RayPlatform
     Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
-	http://DeNovoAssembler.SourceForge.Net/
+	http://github.com/sebhtml/RayPlatform
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -37,6 +37,7 @@
 #include <memory/RingAllocator.h>
 #include <scheduling/VirtualProcessor.h>
 #include <communication/VirtualCommunicator.h>
+#include <communication/MessageQueue.h>
 #include <plugins/CorePlugin.h>
 #include <plugins/RegisteredPlugin.h>
 #include "core/OperatingSystem.h"
@@ -63,11 +64,24 @@ using namespace std;
  */
 class ComputeCore{
 
-	bool m_outboxIsFull;
+/*
+ * In the legacy mode, RayPlatform will not
+ * spawn a thread for MPI and every MPI rank will do
+ * its own communication.
+ *
+ * If the legacy mode is disabled, each rank runs in 
+ * a thread (the mini-ranks) and one thread is used
+ * for MPI.
+ */
+	bool m_miniRanksAreEnabled;
+	bool m_destroyed;
 
-	pthread_spinlock_t m_lockForInbox;
-	pthread_spinlock_t m_lockForOutbox;
-	pthread_spinlock_t m_lockForOutboxIsFull;
+	MessageQueue m_bufferedInbox;
+	MessageQueue m_bufferedOutbox;
+	RingAllocator m_bufferedOutboxAllocator;
+	RingAllocator m_bufferedInboxAllocator;
+
+	bool m_outboxIsFull;
 
 	int m_argumentCount;
 	char**m_argumentValues;
@@ -208,7 +222,7 @@ public:
 	/** this is the main method */
 	void run();
 
-	void constructor(int*argc,char***argv,int miniRankNumber,int numberOfMiniRanks);
+	void constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks);
 
 	void enableProfiler();
 	void showCommunicationEvents();
@@ -226,6 +240,8 @@ public:
 
 	RingAllocator*getOutboxAllocator();
 	RingAllocator*getInboxAllocator();
+	RingAllocator*getBufferedOutboxAllocator();
+	RingAllocator*getBufferedInboxAllocator();
 
 	bool*getLife();
 
@@ -344,21 +360,12 @@ Not all master modes have yet been ported to that list.
 	int getNumberOfArguments();
 	char**getArgumentValues();
 
-	void lockInbox();
-	void unlockInbox();
-	void lockOutbox();
-	void unlockOutbox();
-	void unlockOutboxIsFull();
-	void lockOutboxIsFull();
-	void setOutboxIsFull(bool state);
-	bool getOutboxIsFull();
-
-	void initLock();
-	void destroyLock();
-
 	void setMiniRank(int miniRank,int numberOfMiniRanks);
 
 	bool hasFinished();
+
+	MessageQueue*getBufferedInbox();
+	MessageQueue*getBufferedOutbox();
 
 	int getRank();
 	int getSize();

@@ -30,6 +30,8 @@
  * any lock. Here, the design uses spinlocks.
  *
  * \author Sébastien Boisvert
+ *
+ * \see https://computing.llnl.gov/tutorials/pthreads/
  */
 class MiniRank{
 
