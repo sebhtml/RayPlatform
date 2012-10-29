@@ -125,6 +125,14 @@ using namespace std;
  */
 class MessagesHandler{
 
+#ifdef CONFIG_MINI_RANKS
+/*
+ * We need a temporary buffer because we don't know yet 
+ * for which mini-rank the message is for.
+ */
+	MessageUnit m_staticBuffer[MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)+2];
+#endif
+
 	bool m_hasReceivedMessage;
 	int m_lastMiniRank;
 

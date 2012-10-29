@@ -69,10 +69,12 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
 		#endif
 
 /*
- * TODO: the RingAllocator outbox allocator is not thread safe -- the MessagesHandler should 
+ * The RingAllocator outbox allocator is not thread safe -- the MessagesHandler should 
  * have its own outbox allocator. Also, it is unclear at this point how the mini-rank should manage
  * its buffers. Perhaps it should also use the RingAllocator, but without anything related to dirty
  * buffers, just a rotating staircase round robin strategy.
+ *
+ * Messages are sent using the buffer system of the mini-rank.
  */
 		sendMessages_miniRanks(outbox,core->getBufferedOutboxAllocator(),miniRanksPerRank);
 
@@ -147,6 +149,10 @@ void MessagesHandler::sendMessages_miniRanks(MessageQueue*outbox,RingAllocator*o
 		//assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
 		#endif /* ASSERT */
 
+/*
+ * It would obviously be better if the copy could be avoid 
+ * by using the original buffer directly.
+ */
 		MessageUnit*theBuffer=(MessageUnit*)outboxBufferAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 		memcpy(theBuffer,buffer,count*sizeof(MessageUnit));
 
@@ -271,7 +277,9 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	if(!flag)
 		return;
 
-/* read at most one message */
+/* 
+ * The code below reads at most one message.
+ */
 
 	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
 	int actualTag=status.MPI_TAG;
@@ -284,19 +292,14 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	assert(count >= 2);// we need mini-rank numbers !
 	#endif
 
-/*
- * We need a temporary buffer because we don't know yet 
- * for which mini-rank the message is for.
- */
-	MessageUnit staticBuffer[MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)+2];
 
-	MPI_Recv(staticBuffer,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
+	MPI_Recv(m_staticBuffer,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
 
 /*
  * Get the mini-rank source and mini-rank destination.
  */
-	int miniRankSource=staticBuffer[count-2];
-	int miniRankDestination=staticBuffer[count-1];
+	int miniRankSource=m_staticBuffer[count-2];
+	int miniRankDestination=m_staticBuffer[count-1];
 
 	#ifdef CONFIG_DEBUG_MINI_RANK_COMMUNICATION
 	cout<<"RECEIVE Source= "<<miniRankSource<<" Destination= "<<miniRankDestination<<" Tag= "<<actualTag<<endl;
@@ -318,6 +321,8 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 /*
  * We can not receive a message if the inbox is not
  * empty.
+ * Update: this is not true because we push the message
+ * directly in a MessageQueue.
  */
 
 	MessageQueue*inbox=core->getBufferedInbox();
@@ -341,7 +346,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 		assert(incoming!=NULL);
 		#endif
 
-		memcpy(incoming,staticBuffer,count*sizeof(MessageUnit));
+		memcpy(incoming,m_staticBuffer,count*sizeof(MessageUnit));
 	}
 
 	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);

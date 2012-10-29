@@ -101,6 +101,8 @@ bool MessageQueue::push(Message*message){
 /*
  * Publish the change to other threads.
  * This must be atomic.
+ * Instructions must be executed in-order otherwise,
+ * m_tailForPushOperations will publish a draft of the message.
  */
 	m_tailForPushOperations=nextTail; // likely atomic if sizeof(SystemBus) >= 32 bits
 
@@ -133,6 +135,8 @@ bool MessageQueue::pop(Message*message){
 	
 /*
  * Publish the change.
+ * Instructions must be executed in-order otherwise,
+ * m_tailForPushOperations will publish a draft of the message.
  */
 	m_headForPopOperations=nextHead; // likely atomic if sizeof(SystemBus) >= 32 bits
 

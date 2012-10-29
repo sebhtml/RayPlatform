@@ -372,6 +372,11 @@ void RingAllocator::cleanDirtyBuffers(){
 
 	// update the dirty buffer list.
 	for(int i=0;i<m_dirtyBufferSlots;i++){
+
+/*
+ * All buffer are clean now, it is useless to look
+ * for more dirtiness.
+ */
 		if(m_numberOfDirtyBuffers==0)
 			return;
 

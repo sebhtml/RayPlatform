@@ -557,6 +557,11 @@ void ComputeCore::sendMessages(){
 #endif /* CONFIG_USE_LOCKING */
 
 		int messages=m_outbox.size();
+
+/*
+ * TODO: I am not sure that it is safe to give our own buffer to
+ * the other thread...
+ */
 		for(int i=0;i<messages;i++){
 			Message*message=m_outbox[i];
 			m_bufferedOutbox.push(message);
@@ -677,6 +682,10 @@ void ComputeCore::receiveMessages(){
 		m_bufferedInbox.lock();
 #endif /* CONFIG_USE_LOCKING */
 
+/*
+ * TODO: we need to copy the buffer in our own buffer here
+ * because otherwise this is not thread safe.
+ */
 		if(m_bufferedInbox.hasContent()){
 			Message message;
 			m_bufferedInbox.pop(&message);
