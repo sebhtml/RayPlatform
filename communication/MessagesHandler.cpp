@@ -50,13 +50,17 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
 		ComputeCore*core=cores[i];
 		MessageQueue*outbox=core->getBufferedOutbox();
 
+#ifdef CONFIG_USE_LOCKING
 		outbox->lock();
+#endif /* CONFIG_USE_LOCKING */
 
 		if(outbox->isDead())
 			deadMiniRanks++;
 
 		if(!outbox->hasContent()){
+#ifdef CONFIG_USE_LOCKING
 			outbox->unlock();
+#endif /* CONFIG_USE_LOCKING */
 			continue;
 		}
 
@@ -72,7 +76,9 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
  */
 		sendMessages_miniRanks(outbox,core->getBufferedOutboxAllocator(),miniRanksPerRank);
 
+#ifdef CONFIG_USE_LOCKING
 		outbox->unlock();
+#endif /* CONFIG_USE_LOCKING */
 	}
 
 	#ifdef CONFIG_DEBUG_MPI_RANK
@@ -316,6 +322,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 
 	MessageQueue*inbox=core->getBufferedInbox();
 
+#ifdef CONFIG_USE_LOCKING
 /*
  * Lock the core and distribute the message.
  */
@@ -325,6 +332,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	#endif
 
 	inbox->lock();
+#endif /* CONFIG_USE_LOCKING */
 
 	if(count > 0){
 		incoming=(MessageUnit*)core->getBufferedInboxAllocator()->allocate(count*sizeof(MessageUnit));
@@ -339,7 +347,10 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
 
 	inbox->push(&aMessage);
+
+#ifdef CONFIG_USE_LOCKING
 	inbox->unlock();
+#endif /* CONFIG_USE_LOCKING */
 
 	#ifdef ASSERT
 	// this assertion is not valid for mini-ranks.

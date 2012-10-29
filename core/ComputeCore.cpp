@@ -205,9 +205,15 @@ void ComputeCore::runVanilla(){
 	#endif
 
 	if(m_miniRanksAreEnabled){
+#ifdef CONFIG_USE_LOCKING
 		m_bufferedOutbox.lock();
+#endif /* CONFIG_USE_LOCKING */
+
 		m_bufferedOutbox.sendKillSignal();
+
+#ifdef CONFIG_USE_LOCKING
 		m_bufferedOutbox.unlock();
+#endif /* CONFIG_USE_LOCKING */
 	}
 }
 
@@ -542,15 +548,23 @@ void ComputeCore::sendMessages(){
  * TODO: implement the old communication mode too.
  */
 		//m_messagesHandler.sendMessages(&m_outbox,&m_outboxAllocator);
+
+		cout<<"Error: not implemented !"<<endl;
 	}else{
 
+#ifdef CONFIG_USE_LOCKING
 		m_bufferedOutbox.lock();
+#endif /* CONFIG_USE_LOCKING */
+
 		int messages=m_outbox.size();
 		for(int i=0;i<messages;i++){
 			Message*message=m_outbox[i];
 			m_bufferedOutbox.push(message);
 		}
+
+#ifdef CONFIG_USE_LOCKING
 		m_bufferedOutbox.unlock();
+#endif /* CONFIG_USE_LOCKING */
 	}
 
 	m_outbox.clear();
@@ -655,16 +669,23 @@ void ComputeCore::receiveMessages(){
 /*
  * TODO: implement the old communication model.
  */
+		cout<<"Error: not implemented !"<<endl;
 		//m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
 	}else{
 
+#ifdef CONFIG_USE_LOCKING
 		m_bufferedInbox.lock();
+#endif /* CONFIG_USE_LOCKING */
+
 		if(m_bufferedInbox.hasContent()){
 			Message message;
 			m_bufferedInbox.pop(&message);
 			m_inbox.push_back(message);
 		}
+
+#ifdef CONFIG_USE_LOCKING
 		m_bufferedInbox.unlock();
+#endif /* CONFIG_USE_LOCKING */
 	}
 
 	// verify checksums and remove them

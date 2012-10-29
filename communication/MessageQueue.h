@@ -22,9 +22,26 @@
 #ifndef _MessageQueue_h
 #define _MessageQueue_h
 
-#include <pthread.h>
 #include <communication/Message.h>
 #include <memory/allocator.h> /* for __Malloc and __Free */
+
+/*
+ * For uint32_t
+ * Heck, even Microsoft provides this, at least in MSVC 2010.
+ *
+ * \see http://stackoverflow.com/questions/126279/c99-stdint-h-header-and-ms-visual-studio
+ */
+#include <stdint.h>
+
+//#define CONFIG_USE_LOCKING
+//#define CONFIG_USE_MUTEX
+//#define CONFIG_USE_SPINLOCK
+
+#ifdef CONFIG_USE_LOCKING
+#if defined(CONFIG_USE_MUTEX) || defined(CONFIG_USE_SPINLOCK)
+#include <pthread.h>
+#endif
+#endif /* CONFIG_USE_LOCKING */
 
 /**
  * \brief This is a message queue as its name implies.
@@ -77,7 +94,7 @@
  * for the RingAllocator objects. Clearly, it is the RankProcess object because MiniRank are
  * not allowed to call MPI.
  *
- *   tail                  head
+ *   head		tail
  *   pop here         push here
  *    *                    *
  *   --->                 --->
@@ -86,32 +103,65 @@
  *
  * \author Élénie Godzaridis (design)
  * \author Sébastien Boisvert (programming & design)
+ *
+ * \see http://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular
+ *
+ * There is also a Ph.D. thesis by Yi Zhang in 2003 about non-blocking algorithms:
+ *
+ * \see http://www.cse.chalmers.se/~tsigas/papers/Yi-Thesis.pdf
  */
 class MessageQueue{
 
-	pthread_spinlock_t m_spinlock;
+#ifdef CONFIG_USE_LOCKING
+
+#if defined(CONFIG_USE_MUTEX)
+	pthread_mutex_t m_lock;
+#elif defined(CONFIG_USE_SPINLOCK)
+	pthread_spinlock_t m_lock;
+#endif /* CONFIG_USE_SPINLOCK */
+
+#endif /* CONFIG_USE_LOCKING */
 
 	Message*m_ring;
-	int m_size;
-	int m_headForPushOperations;
-	int m_tailForPopOperations;
-	int m_numberOfMessages;
+	uint32_t m_size;
+
+/*
+ * The volatile keyword means:
+ *
+ * " Generally speaking, the volatile keyword is intended to prevent the compiler from applying any 
+ * optimizations on the code that assume values of variables cannot change "on their own."
+ *
+ * This is necessary to tell the compiler to avoid any reordering of instructions for this
+ * variable.
+ *
+ * \see http://en.wikipedia.org/wiki/Volatile_variable
+ */
+	volatile uint32_t m_headForPopOperations;
+	volatile uint32_t m_tailForPushOperations;
 
 	bool m_dead;
+
+	uint32_t increment(uint32_t index);
+
 public:
 
-	void constructor(int bins);
-	void push(Message*message);
-	void pop(Message*message);
+	void constructor(uint32_t bins);
+
+	bool push(Message*message);
+	bool pop(Message*message);
+
 	void destructor();
 	bool hasContent();
+
+#ifdef CONFIG_USE_LOCKING
 	void lock();
+	void tryLock();
 	void unlock();
+#endif /* CONFIG_USE_LOCKING */
 
 	void sendKillSignal();
 	bool isDead();
 	bool isFull();
-	
 };
 
 #endif /* _MessageQueue_h */
