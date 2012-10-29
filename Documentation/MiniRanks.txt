@@ -305,3 +305,25 @@ The plugin code only know about mini-ranks. So the plugin code is portable.
       mini-rank 55 (addr [7,6], 1 pthread)
 
 
+2012-10-29 GMT -4:00
+
+The secret sauce is about synchronization.
+
+This 2003 Ph.D. thesis pretty much summarizes the state-of-the-art (in 2003).
+
+  http://www.cse.chalmers.se/~tsigas/papers/Yi-Thesis.pdf
+
+
+As a starting point, there is a lot of explanations on this project, with associated code
+in the public domain.
+
+  http://www.codeproject.com/Articles/43510/Lock-Free-Single-Producer-Single-Consumer-Circular
+
+
+The future of high-performance computing is with lockless non-blocking distributed algorithms.
+
+- lockless => choose atomic operations over locks;
+- non-blocking => choose trylock over lock
+- distributed => choose message passing over shared structures
+
+
