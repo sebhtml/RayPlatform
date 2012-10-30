@@ -882,4 +882,214 @@ void MessagesHandler::setConnections(vector<int>*connections){
 	m_peers=m_connections.size();
 }
 
+/*
+ * send messages,
+ *
+ * Regarding m_dirtyBufferSlots:
+ *
+ * this is the maximum number of dirty buffers
+ * it should be at least the number of allocated
+ * buffer in a RayPlatform virtual machine tick.
+ *
+ * For very large jobs, this might need to be increased
+ * in order to avoid the situation in which
+ * all the buffer for the outbox are dirty/used.
+ */
+void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator){
+
+	// initialize the dirty buffer counters
+	// this is done only once
+	if(outboxBufferAllocator->getDirtyBuffers()==NULL)
+		outboxBufferAllocator->initializeDirtyBuffers();
+
+	outboxBufferAllocator->cleanDirtyBuffers();
+
+	// send messages.
+	for(int i=0;i<(int)outbox->size();i++){
+		Message*aMessage=((*outbox)[i]);
+		Rank destination=aMessage->getDestination();
+		void*buffer=aMessage->getBuffer();
+		int count=aMessage->getCount();
+		MessageTag tag=aMessage->getTag();
+
+		#ifdef ASSERT
+		assert(destination>=0);
+		if(destination>=m_size){
+			cout<<"Tag="<<tag<<" Destination="<<destination<<endl;
+		}
+		assert(destination<m_size);
+		assert(!(buffer==NULL && count>0));
+
+		// this assertion is invalid when using checksum calculation.
+		//assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
+		#endif /* ASSERT */
+
+		MPI_Request dummyRequest;
+
+		MPI_Request*request=&dummyRequest;
+
+		int handle=-1;
+
+		/* compute the handle, this is O(1) */
+		if(buffer!=NULL)
+			handle=outboxBufferAllocator->getBufferHandle(buffer);
+
+		bool mustRegister=false;
+
+		// this buffer is not registered.
+		if(handle >=0 && !outboxBufferAllocator->isRegistered(handle))
+			mustRegister=true;
+
+		/* register the buffer for processing */
+		if(mustRegister){
+			request=outboxBufferAllocator->registerBuffer(buffer);
+		}
+
+		#ifdef ASSERT
+		assert(request!=NULL);
+		#endif
+
+		//  MPI_Isend
+		//      Synchronous nonblocking. 
+		MPI_Isend(buffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
+
+		// if the buffer is NULL, we free the request right now
+		// because we there is no buffer to protect.
+
+		if(!mustRegister){
+			#ifdef COMMUNICATION_IS_VERBOSE
+			cout<<" From sendMessages"<<endl;
+			#endif
+
+			MPI_Request_free(request);
+
+			#ifdef ASSERT
+			assert(*request==MPI_REQUEST_NULL);
+			#endif
+		}
+
+		#if 0
+		// if the message was re-routed, we don't care
+		// we only fetch the tag for statistics
+		uint8_t shortTag=tag;
+
+		/** update statistics */
+		m_messageStatistics[destination*RAY_MPI_TAG_DUMMY+shortTag]++;
+
+		#endif
+
+		m_sentMessages++;
+	}
+
+	outbox->clear();
+}
+
+
+void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator){
+	// the code here will probe from rank source
+	// with MPI_Iprobe
+
+	#ifdef COMMUNICATION_IS_VERBOSE
+	cout<<"call to probeAndRead source="<<source<<""<<endl;
+	#endif /* COMMUNICATION_IS_VERBOSE */
+	
+	int source=MPI_ANY_SOURCE;
+	int tag=MPI_ANY_TAG;
+
+	int flag=0;
+	MPI_Status status;
+	MPI_Iprobe(source,tag,MPI_COMM_WORLD,&flag,&status);
+
+	// nothing to receive...
+	if(!flag)
+		return;
+
+	/* read at most one message */
+	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
+	int actualTag=status.MPI_TAG;
+	Rank actualSource=status.MPI_SOURCE;
+	int count=-1;
+	MPI_Get_count(&status,datatype,&count);
+
+	#ifdef ASSERT
+	assert(count >= 0);
+	#endif
+
+	MessageUnit*incoming=NULL;
+	if(count > 0){
+		incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
+	}
+
+	MPI_Recv(incoming,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
+
+	Message aMessage(incoming,count,m_rank,actualTag,actualSource);
+	inbox->push_back(aMessage);
+
+	#ifdef ASSERT
+	assert(aMessage.getDestination() == m_rank);
+	#endif
+
+	m_receivedMessages++;
+
+}
+
+void MessagesHandler::sendMessagesForComputeCore(StaticVector*outbox,MessageQueue*bufferedOutbox){
+
+#ifdef CONFIG_USE_LOCKING
+	bufferedOutbox.lock();
+#endif /* CONFIG_USE_LOCKING */
+
+	int messages=outbox->size();
+
+/*
+ * TODO: I am not sure that it is safe to give our own buffer to
+ * the other thread. If the ring is large enough and the communication.
+ */
+	for(int i=0;i<messages;i++){
+		Message*message=(*outbox)[i];
+		bufferedOutbox->push(message);
+	}
+
+#ifdef CONFIG_USE_LOCKING
+	bufferedOutbox->unlock();
+#endif /* CONFIG_USE_LOCKING */
+
+}
+
+void MessagesHandler::receiveMessagesForComputeCore(StaticVector*inbox,RingAllocator*inboxAllocator,
+	MessageQueue*bufferedInbox){
+
+#ifdef CONFIG_USE_LOCKING
+	bufferedInbox->lock();
+#endif /* CONFIG_USE_LOCKING */
+
+/*
+ * We need to copy the buffer in our own buffer here
+ * because otherwise this is not thread safe.
+ */
+	if(bufferedInbox->hasContent()){
+		Message message;
+		bufferedInbox->pop(&message);
+
+		int count=message.getCount();
+		MessageUnit*incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
+
+/*
+ * Copy the data, this is slow. 
+ */
+		memcpy(incoming,message.getBuffer(),count*sizeof(MessageUnit));
+
+/*
+ * Update the buffer so that the code is thread-safe.
+ */
+		message.setBuffer(incoming);
+
+		inbox->push_back(message);
+	}
+
+#ifdef CONFIG_USE_LOCKING
+	m_bufferedInbox.unlock();
+#endif /* CONFIG_USE_LOCKING */
+
+}
 

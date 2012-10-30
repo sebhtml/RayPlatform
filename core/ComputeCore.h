@@ -41,6 +41,7 @@
 #include <plugins/CorePlugin.h>
 #include <plugins/RegisteredPlugin.h>
 #include "core/OperatingSystem.h"
+#include "communication/MessagesHandler.h"
 
 /*
  * For the runtime configuration parameters.
@@ -63,6 +64,12 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class ComputeCore{
+
+/*
+ * This is the middleware communication layer.
+ * All messages go through it.
+ */
+	MessagesHandler*m_messagesHandler;
 
 /*
  * In the legacy mode, RayPlatform will not
@@ -222,7 +229,8 @@ public:
 	/** this is the main method */
 	void run();
 
-	void constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks);
+	void constructor(int*argc,char***argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks,
+		MessagesHandler*messagesHandler);
 
 	void enableProfiler();
 	void showCommunicationEvents();

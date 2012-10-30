@@ -308,6 +308,15 @@ void RingAllocator::initializeDirtyBuffers(){
 
 }
 
+/*
+ * Take the handle of a buffer and check
+ * if the buffer is registered already.
+ */
+bool RingAllocator::isRegistered(int handle){
+
+	return m_dirtyBuffers[handle].m_buffer!=NULL;
+}
+
 DirtyBuffer*RingAllocator::getDirtyBuffers(){
 	return m_dirtyBuffers;
 }

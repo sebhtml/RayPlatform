@@ -45,8 +45,8 @@ void RankProcess::constructor(int numberOfMiniRanksPerRank,int*argc,char***argv)
 	m_numberOfInstalledMiniRanks=0;
 
 	m_messagesHandler.constructor(argc,argv);
-	m_argc=*argc;
-	m_argv=*argv;
+	m_argc=argc;
+	m_argv=argv;
 
 	m_rank=m_messagesHandler.getRank();
 	m_numberOfRanks=m_messagesHandler.getSize();
@@ -92,12 +92,28 @@ void RankProcess::run(){
 
 	bool useMiniRanks=m_numberOfMiniRanksPerRank>1;
 
+	if(useMiniRanks){
+		startMiniRanks();
+	}else{
+		startMiniRank();
+	}
+
+	#ifdef CONFIG_DEBUG_MPI_RANK
+	cout<<"All mini-ranks are dead."<<endl;
+	#endif
+
+	for(int i=0;i<m_numberOfInstalledMiniRanks;i++)
+		m_cores[i]->destructor();
+
+	destructor();
+}
+
+void RankProcess::startMiniRanks(){
 	int miniRankNumber=m_messagesHandler.getRank()*m_numberOfMiniRanksPerRank;
 	int numberOfMiniRanks=m_messagesHandler.getSize()*m_numberOfMiniRanksPerRank;
 
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
-
-		m_cores[i]->constructor(m_argc,m_argv,miniRankNumber+i,numberOfMiniRanks,useMiniRanks);
+		m_cores[i]->constructor(m_argc,m_argv,miniRankNumber+i,numberOfMiniRanks,true,&m_messagesHandler);
 	}
 
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
@@ -132,14 +148,6 @@ void RankProcess::run(){
 		sendMessages();
 	}
 
-	#ifdef CONFIG_DEBUG_MPI_RANK
-	cout<<"All mini-ranks are dead."<<endl;
-	#endif
-
-	for(int i=0;i<m_numberOfInstalledMiniRanks;i++)
-		m_cores[i]->destructor();
-
-	destructor();
 }
 
 void RankProcess::destructor(){
@@ -165,4 +173,14 @@ void RankProcess::sendMessages(){
 	m_messagesHandler.sendMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank,&m_communicate);
 }
 
+void RankProcess::startMiniRank(){
+
+	int mpiRank=m_messagesHandler.getRank();
+	int numberOfMPIRanks=m_messagesHandler.getSize();
+	int miniRankIndex=0;
+
+	m_cores[miniRankIndex]->constructor(m_argc,m_argv,mpiRank,numberOfMPIRanks,false,&m_messagesHandler);
+
+	m_miniRanks[miniRankIndex]->run();
+}
 

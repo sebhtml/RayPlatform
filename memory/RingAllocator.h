@@ -134,6 +134,8 @@ public:
 	MPI_Request*registerBuffer(void*buffer);
 
 	void printStatus();
+
+	bool isRegistered(int handle);
 };
 
 

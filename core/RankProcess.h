@@ -24,6 +24,7 @@
 #define _RankProcess_h
 
 #include "communication/MessagesHandler.h"
+#include "core/MiniRank.h"
 
 #define MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK 64
 
@@ -35,8 +36,8 @@
  */
 class RankProcess{
 
-	int m_argc;
-	char**m_argv;
+	int*m_argc;
+	char***m_argv;
 
 	bool m_communicate;
 
@@ -71,6 +72,10 @@ class RankProcess{
 
 	void sendMessages();
 	void receiveMessages();
+
+	void startMiniRanks();
+	void startMiniRank();
+
 public:
 	void constructor(int numberOfMiniRanksPerRank,int*argc,char***argv);
 	void addMiniRank(MiniRank*miniRank);

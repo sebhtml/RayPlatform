@@ -79,12 +79,11 @@
 
 #include <memory/MyAllocator.h>
 #include <communication/Message.h>
-//#include <core/common_functions.h>
 #include <memory/RingAllocator.h>
 #include <structures/StaticVector.h>
-#include "core/MiniRank.h"
 
 class ComputeCore;
+class MessageQueue;
 
 #include <string>
 #include <vector>
@@ -242,6 +241,18 @@ public:
 /**
  *  send a message or more
  */
+	void sendMessages(StaticVector*outbox,RingAllocator*outboxBufferAllocator);
+
+/**
+ * receive one or zero message.
+ * the others, if any, will be picked up in the next iteration
+ */
+	void receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator);
+
+
+/**
+ *  send a message or more
+ */
 	void sendMessages_miniRanks(MessageQueue*outbox,RingAllocator*outboxBufferAllocator,int miniRanksPerRank);
 
 /**
@@ -280,6 +291,14 @@ public:
 	void registerPlugin(ComputeCore*core);
 	void resolveSymbols(ComputeCore*core);
 
+/*
+ * Services provided to the ComputeCore.
+ */
+
+	void sendMessagesForComputeCore(StaticVector*outbox,MessageQueue*bufferedOutbox);
+
+	void receiveMessagesForComputeCore(StaticVector*inbox,RingAllocator*inboxAllocator,
+		MessageQueue*bufferedOutbox);
 };
 
 #endif /* _MessagesHandler */

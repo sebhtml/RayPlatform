@@ -29,6 +29,8 @@
 #include <assert.h>
 #endif
 
+#include "communication/MessagesHandler.h"
+
 #include <iostream>
 using namespace std;
 
@@ -472,12 +474,6 @@ void ComputeCore::processMessages(){
 }
 
 void ComputeCore::sendMessages(){
-/*
- * Don't do anything when there are no messages
- * at all.
- */
-	if(m_outbox.size()==0)
-		return;
 
 /*
  * What follows is all the crap for checking some assertions and
@@ -495,6 +491,7 @@ void ComputeCore::sendMessages(){
 	}
 
 	assert(m_outboxAllocator.getCount()<=m_maximumAllocatedOutboxBuffers);
+
 	m_outboxAllocator.resetCount();
 	int messagesToSend=m_outbox.size();
 	if(messagesToSend>m_maximumNumberOfOutboxMessages){
@@ -514,6 +511,16 @@ void ComputeCore::sendMessages(){
 	}
 
 	#endif
+
+/*
+ * Don't do anything when there are no messages
+ * at all.
+ * This statement needs to be after the ifdef ASSERT above
+ * otherwise the no resetCount call is performed on the 
+ * allocator, which will produce a run-time error.
+ */
+	if(m_outbox.size()==0)
+		return;
 
 	// route messages if the router is enabled
 	if(m_routerIsEnabled){
@@ -545,31 +552,12 @@ void ComputeCore::sendMessages(){
 
 	if(!m_miniRanksAreEnabled){
 /*
- * TODO: implement the old communication mode too.
+ * Implement the old communication mode too.
  */
-		//m_messagesHandler.sendMessages(&m_outbox,&m_outboxAllocator);
-
-		cout<<"Error: not implemented !"<<endl;
+		m_messagesHandler->sendMessages(&m_outbox,&m_outboxAllocator);
 	}else{
 
-#ifdef CONFIG_USE_LOCKING
-		m_bufferedOutbox.lock();
-#endif /* CONFIG_USE_LOCKING */
-
-		int messages=m_outbox.size();
-
-/*
- * TODO: I am not sure that it is safe to give our own buffer to
- * the other thread...
- */
-		for(int i=0;i<messages;i++){
-			Message*message=m_outbox[i];
-			m_bufferedOutbox.push(message);
-		}
-
-#ifdef CONFIG_USE_LOCKING
-		m_bufferedOutbox.unlock();
-#endif /* CONFIG_USE_LOCKING */
+		m_messagesHandler->sendMessagesForComputeCore(&m_outbox,&m_bufferedOutbox);
 	}
 
 	m_outbox.clear();
@@ -672,29 +660,13 @@ void ComputeCore::receiveMessages(){
 
 	if(!m_miniRanksAreEnabled){
 /*
- * TODO: implement the old communication model.
+ * Implement the old communication model.
  */
-		cout<<"Error: not implemented !"<<endl;
-		//m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
+		m_messagesHandler->receiveMessages(&m_inbox,&m_inboxAllocator);
 	}else{
 
-#ifdef CONFIG_USE_LOCKING
-		m_bufferedInbox.lock();
-#endif /* CONFIG_USE_LOCKING */
+		m_messagesHandler->receiveMessagesForComputeCore(&m_inbox,&m_inboxAllocator,&m_bufferedInbox);
 
-/*
- * TODO: we need to copy the buffer in our own buffer here
- * because otherwise this is not thread safe.
- */
-		if(m_bufferedInbox.hasContent()){
-			Message message;
-			m_bufferedInbox.pop(&message);
-			m_inbox.push_back(message);
-		}
-
-#ifdef CONFIG_USE_LOCKING
-		m_bufferedInbox.unlock();
-#endif /* CONFIG_USE_LOCKING */
 	}
 
 	// verify checksums and remove them
@@ -772,7 +744,12 @@ void ComputeCore::processData(){
 	m_inbox.clear();
 }
 
-void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks){
+void ComputeCore::constructor(int*argcPointer,char***argvPointer,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks,
+		MessagesHandler*messagesHandler){
+
+	int argc=*argcPointer;
+	char**argv=*argvPointer;
+	m_messagesHandler=messagesHandler;
 
 	m_destroyed=false;
 
