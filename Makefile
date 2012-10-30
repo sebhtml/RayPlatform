@@ -3,7 +3,7 @@
 # based on http://www.ravnborg.org/kbuild/makefiles.html
 #
 
-VERSION = 5
+VERSION = 7
 PATCHLEVEL = 0
 SUBLEVEL = 0
 EXTRAVERSION = -devel
