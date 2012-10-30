@@ -745,10 +745,16 @@ void ComputeCore::constructor(int*argc,char***argv){
 	}
 
 	getInbox()->constructor(m_maximumNumberOfInboxMessages,"RAY_MALLOC_TYPE_INBOX_VECTOR",false);
+	
+	#if 0
 	cout<<"[ComputeCore] the inbox capacity is "<<m_maximumNumberOfInboxMessages<<" message"<<endl;
+	#endif
 
 	getOutbox()->constructor(m_maximumNumberOfOutboxMessages,"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
+
+	#if 0
 	cout<<"[ComputeCore] the outbox capacity is "<<m_maximumNumberOfOutboxMessages<<" message"<<endl;
+	#endif
 
 	int maximumMessageSizeInByte=MAXIMUM_MESSAGE_SIZE_IN_BYTES;
 
@@ -769,13 +775,17 @@ void ComputeCore::constructor(int*argc,char***argv){
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
 
+	#if 0
 	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
+	#endif
 
 	m_outboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
 
+	#if 0
 	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedOutboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for outbox messages"<<endl;
+	#endif
 
 	for(int i=0;i<MAXIMUM_NUMBER_OF_MASTER_HANDLERS;i++){
 		strcpy(MASTER_MODES[i],"UnnamedMasterMode");
