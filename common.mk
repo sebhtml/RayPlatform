@@ -40,7 +40,6 @@ obj-y += scheduling/SwitchMan.o
 # core
 obj-y += core/ComputeCore.o
 obj-y += core/MiniRank.o
-obj-y += core/RankProcess.o
 obj-y += core/slave_modes.o 
 obj-y += core/OperatingSystem.o
 obj-y += core/master_modes.o

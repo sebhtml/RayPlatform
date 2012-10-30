@@ -744,11 +744,9 @@ void ComputeCore::processData(){
 	m_inbox.clear();
 }
 
-void ComputeCore::constructor(int*argcPointer,char***argvPointer,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks,
+void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks,
 		MessagesHandler*messagesHandler){
 
-	int argc=*argcPointer;
-	char**argv=*argvPointer;
 	m_messagesHandler=messagesHandler;
 
 	m_destroyed=false;

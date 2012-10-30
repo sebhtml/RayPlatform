@@ -229,7 +229,7 @@ public:
 	/** this is the main method */
 	void run();
 
-	void constructor(int*argc,char***argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks,
+	void constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks,
 		MessagesHandler*messagesHandler);
 
 	void enableProfiler();
