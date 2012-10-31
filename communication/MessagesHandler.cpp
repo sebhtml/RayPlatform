@@ -202,10 +202,21 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 		cout<<"SEND Source= "<<miniRankSource<<" Destination= "<<miniRankDestination<<" Tag= "<<tag<<endl;
 		#endif /* CONFIG_DEBUG_MINI_RANK_COMMUNICATION */
 
+
+		MPI_Request dummyRequest;
+		MPI_Request*request=&dummyRequest;
+
+/*
+ * Check if the buffer is already registered.
+ */
+		int bufferHandle=outboxBufferAllocator->getBufferHandle(theBuffer);
+		bool registeredAlready=outboxBufferAllocator->isRegistered(bufferHandle);
 /*
  * Register the buffer as being dirty.
  */
-		MPI_Request*request=outboxBufferAllocator->registerBuffer(theBuffer);
+
+		if(!registeredAlready)
+			request=outboxBufferAllocator->registerBuffer(theBuffer);
 
 		#ifdef ASSERT
 		assert(request!=NULL);
@@ -224,6 +235,13 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 		/** update statistics */
 		m_messageStatistics[destination*RAY_MPI_TAG_DUMMY+shortTag]++;
 		#endif
+
+/*
+ * We can free the dummy request because the buffer is already registered.
+ * TODO: instead, there should be a reference count for each buffer.
+ */
+		if(registeredAlready)
+			MPI_Request_free(request);
 
 		m_sentMessages++;
 	}
