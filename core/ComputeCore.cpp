@@ -809,7 +809,7 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 	int availableBuffers=minimumNumberOfBuffers;
 
 	// even a message with a NULL buffer requires a buffer for routing
-	if(m_routerIsEnabled)
+	if(m_routerIsEnabled||useMiniRanks)
 		availableBuffers=m_size*2;
 
 	// this will occur when using the virtual router with a few processes
