@@ -38,23 +38,9 @@ There are 3 handler classes:
 - SlaveModeHandler
 
 
-This makes Ray (or any application using the Ray platform) modular.
+This makes Ray (or any application using the RayPlatform) modular.
 
 == MACROS ==
 
-__CreatePlugin	
-	declares a static pointer to a plugin
-
-__CreateMasterModeAdapter	
-	generates an implementation for an adapter
-
-__CreateSlaveModeAdapter
-	generates an implementation for an adapter
-
-__CreateMessageTagAdapter
-	generates an implementation for an adapter
-
-__BindPlugin
-	sets the value of the static pointer to the plugin
-
+see plugins.txt
 
