@@ -41,7 +41,7 @@ using namespace std;
 /**
  *
  */
-void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank,bool*communicate){
+void MessagesHandler::sendAndReceiveMessagesForRankProcess(ComputeCore**cores,int miniRanksPerRank,bool*communicate){
 
 	int deadMiniRanks=0;
 
@@ -57,13 +57,6 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
 		if(outbox->isDead())
 			deadMiniRanks++;
 
-		if(!outbox->hasContent()){
-#ifdef CONFIG_USE_LOCKING
-			outbox->unlock();
-#endif /* CONFIG_USE_LOCKING */
-			continue;
-		}
-
 		#ifdef CONFIG_DEBUG_MPI_RANK
 		cout<<"[MessagesHandler] mini-rank # "<<i<<" has outbox messages"<<endl;
 		#endif
@@ -76,11 +69,54 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
  *
  * Messages are sent using the buffer system of the mini-rank.
  */
-		sendMessages_miniRanks(outbox,core->getBufferedOutboxAllocator(),miniRanksPerRank);
+		if(outbox->hasContent()){
+			sendMessagesForMiniRank(outbox,core->getBufferedOutboxAllocator(),miniRanksPerRank);
+		}
 
 #ifdef CONFIG_USE_LOCKING
 		outbox->unlock();
 #endif /* CONFIG_USE_LOCKING */
+
+/*
+ * The message reception is interleaved
+ * with the send operations.
+ *
+ * This is the secret sauce of "mini-ranks" implementation in
+ * RayPlatform.
+ *
+ * The obvious model would be to do:
+ *
+ * while(1){
+ * 	receive();
+ * 	send();
+ * }
+ *
+ * However, receive() is O(1) because it receives at most 1 message
+ * during 1 single call.
+ *
+ * A call to send() requires a loop over all the mini-ranks. Therefore,
+ * send() is O(<number of cores>).
+ *
+ * The trick is therefore to do this instead:
+ *
+ * while(1){
+ * 	for each mini-rank)owever, receive() is O(1) because it receives at most 1 message
+ * 	during 1 single call.
+ *
+ * 	A call to send() requires a loop over all the mini-ranks. Therefore,
+ * 	send() is O(<number of cores>).
+ *
+ * 	The trick is therefore to do this instead:
+ *
+ * 	while(1){
+ * 		for(each mini-rank X){
+ * 			send message of mini-rank X
+ * 			receive()
+ * 		}
+ * 	}
+ *
+ */
+		receiveMessagesForMiniRanks(cores,miniRanksPerRank);
 	}
 
 	#ifdef CONFIG_DEBUG_MPI_RANK
@@ -108,7 +144,7 @@ void MessagesHandler::sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksP
  * in order to avoid the situation in which
  * all the buffer for the outbox are dirty/used.
  */
-void MessagesHandler::sendMessages_miniRanks(MessageQueue*outbox,RingAllocator*outboxBufferAllocator,
+void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*outboxBufferAllocator,
 	int miniRanksPerRank){
 
 	// initialize the dirty buffer counters

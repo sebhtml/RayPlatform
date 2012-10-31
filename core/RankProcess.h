@@ -83,9 +83,6 @@ class RankProcess{
  */
 	int m_numberOfMiniRanks;
 
-	void sendMessages();
-	void receiveMessages();
-
 	void startMiniRanks();
 	void startMiniRank();
 
@@ -264,9 +261,7 @@ void RankProcess<Application>::startMiniRanks(){
 
 	while(m_communicate){
 
-		receiveMessages();
-
-		sendMessages();
+		m_messagesHandler.sendAndReceiveMessagesForRankProcess(m_cores,m_numberOfInstalledMiniRanks,&m_communicate);
 	}
 
 }
@@ -285,22 +280,6 @@ void RankProcess<Application>::destructor(){
 template<class Application>
 MessagesHandler*RankProcess<Application>::getMessagesHandler(){
 	return &m_messagesHandler;
-}
-
-template<class Application>
-void RankProcess<Application>::receiveMessages(){
-
-	m_messagesHandler.receiveMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank);
-}
-
-template<class Application>
-void RankProcess<Application>::sendMessages(){
-
-	#ifdef CONFIG_DEBUG_MPI_RANK
-	cout<<"[RankProcess::sendMessages]"<<endl;
-	#endif
-
-	m_messagesHandler.sendMessagesForMiniRanks(m_cores,m_numberOfMiniRanksPerRank,&m_communicate);
 }
 
 template<class Application>

@@ -232,6 +232,17 @@ class MessagesHandler{
 	void createBuffers();
 
 
+/**
+ *  send a message or more
+ */
+	void sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*outboxBufferAllocator,int miniRanksPerRank);
+
+/**
+ * receive one or zero message.
+ * the others, if any, will be picked up in the next iteration
+ */
+	void receiveMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank);
+
 public:
 /** 
  * initialize the message handler
@@ -248,19 +259,6 @@ public:
  * the others, if any, will be picked up in the next iteration
  */
 	void receiveMessages(StaticVector*inbox,RingAllocator*inboxAllocator);
-
-
-/**
- *  send a message or more
- */
-	void sendMessages_miniRanks(MessageQueue*outbox,RingAllocator*outboxBufferAllocator,int miniRanksPerRank);
-
-/**
- * receive one or zero message.
- * the others, if any, will be picked up in the next iteration
- */
-	void receiveMessages_miniRanks(StaticVector*inbox,RingAllocator*inboxAllocator,ComputeCore**miniRanks);
-	void receiveMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank);
 
 	/** free the ring elements */
 	void freeLeftovers();
@@ -286,7 +284,7 @@ public:
 
 	void setConnections(vector<int>*connections);
 
-	void sendMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank,bool*communicate);
+	void sendAndReceiveMessagesForRankProcess(ComputeCore**cores,int miniRanksPerRank,bool*communicate);
 
 	void registerPlugin(ComputeCore*core);
 	void resolveSymbols(ComputeCore*core);
