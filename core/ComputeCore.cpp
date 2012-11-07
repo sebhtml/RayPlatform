@@ -744,9 +744,20 @@ void ComputeCore::processData(){
 	m_inbox.clear();
 }
 
-void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks,
+void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,int miniRanksPerRank,
 		MessagesHandler*messagesHandler){
 
+	#ifdef ASSERT
+	assert(miniRankNumber<numberOfMiniRanks);
+	assert(miniRanksPerRank<=numberOfMiniRanks);
+	assert(numberOfMiniRanks>=1);
+	assert(miniRanksPerRank>=1);
+	assert(miniRankNumber>=0);
+	#endif
+
+	bool useMiniRanks=miniRanksPerRank>1;
+
+	m_numberOfMiniRanksPerRank=miniRanksPerRank;
 	m_messagesHandler=messagesHandler;
 
 	m_destroyed=false;
@@ -1863,4 +1874,8 @@ RingAllocator*ComputeCore::getBufferedOutboxAllocator(){
 
 RingAllocator*ComputeCore::getBufferedInboxAllocator(){
 	return &m_bufferedInboxAllocator;
+}
+
+int ComputeCore::getMiniRanksPerRank(){
+	return m_numberOfMiniRanksPerRank;
 }

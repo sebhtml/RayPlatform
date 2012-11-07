@@ -81,6 +81,9 @@ class ComputeCore{
  * for MPI.
  */
 	bool m_miniRanksAreEnabled;
+
+	int m_numberOfMiniRanksPerRank;
+
 	bool m_destroyed;
 
 	MessageQueue m_bufferedInbox;
@@ -229,7 +232,7 @@ public:
 	/** this is the main method */
 	void run();
 
-	void constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,bool useMiniRanks,
+	void constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,int miniRanksPerRank,
 		MessagesHandler*messagesHandler);
 
 	void enableProfiler();
@@ -377,6 +380,8 @@ Not all master modes have yet been ported to that list.
 
 	int getRank();
 	int getSize();
+
+	int getMiniRanksPerRank();
 };
 
 #endif

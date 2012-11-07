@@ -231,7 +231,8 @@ void RankProcess<Application>::startMiniRanks(){
 	int numberOfMiniRanks=m_messagesHandler.getSize()*m_numberOfMiniRanksPerRank;
 
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
-		m_cores[i]->constructor(m_argc,m_argv,miniRankNumber+i,numberOfMiniRanks,true,&m_messagesHandler);
+		m_cores[i]->constructor(m_argc,m_argv,miniRankNumber+i,numberOfMiniRanks,
+			m_numberOfMiniRanksPerRank,&m_messagesHandler);
 	}
 
 	for(int i=0;i<m_numberOfInstalledMiniRanks;i++){
@@ -287,7 +288,8 @@ void RankProcess<Application>::startMiniRank(){
 
 	int miniRankIndex=0;
 
-	m_cores[miniRankIndex]->constructor(m_argc,m_argv,m_rank,m_numberOfRanks,false,&m_messagesHandler);
+	m_cores[miniRankIndex]->constructor(m_argc,m_argv,m_rank,m_numberOfRanks,
+		m_numberOfMiniRanksPerRank,&m_messagesHandler);
 
 	m_miniRanks[miniRankIndex]->run();
 }
