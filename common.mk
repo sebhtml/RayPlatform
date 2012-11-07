@@ -2,6 +2,7 @@ MPICXX = mpicxx
 AR = ar
 CXXFLAGS= -O3 -Wall -ansi
 RM = rm
+ECHO = echo
 
 #memory
 obj-y += memory/ReusableMemoryStore.o memory/MyAllocator.o memory/RingAllocator.o 

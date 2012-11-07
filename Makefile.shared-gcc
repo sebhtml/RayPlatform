@@ -1,7 +1,4 @@
 # author: Sébastien Boisvert
-#
-# based on http://www.ravnborg.org/kbuild/makefiles.html
-#
 
 include common.mk
 

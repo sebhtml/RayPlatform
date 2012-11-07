@@ -16,12 +16,15 @@ include common.mk
 all: libRayPlatform.a
 
 libRayPlatform.a: $(obj-y)
-	$(AR) rcs $@ $^
+	@$(ECHO) "  AR $@"
+	@$(AR) rcs $@ $^
 
 # inference rule
 %.o: %.cpp
-	$(MPICXX) $(CXXFLAGS) -D RAYPLATFORM_VERSION=\"$(RAYPLATFORM_VERSION)\" -I. -c -o $@ $<
+	@$(ECHO) "  CXX RayPlatform/$@"
+	@$(MPICXX) $(CXXFLAGS) -D RAYPLATFORM_VERSION=\"$(RAYPLATFORM_VERSION)\" -I. -c -o $@ $<
 
 clean:
-	$(RM) -f libRayPlatform.a $(obj-y)
+	@$(ECHO) CLEAN RayPlatform
+	@$(RM) -f libRayPlatform.a $(obj-y)
 
