@@ -1879,3 +1879,7 @@ RingAllocator*ComputeCore::getBufferedInboxAllocator(){
 int ComputeCore::getMiniRanksPerRank(){
 	return m_numberOfMiniRanksPerRank;
 }
+
+MessagesHandler*ComputeCore::getMessagesHandler(){
+	return m_messagesHandler;
+}

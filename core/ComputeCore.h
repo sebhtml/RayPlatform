@@ -382,6 +382,8 @@ Not all master modes have yet been ported to that list.
 	int getSize();
 
 	int getMiniRanksPerRank();
+
+	MessagesHandler*getMessagesHandler();
 };
 
 #endif
