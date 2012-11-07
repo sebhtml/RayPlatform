@@ -29,6 +29,8 @@
 #include <assert.h>
 #endif
 
+#include "communication/MessagesHandler.h"
+
 #include <iostream>
 using namespace std;
 
@@ -41,7 +43,7 @@ using namespace std;
 ComputeCore::ComputeCore(){
 }
 
-void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler object){
+void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandlerReference object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -67,7 +69,7 @@ void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,S
 	m_plugins[plugin].addRegisteredSlaveModeHandler(mode);
 }
 
-void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandler object){
+void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandlerReference object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -91,7 +93,7 @@ void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode
 	m_plugins[plugin].addRegisteredMasterModeHandler(mode);
 }
 
-void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler object){
+void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandlerReference object){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -122,6 +124,7 @@ void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,
  */
 void ComputeCore::run(){
 
+
 	// ask the router if it is enabled
 	// the virtual router will disable itself if there were
 	// problems during configuration
@@ -148,7 +151,7 @@ void ComputeCore::run(){
 
 	if(m_routerIsEnabled)
 		m_router.getGraph()->printStatus();
-
+	
 }
 
 /**
@@ -159,9 +162,27 @@ void ComputeCore::run(){
 void ComputeCore::runVanilla(){
 
 	#ifdef CONFIG_DEBUG_CORE
+	cout<<"Locking inbox for the loop."<<endl;
+	#endif
+
+	#ifdef CONFIG_DEBUG_CORE
 	cout<<"m_alive= "<<m_alive<<endl;
 	#endif
 
+/*
+ * The inbox is only unlocked before the receiveMessages() and
+ * after sendMessages().
+ *
+ * The outbox is only unlocked during sendMessages().
+ *
+ * The inbox is cleared at the end of processData()
+ * because some plugins picks up messages in the inbox
+ * instead of using the modular plugin architecture with
+ * the handlers for message tags.
+ *
+ * The outbox is cleared by the communication layer when it
+ * picks up the messages.
+ */
 	while(m_alive || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		
 		// 1. receive the message (0 or 1 message is received)
@@ -184,6 +205,18 @@ void ComputeCore::runVanilla(){
 	#ifdef CONFIG_DEBUG_CORE
 	cout<<"m_alive= "<<m_alive<<endl;
 	#endif
+
+	if(m_miniRanksAreEnabled){
+#ifdef CONFIG_USE_LOCKING
+		m_bufferedOutbox.lock();
+#endif /* CONFIG_USE_LOCKING */
+
+		m_bufferedOutbox.sendKillSignal();
+
+#ifdef CONFIG_USE_LOCKING
+		m_bufferedOutbox.unlock();
+#endif /* CONFIG_USE_LOCKING */
+	}
 }
 
 /*
@@ -240,27 +273,27 @@ void ComputeCore::runWithProfiler(){
 			m_profiler.clearGranularities();
 
 			if(receivedTags.size() > 0 && profilerVerbose){
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" received in receiveMessages:"<<endl;
+				cout<<"Rank "<<m_rank<<" received in receiveMessages:"<<endl;
 				for(map<int,int>::iterator i=receivedTags.begin();i!=receivedTags.end();i++){
 					int tag=i->first;
 					int count=i->second;
-					cout<<"Rank "<<m_messagesHandler.getRank()<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
+					cout<<"Rank "<<m_rank<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
 				}
 			}
 
 			if(sentTagsInProcessMessages.size() > 0 && profilerVerbose){
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" sent in processMessages:"<<endl;
+				cout<<"Rank "<<m_rank<<" sent in processMessages:"<<endl;
 				for(map<int,int>::iterator i=sentTagsInProcessMessages.begin();i!=sentTagsInProcessMessages.end();i++){
 					int tag=i->first;
 					int count=i->second;
-					cout<<"Rank "<<m_messagesHandler.getRank()<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
+					cout<<"Rank "<<m_rank<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
 				}
 
 /*
 				int average1=getAverage(&distancesForProcessMessages);
 				int deviation1=getStandardDeviation(&distancesForProcessMessages);
 			
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" distance between processMessages messages: average= "<<average1<<", stddev= "<<deviation1<<
+				cout<<"Rank "<<m_rank<<" distance between processMessages messages: average= "<<average1<<", stddev= "<<deviation1<<
 					", n= "<<distancesForProcessMessages.size()<<endl;
 				
 */
@@ -269,7 +302,7 @@ void ComputeCore::runWithProfiler(){
 				for(int i=0;i<(int)distancesForProcessMessages.size();i++){
 					distribution1[distancesForProcessMessages[i]]++;
 				}
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" distribution: "<<endl;
+				cout<<"Rank "<<m_rank<<" distribution: "<<endl;
 				for(map<int,int>::iterator i=distribution1.begin();i!=distribution1.end();i++){
 					cout<<i->first<<" "<<i->second<<endl;
 				}
@@ -280,17 +313,17 @@ void ComputeCore::runWithProfiler(){
 			distancesForProcessMessages.clear();
 
 			if(sentTagsInProcessData.size() > 0 && profilerVerbose){
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" sent in processData:"<<endl;
+				cout<<"Rank "<<m_rank<<" sent in processData:"<<endl;
 				for(map<int,int>::iterator i=sentTagsInProcessData.begin();i!=sentTagsInProcessData.end();i++){
 					int tag=i->first;
 					int count=i->second;
-					cout<<"Rank "<<m_messagesHandler.getRank()<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
+					cout<<"Rank "<<m_rank<<"        "<<MESSAGE_TAGS[tag]<<"	"<<count<<endl;
 				}
 /*
 				int average2=getAverage(&distancesForProcessData);
 				int deviation2=getStandardDeviation(&distancesForProcessData);
 	
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" distance between processData messages: average= "<<average2<<", stddev= "<<deviation2<<
+				cout<<"Rank "<<m_rank<<" distance between processData messages: average= "<<average2<<", stddev= "<<deviation2<<
 					", n= "<<distancesForProcessData.size()<<endl;
 				
 */
@@ -299,7 +332,7 @@ void ComputeCore::runWithProfiler(){
 				for(int i=0;i<(int)distancesForProcessData.size();i++){
 					distribution2[distancesForProcessData[i]]++;
 				}
-				cout<<"Rank "<<m_messagesHandler.getRank()<<" distribution: "<<endl;
+				cout<<"Rank "<<m_rank<<" distribution: "<<endl;
 				for(map<int,int>::iterator i=distribution2.begin();i!=distribution2.end();i++){
 					cout<<i->first<<" "<<i->second<<endl;
 				}
@@ -441,6 +474,13 @@ void ComputeCore::processMessages(){
 }
 
 void ComputeCore::sendMessages(){
+
+/*
+ * What follows is all the crap for checking some assertions and
+ * profiling events.
+ * The code that actually sends something is at the end
+ * of this method.
+ */
 	// assert that we did not overflow the ring
 	#ifdef ASSERT
 	if(m_outboxAllocator.getCount() > m_maximumAllocatedOutboxBuffers){
@@ -451,6 +491,7 @@ void ComputeCore::sendMessages(){
 	}
 
 	assert(m_outboxAllocator.getCount()<=m_maximumAllocatedOutboxBuffers);
+
 	m_outboxAllocator.resetCount();
 	int messagesToSend=m_outbox.size();
 	if(messagesToSend>m_maximumNumberOfOutboxMessages){
@@ -470,6 +511,16 @@ void ComputeCore::sendMessages(){
 	}
 
 	#endif
+
+/*
+ * Don't do anything when there are no messages
+ * at all.
+ * This statement needs to be after the ifdef ASSERT above
+ * otherwise the no resetCount call is performed on the 
+ * allocator, which will produce a run-time error.
+ */
+	if(m_outbox.size()==0)
+		return;
 
 	// route messages if the router is enabled
 	if(m_routerIsEnabled){
@@ -498,7 +549,18 @@ void ComputeCore::sendMessages(){
 	}
 
 	// finally, send the messages
-	m_messagesHandler.sendMessages(&m_outbox,&m_outboxAllocator);
+
+	if(!m_miniRanksAreEnabled){
+/*
+ * Implement the old communication mode too.
+ */
+		m_messagesHandler->sendMessages(&m_outbox,&m_outboxAllocator);
+	}else{
+
+		m_messagesHandler->sendMessagesForComputeCore(&m_outbox,&m_bufferedOutbox);
+	}
+
+	m_outbox.clear();
 }
 
 void ComputeCore::addMessageChecksums(){
@@ -590,8 +652,22 @@ void ComputeCore::verifyMessageChecksums(){
  * next ComputeCore cycle.
  */
 void ComputeCore::receiveMessages(){
+
+/* 
+ * clear the inbox for the next iteration
+ */
 	m_inbox.clear();
-	m_messagesHandler.receiveMessages(&m_inbox,&m_inboxAllocator);
+
+	if(!m_miniRanksAreEnabled){
+/*
+ * Implement the old communication model.
+ */
+		m_messagesHandler->receiveMessages(&m_inbox,&m_inboxAllocator);
+	}else{
+
+		m_messagesHandler->receiveMessagesForComputeCore(&m_inbox,&m_inboxAllocator,&m_bufferedInbox);
+
+	}
 
 	// verify checksums and remove them
 	if(m_doChecksum){
@@ -604,6 +680,10 @@ void ComputeCore::receiveMessages(){
 
 	#ifdef ASSERT
 	int receivedMessages=m_inbox.size();
+
+	if(receivedMessages>m_maximumNumberOfInboxMessages)
+		cout<<"[ComputeCore::receiveMessages] inbox has "<<receivedMessages<<" but maximum is "<<m_maximumNumberOfInboxMessages<<endl;
+
 	assert(receivedMessages<=m_maximumNumberOfInboxMessages);
 	#endif
 
@@ -656,11 +736,39 @@ void ComputeCore::processData(){
 
 	m_slaveModeExecutor.callHandler(slave);
 	m_tickLogger.logSlaveTick(slave);
+
+/* 
+ * Clear the inbox for the next iteration.
+ * This is only useful if the RayPlatform runs with mini-ranks.
+ */
+	m_inbox.clear();
 }
 
-void ComputeCore::constructor(int*argc,char***argv){
+void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,int miniRanksPerRank,
+		MessagesHandler*messagesHandler){
+
+	#ifdef ASSERT
+	assert(miniRankNumber<numberOfMiniRanks);
+	assert(miniRanksPerRank<=numberOfMiniRanks);
+	assert(numberOfMiniRanks>=1);
+	assert(miniRanksPerRank>=1);
+	assert(miniRankNumber>=0);
+	#endif
+
+	bool useMiniRanks=miniRanksPerRank>1;
+
+	m_numberOfMiniRanksPerRank=miniRanksPerRank;
+	m_messagesHandler=messagesHandler;
+
+	m_destroyed=false;
 
 	m_doChecksum=false;
+
+	m_miniRanksAreEnabled=useMiniRanks;
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"[ComputeCore::constructor] m_miniRanksAreEnabled= "<<m_miniRanksAreEnabled<<endl;
+	#endif
 
 	// checksum calculation is only tested
 	// for cases with sizeof(MessageUnit)>=4 bytes
@@ -672,17 +780,16 @@ void ComputeCore::constructor(int*argc,char***argv){
 
 	int match=0;
 
-	for(int i=0;i<(*argc);i++){
-		if(strcmp( ((*argv)[i]), verifyMessages) == match){
+	for(int i=0;i<(argc);i++){
+		if(strcmp( ((argv)[i]), verifyMessages) == match){
 			m_doChecksum=true;
-		}else if(strcmp( ((*argv)[i]),router) == match){
+		}else if(strcmp( ((argv)[i]),router) == match){
 			m_routerIsEnabled=true;
 		}
 	}
 
-	m_argumentCount=*argc;
-	m_argumentValues=*argv;
-
+	m_argumentCount=argc;
+	m_argumentValues=argv;
 
 	m_resolvedSymbols=false;
 
@@ -696,14 +803,12 @@ void ComputeCore::constructor(int*argc,char***argv){
 
 	m_alive=true;
 
-	m_messagesHandler.constructor(argc,argv);
-
 	m_runProfiler=false;
 	m_showCommunicationEvents=false;
 	m_profilerVerbose=false;
 
-	m_rank=m_messagesHandler.getRank();
-	m_size=m_messagesHandler.getSize();
+	m_rank=miniRankNumber;
+	m_size=numberOfMiniRanks;
 
 	if(m_doChecksum){
 		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message."<<" ("<<verifyMessages<<")"<<endl;
@@ -715,13 +820,12 @@ void ComputeCore::constructor(int*argc,char***argv){
 	int availableBuffers=minimumNumberOfBuffers;
 
 	// even a message with a NULL buffer requires a buffer for routing
-	if(m_routerIsEnabled)
+	if(m_routerIsEnabled||useMiniRanks)
 		availableBuffers=m_size*2;
 
 	// this will occur when using the virtual router with a few processes
 	if(availableBuffers<minimumNumberOfBuffers)
 		availableBuffers=minimumNumberOfBuffers;
-
 
 	m_switchMan.constructor(m_rank,m_size);
 
@@ -745,14 +849,16 @@ void ComputeCore::constructor(int*argc,char***argv){
 	}
 
 	getInbox()->constructor(m_maximumNumberOfInboxMessages,"RAY_MALLOC_TYPE_INBOX_VECTOR",false);
-	
-	#if 0
-	cout<<"[ComputeCore] the inbox capacity is "<<m_maximumNumberOfInboxMessages<<" message"<<endl;
-	#endif
-
 	getOutbox()->constructor(m_maximumNumberOfOutboxMessages,"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
 
-	#if 0
+	if(m_miniRanksAreEnabled){
+		
+		getBufferedInbox()->constructor(m_maximumNumberOfOutboxMessages);
+		getBufferedOutbox()->constructor(m_maximumNumberOfOutboxMessages);
+	}
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"[ComputeCore] the inbox capacity is "<<m_maximumNumberOfInboxMessages<<" message"<<endl;
 	cout<<"[ComputeCore] the outbox capacity is "<<m_maximumNumberOfOutboxMessages<<" message"<<endl;
 	#endif
 
@@ -761,13 +867,13 @@ void ComputeCore::constructor(int*argc,char***argv){
 	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
 	// TODO: RayPlatform can not do both routing and checksums 
-	if(m_doChecksum || m_routerIsEnabled){
+	if(useMiniRanks || m_doChecksum || m_routerIsEnabled){
 		if(sizeof(MessageUnit)>=4){
-			maximumMessageSizeInByte+=sizeof(MessageUnit);
-		}else if(sizeof(MessageUnit)>=2){
 			maximumMessageSizeInByte+=2*sizeof(MessageUnit);
+		}else if(sizeof(MessageUnit)>=2){
+			maximumMessageSizeInByte+=2*2*sizeof(MessageUnit);
 		}else{
-			maximumMessageSizeInByte+=4*sizeof(MessageUnit);
+			maximumMessageSizeInByte+=2*4*sizeof(MessageUnit);
 		}
 	}
 
@@ -775,15 +881,28 @@ void ComputeCore::constructor(int*argc,char***argv){
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
 
-	#if 0
-	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
-	#endif
-
 	m_outboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
 		maximumMessageSizeInByte,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
 
-	#if 0
+	if(m_miniRanksAreEnabled){
+
+		#if 0
+		cout<<"Building buffered inbox allocator."<<endl;
+		#endif
+
+		m_bufferedInboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
+			maximumMessageSizeInByte,
+			"RAY_MALLOC_TYPE_INBOX_ALLOCATOR/Buffered",false);
+
+		m_bufferedOutboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
+			maximumMessageSizeInByte,
+			"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR/Buffered",false);
+
+	}
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
 	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedOutboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for outbox messages"<<endl;
 	#endif
 
@@ -803,6 +922,12 @@ void ComputeCore::constructor(int*argc,char***argv){
 
 }
 
+void ComputeCore::setMiniRank(int miniRank,int numberOfMiniRanks){
+
+	m_rank=miniRank;
+	m_size=numberOfMiniRanks;
+}
+
 void ComputeCore::enableProfiler(){
 	m_runProfiler=true;
 }
@@ -813,10 +938,6 @@ void ComputeCore::showCommunicationEvents(){
 
 void ComputeCore::enableProfilerVerbosity(){
 	m_profilerVerbose=true;
-}
-
-MessagesHandler*ComputeCore::getMessagesHandler(){
-	return &m_messagesHandler;
 }
 
 Profiler*ComputeCore::getProfiler(){
@@ -884,7 +1005,7 @@ void ComputeCore::resolveSymbols(){
 	if(m_resolvedSymbols)
 		return;
 
-	registerPlugin(&m_messagesHandler); // must be the last registered
+	registerDummyPlugin();
 
 	for(int i=0;i<(int)m_listOfPlugins.size();i++){
 		CorePlugin*plugin=m_listOfPlugins[i];
@@ -894,8 +1015,53 @@ void ComputeCore::resolveSymbols(){
 	m_resolvedSymbols=true;
 }
 
+void ComputeCore::registerDummyPlugin(){
+	ComputeCore*core=this;
+	PluginHandle plugin=core->allocatePluginHandle();
+
+	core->setPluginName(plugin,"DummySun");
+	core->setPluginDescription(plugin,"Dummy plugin, does nothing.");
+	core->setPluginAuthors(plugin,"Sébastien Boisvert");
+	core->setPluginLicense(plugin,"GNU Lesser General License version 3");
+
+	RAY_MPI_TAG_DUMMY=core->allocateMessageTagHandle(plugin);
+	core->setMessageTagSymbol(plugin,RAY_MPI_TAG_DUMMY,"RAY_MPI_TAG_DUMMY");
+
+}
+
 void ComputeCore::destructor(){
-	getMessagesHandler()->destructor();
+
+	#if 0
+	cout<<"ComputeCore::destructor"<<endl;
+	#endif
+
+	if(m_destroyed)
+		return;
+
+	m_destroyed=true;
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"Rank "<<m_rank<<" is cleaning the inbox allocator."<<endl;
+	#endif
+
+	m_inboxAllocator.clear();
+
+	if(m_miniRanksAreEnabled)
+		m_bufferedInboxAllocator.clear();
+
+	#ifdef CONFIG_DEBUG_CORE
+	cout<<"Rank "<<m_rank<<" is cleaning the outbox allocator."<<endl;
+	#endif
+
+	m_outboxAllocator.clear();
+
+	if(m_miniRanksAreEnabled)
+		m_bufferedOutboxAllocator.clear();
+
+	if(m_miniRanksAreEnabled){
+		m_bufferedInbox.destructor();
+		m_bufferedOutbox.destructor();
+	}
 }
 
 void ComputeCore::stop(){
@@ -1678,4 +1844,42 @@ int ComputeCore::getNumberOfArguments(){
 
 char**ComputeCore::getArgumentValues(){
 	return m_argumentValues;
+}
+
+bool ComputeCore::hasFinished(){
+	bool alive=*(getLife());
+
+	return !alive;
+}
+
+int ComputeCore::getRank(){
+	return m_rank;
+}
+
+int ComputeCore::getSize(){
+	return m_size;
+}
+
+MessageQueue*ComputeCore::getBufferedInbox(){
+	return &m_bufferedInbox;
+}
+
+MessageQueue*ComputeCore::getBufferedOutbox(){
+	return &m_bufferedOutbox;
+}
+
+RingAllocator*ComputeCore::getBufferedOutboxAllocator(){
+	return &m_bufferedOutboxAllocator;
+}
+
+RingAllocator*ComputeCore::getBufferedInboxAllocator(){
+	return &m_bufferedInboxAllocator;
+}
+
+int ComputeCore::getMiniRanksPerRank(){
+	return m_numberOfMiniRanksPerRank;
+}
+
+MessagesHandler*ComputeCore::getMessagesHandler(){
+	return m_messagesHandler;
 }

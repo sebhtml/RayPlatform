@@ -28,12 +28,10 @@
 #include <core/types.h>
 #include <communication/mpi_tags.h>
 
-
 class MessageTagExecutor{
 
-
 /** table of object handlers */
-	MessageTagHandler m_objects[MAXIMUM_NUMBER_OF_TAG_HANDLERS];
+	MessageTagHandlerReference m_objects[MAXIMUM_NUMBER_OF_TAG_HANDLERS];
 
 public:
 
@@ -41,12 +39,10 @@ public:
 	void callHandler(MessageTag messageTag,Message*message);
 
 /** set the object to call for a given tag */
-	void setObjectHandler(MessageTag messageTag,MessageTagHandler object);
+	void setObjectHandler(MessageTag messageTag,MessageTagHandlerReference object);
 
 /** set default object and method handlers */
 	MessageTagExecutor();
-
-
 };
 
 #endif

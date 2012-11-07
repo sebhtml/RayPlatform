@@ -21,18 +21,58 @@
 #ifndef _MessageTagHandler_h
 #define _MessageTagHandler_h
 
+#include <communication/Message.h>
+#include <core/types.h>
+#include <communication/mpi_tags.h>
+
+#ifdef CONFIG_MINI_RANKS
+
+#define MessageTagHandlerReference MessageTagHandler*
+
+#define __CreateMessageTagAdapter ____CreateMessageTagAdapterImplementation
+#define __DeclareMessageTagAdapter ____CreateMessageTagAdapterDeclaration
+
+/* this is a macro to create the header code for an adapter */
+#define ____CreateMessageTagAdapterDeclaration(corePlugin,handle) \
+class Adapter_ ## handle : public MessageTagHandler{ \
+	corePlugin *m_object; \
+public: \
+	void setObject(corePlugin *object); \
+	void call(Message*message); \
+};
+
+/* this is a macro to create the cpp code for an adapter */
+#define ____CreateMessageTagAdapterImplementation(corePlugin,handle)\
+void Adapter_ ## handle ::setObject( corePlugin *object){ \
+	m_object=object; \
+} \
+ \
+void Adapter_ ## handle ::call(Message*message){ \
+	m_object->call_ ## handle(message); \
+}
+
+
+
+/**
+ * base class for handling message tags
+ * \author Sébastien Boisvert
+ * with help from Élénie Godzaridis for the design
+ */
+class MessageTagHandler{
+public:
+
+	virtual void call(Message*message) = 0;
+
+	virtual ~MessageTagHandler(){}
+};
+
+#else
 
 /* this is a macro to create the cpp code for an adapter */
 #define __CreateMessageTagAdapter( corePlugin, handle ) \
 void __GetAdapter( corePlugin, handle) ( Message*message ) { \
 	__GetPlugin( corePlugin ) -> __GetMethod( handle ) ( message ) ; \
 } 
-
-
-
-#include <communication/Message.h>
-#include <core/types.h>
-#include <communication/mpi_tags.h>
 
 /**
  * base class for handling message tags
@@ -42,5 +82,8 @@ void __GetAdapter( corePlugin, handle) ( Message*message ) { \
  */
 typedef void (*MessageTagHandler) (Message*message) /* */ ;
 
+#define MessageTagHandlerReference MessageTagHandler
+
+#endif /* CONFIG_MINI_RANKS */
 
 #endif

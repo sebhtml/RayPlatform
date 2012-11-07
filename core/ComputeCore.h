@@ -1,8 +1,8 @@
 /*
- 	Ray
+ 	RayPlatform
     Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
-	http://DeNovoAssembler.SourceForge.Net/
+	http://github.com/sebhtml/RayPlatform
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -28,7 +28,6 @@
 #include <handlers/MasterModeHandler.h>
 #include <handlers/MasterModeExecutor.h>
 #include <handlers/SlaveModeExecutor.h>
-#include <communication/MessagesHandler.h>
 #include <profiling/Profiler.h>
 #include <structures/StaticVector.h>
 #include <communication/Message.h>
@@ -38,14 +37,22 @@
 #include <memory/RingAllocator.h>
 #include <scheduling/VirtualProcessor.h>
 #include <communication/VirtualCommunicator.h>
+#include <communication/MessageQueue.h>
 #include <plugins/CorePlugin.h>
 #include <plugins/RegisteredPlugin.h>
-#include <core/OperatingSystem.h>
+#include "core/OperatingSystem.h"
+#include "communication/MessagesHandler.h"
+
+/*
+ * For the runtime configuration parameters.
+ */
+#include "core/types.h"
 
 #include <iostream>
 #include <stdlib.h>
 #include <stdint.h>
 using namespace std;
+
 
 /** this class is a compute core
  * to use it, you must set the handlers of your program
@@ -57,6 +64,34 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class ComputeCore{
+
+/*
+ * This is the middleware communication layer.
+ * All messages go through it.
+ */
+	MessagesHandler*m_messagesHandler;
+
+/*
+ * In the legacy mode, RayPlatform will not
+ * spawn a thread for MPI and every MPI rank will do
+ * its own communication.
+ *
+ * If the legacy mode is disabled, each rank runs in 
+ * a thread (the mini-ranks) and one thread is used
+ * for MPI.
+ */
+	bool m_miniRanksAreEnabled;
+
+	int m_numberOfMiniRanksPerRank;
+
+	bool m_destroyed;
+
+	MessageQueue m_bufferedInbox;
+	MessageQueue m_bufferedOutbox;
+	RingAllocator m_bufferedOutboxAllocator;
+	RingAllocator m_bufferedInboxAllocator;
+
+	bool m_outboxIsFull;
 
 	int m_argumentCount;
 	char**m_argumentValues;
@@ -128,8 +163,7 @@ class ComputeCore{
 	StaticVector m_outbox;
 	StaticVector m_inbox;
 
-	/** middleware to handle messages */
-	MessagesHandler m_messagesHandler;
+	MessageTag RAY_MPI_TAG_DUMMY;
 
 /** this object handles messages */
 	MessageTagExecutor m_messageTagExecutor;
@@ -192,14 +226,14 @@ class ComputeCore{
 
 	void verifyMessageChecksums();
 	void addMessageChecksums();
+
+	void registerDummyPlugin();
 public:
 	/** this is the main method */
 	void run();
 
-	/** get the middleware object */
-	MessagesHandler*getMessagesHandler();
-
-	void constructor(int*argc,char***argv);
+	void constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,int miniRanksPerRank,
+		MessagesHandler*messagesHandler);
 
 	void enableProfiler();
 	void showCommunicationEvents();
@@ -217,6 +251,8 @@ public:
 
 	RingAllocator*getOutboxAllocator();
 	RingAllocator*getInboxAllocator();
+	RingAllocator*getBufferedOutboxAllocator();
+	RingAllocator*getBufferedInboxAllocator();
 
 	bool*getLife();
 
@@ -264,7 +300,7 @@ public:
 	MasterMode getMasterModeFromSymbol(PluginHandle plugin,const char*symbol);
 
 /** add a master mode handler */
-	void setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandler object);
+	void setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode,MasterModeHandlerReference object);
 
 /** sets the master mode switch for a master mode
  * this tells the core which message tag is to be automaticalled broadcasted for 
@@ -292,7 +328,7 @@ Not all master modes have yet been ported to that list.
 	void setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const char*symbol);
 
 /** add a slave mode handler */
-	void setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandler object);
+	void setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandlerReference object);
 
 /** get a slave mode from its symbol **/
 	SlaveMode getSlaveModeFromSymbol(PluginHandle plugin,const char*symbol);
@@ -309,7 +345,7 @@ Not all master modes have yet been ported to that list.
 	MessageTag getMessageTagFromSymbol(PluginHandle plugin,const char*symbol);
 
 /** add a message tag handler */
-	void setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandler object);
+	void setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,MessageTagHandlerReference object);
 
 /** sets the slave switch for a slave mode
  * this tells the core which slave mode to switch to when receiving a particular message tag **/
@@ -334,6 +370,20 @@ Not all master modes have yet been ported to that list.
 
 	int getNumberOfArguments();
 	char**getArgumentValues();
+
+	void setMiniRank(int miniRank,int numberOfMiniRanks);
+
+	bool hasFinished();
+
+	MessageQueue*getBufferedInbox();
+	MessageQueue*getBufferedOutbox();
+
+	int getRank();
+	int getSize();
+
+	int getMiniRanksPerRank();
+
+	MessagesHandler*getMessagesHandler();
 };
 
 #endif

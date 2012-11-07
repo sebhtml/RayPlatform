@@ -33,8 +33,13 @@ __CreatePlugin(SwitchMan);
 __CreateMessageTagAdapter(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
 __CreateSlaveModeAdapter(SwitchMan,RAY_SLAVE_MODE_STOP);
 
-
 void SwitchMan::constructor(Rank rank,int numberOfCores){
+
+	#ifdef ASSERT
+	assert(rank>=0);
+	assert(numberOfCores>=0);
+	#endif
+
 	m_rank=rank;
 	m_size=numberOfCores;
 	reset();
@@ -75,6 +80,10 @@ void SwitchMan::closeSlaveMode(Rank source){
 }
 
 void SwitchMan::runAssertions(){
+
+	if(m_counter>m_size)
+		cout<<"[SwitchMan] counter is "<<m_counter<<" but size is only "<<m_size<<endl;
+
 	assert(m_counter<=m_size);
 	assert(m_counter>=0);
 }
@@ -339,6 +348,9 @@ void SwitchMan::resolveSymbols(ComputeCore*core){
 	RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL=core->getMessageTagFromSymbol(m_plugin,"RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL");
 
 	__BindPlugin(SwitchMan);
+	
+	__BindAdapter(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
+	__BindAdapter(SwitchMan,RAY_SLAVE_MODE_STOP);
 }
 	
 

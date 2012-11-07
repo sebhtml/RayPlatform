@@ -29,7 +29,7 @@
 #endif
 
 void MasterModeExecutor::callHandler(MasterMode mode){
-	MasterModeHandler object=m_objects[mode];
+	MasterModeHandlerReference object=m_objects[mode];
 
 	// don't do it if it is NULL because it does nothing
 	if(object==NULL)
@@ -37,7 +37,11 @@ void MasterModeExecutor::callHandler(MasterMode mode){
 
 	/** otherwise, fetch the method and call it*/
 
+	#ifdef CONFIG_MINI_RANKS
+	object->call();
+	#else
 	object();
+	#endif
 }
 
 MasterModeExecutor::MasterModeExecutor(){
@@ -46,7 +50,7 @@ MasterModeExecutor::MasterModeExecutor(){
 	}
 }
 
-void MasterModeExecutor::setObjectHandler(MasterMode mode,MasterModeHandler object){
+void MasterModeExecutor::setObjectHandler(MasterMode mode,MasterModeHandlerReference object){
 
 	#ifdef ASSERT
 	assert(mode>=0);

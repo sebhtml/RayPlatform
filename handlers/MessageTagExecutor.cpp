@@ -18,24 +18,29 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <handlers/MessageTagHandler.h>
-#include <handlers/MessageTagExecutor.h>
-#include <communication/mpi_tags.h>
+#include "handlers/MessageTagHandler.h"
+#include "handlers/MessageTagExecutor.h"
+#include "communication/mpi_tags.h"
+
 #ifdef ASSERT
 #include <assert.h>
 #endif
+
 #include <stdlib.h> /* for NULL */
 
-
 void MessageTagExecutor::callHandler(MessageTag messageTag,Message*message){
-	MessageTagHandler object=m_objects[messageTag];
+	MessageTagHandlerReference object=m_objects[messageTag];
 
 	// it is useless to call base implementations
 	// because they are empty
 	if(object==NULL)
 		return;
 
+	#ifdef CONFIG_MINI_RANKS
+	object->call(message);
+	#else
 	object(message);
+	#endif
 }
 
 MessageTagExecutor::MessageTagExecutor(){
@@ -44,7 +49,7 @@ MessageTagExecutor::MessageTagExecutor(){
 	}
 }
 
-void MessageTagExecutor::setObjectHandler(MessageTag messageTag,MessageTagHandler object){
+void MessageTagExecutor::setObjectHandler(MessageTag messageTag,MessageTagHandlerReference object){
 
 	#ifdef ASSERT
 	assert(messageTag>=0);

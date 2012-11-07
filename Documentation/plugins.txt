@@ -1,4 +1,61 @@
 
 The application programming interface for plugins is all in the class ComputeCore.
 
+## Relationships:
+
+CorePlugin  <--->  MasterModeHandler (an adapter)  <---> ComputeCore
+CorePlugin  <--->  SlaveModeHandler (an adapter)  <---> ComputeCore
+CorePlugin  <--->  MessageTagHandler (an adapter)  <---> ComputeCore
+
 see RayPlatform/core/ComputeCore.h
+
+Macros can be used to push adapters on the ComputeCore instance.
+Otherwise, the code must be written for adapters (declaration, implementation, binding).
+
+
+## in the .h file of a plugin, before the class declaration
+
+__DeclarePlugin(PluginExample)	->	declares a plugin
+
+__DeclareMasterModeAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	declares a master mode adapter for a plugin
+
+__DeclareSlaveModeAdapter(PluginExample,SLAVE_MODE_EXAMPLE)	->	declares a slave mode adapter for a plugin
+
+__DeclareMessageTagAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	declares a message mode adapter for a plugin
+
+
+## in the .h file of a plugin, inside the class declaration
+
+__AddAdapter(PluginExample,MASTER_MODE_EXAMPLE)
+
+__AddAdapter(PluginExample,SLAVE_MODE_EXAMPLE)
+
+__AddAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)
+
+
+## in the .cpp file of a plugin, before the first method implementation
+
+__CreatePlugin(PluginExample)
+
+__CreateMasterModeAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	creates the actual code for a master mode adapter
+
+__CreateSlaveModeAdapter(PluginExample,SLAVE_MODE_EXAMPLE)	->	creates the actual code for a slave mode adapter
+
+__CreateSlaveModeAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	creates the actual code for a message tag adapter
+
+
+## in the .cpp file of a plugin, inside registerPlugin or resolveSymbols
+
+__GetAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	gets the reference to a adapter
+
+__GetAdapter(PluginExample,SLAVE_MODE_EXAMPLE)	->	gets the reference to a adapter
+
+__GetAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	gets the reference to a adapter
+
+__BindPlugin(PluginExample)	-> binds a plugin
+
+__BindAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	binds a adapter
+
+__BindAdapter(PluginExample,SLAVE_MODE_EXAMPLE)	->	binds a adapter
+
+__BindAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	binds a adapter

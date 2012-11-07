@@ -3,11 +3,11 @@
 # based on http://www.ravnborg.org/kbuild/makefiles.html
 #
 
-VERSION = 1
-PATCHLEVEL = 1
+VERSION = 7
+PATCHLEVEL = 0
 SUBLEVEL = 0
-EXTRAVERSION = 
-NAME = Chariot of Complexity
+EXTRAVERSION = -devel
+NAME = Nested Droids of Luck
 
 RAYPLATFORM_VERSION = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 

@@ -37,6 +37,9 @@ using namespace std;
 class ComputeCore;
 class SwitchMan;
 
+__DeclareMessageTagAdapter(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
+__DeclareSlaveModeAdapter(SwitchMan,RAY_SLAVE_MODE_STOP);
+
 /**
  * the switchman controls the workflow on all ranks
  * he is the one who decides when something must be done.
@@ -45,6 +48,9 @@ class SwitchMan;
  */
 class SwitchMan: public CorePlugin {
 	
+	__AddAdapter(SwitchMan,RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL);
+	__AddAdapter(SwitchMan,RAY_SLAVE_MODE_STOP);
+
 	ComputeCore*m_core;
 
 	MessageTag RAY_MPI_TAG_SWITCHMAN_COMPLETION_SIGNAL;
@@ -174,5 +180,7 @@ public:
 
 	void call_RAY_SLAVE_MODE_STOP();
 };
+
+
 
 #endif

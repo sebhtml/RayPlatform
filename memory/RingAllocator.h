@@ -1,6 +1,6 @@
 /*
- 	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+ 	RayPlatform
+    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -22,10 +22,23 @@
 #ifndef _RingAllocator
 #define _RingAllocator
 
-#include<set>
-#include<stdint.h>
+#include <set>
+#include <stdint.h>
 #include <core/types.h> 
+#include <mpi.h>
 using namespace std;
+
+/**
+ * A data model for storing dirty buffers
+ */
+class DirtyBuffer{
+public:
+	void*m_buffer;
+	MPI_Request m_messageRequest;
+	Rank m_destination;
+	MessageTag m_messageTag;
+};
+
 
 /**
  * This class is a ring buffer. No !, it is an allocator. Thus, referred to as a ring allocator.
@@ -35,6 +48,21 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class RingAllocator{
+
+	int m_minimumNumberOfDirtyBuffersForSweep;
+	int m_minimumNumberOfDirtyBuffersForWarning;
+	uint64_t m_linearSweeps;
+/** prints dirty buffers **/
+	void printDirtyBuffers();
+
+
+	DirtyBuffer*m_dirtyBuffers;
+
+	int m_numberOfDirtyBuffers;
+	int m_maximumDirtyBuffers;
+	int m_dirtyBufferSlots;
+
+
 /** the number of call to allocate() since the last hard reset */
 	int m_count;
 
@@ -98,6 +126,16 @@ public:
  * get the handle for a buffer
  */
 	int getBufferHandle(void*buffer);
+
+	void checkDirtyBuffer(int i);
+	void cleanDirtyBuffers();
+	void initializeDirtyBuffers();
+	DirtyBuffer*getDirtyBuffers();
+	MPI_Request*registerBuffer(void*buffer);
+
+	void printStatus();
+
+	bool isRegistered(int handle);
 };
 
 
