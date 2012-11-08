@@ -63,9 +63,15 @@ typedef uint64_t MessageUnit;
 #define MAX_NUMBER_OF_MPI_PROCESSES 1000000
 #define INVALID_RANK MAX_NUMBER_OF_MPI_PROCESSES
 
-/*
- * Enable the mini-ranks technology
+/**
+ * Enable the mini-ranks technology.
  */
 #define CONFIG_MINI_RANKS
+
+/**
+ * With this option, RayPlatform will perform aggressive caching
+ * of operation codes. This reduces the CPU cache footprint of RayPlatform.
+ */
+#define CONFIG_CACHE_OPERATION_CODES
 
 #endif

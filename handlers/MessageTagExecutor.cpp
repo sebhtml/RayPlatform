@@ -29,24 +29,37 @@
 #include <stdlib.h> /* for NULL */
 
 void MessageTagExecutor::callHandler(MessageTag messageTag,Message*message){
+
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	MessageTagHandlerReference object=m_cachedOperationHandler;
+
+	if(messageTag!=m_cachedOperationCode)
+		object=m_objects[messageTag];
+#else
 	MessageTagHandlerReference object=m_objects[messageTag];
+#endif /* CONFIG_CACHE_OPERATION_CODES */
 
 	// it is useless to call base implementations
 	// because they are empty
 	if(object==NULL)
 		return;
 
-	#ifdef CONFIG_MINI_RANKS
+#ifdef CONFIG_MINI_RANKS
 	object->call(message);
-	#else
+#else
 	object(message);
-	#endif
+#endif
 }
 
 MessageTagExecutor::MessageTagExecutor(){
 	for(int i=0;i<MAXIMUM_NUMBER_OF_TAG_HANDLERS;i++){
 		m_objects[i]=NULL;
 	}
+
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	m_cachedOperationCode=INVALID_HANDLE;
+	m_cachedOperationHandler=NULL;
+#endif
 }
 
 void MessageTagExecutor::setObjectHandler(MessageTag messageTag,MessageTagHandlerReference object){

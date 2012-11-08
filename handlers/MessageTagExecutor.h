@@ -28,7 +28,19 @@
 #include <core/types.h>
 #include <communication/mpi_tags.h>
 
+/**
+ * This class is responsible to handling event 
+ * for master modes.
+ * The technology uses aggressive caching.
+ *
+ * \author Sébastien Boisvert
+ */
 class MessageTagExecutor{
+
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	MessageTag m_cachedOperationCode;
+	MessageTagHandlerReference m_cachedOperationHandler;
+#endif /* CONFIG_CACHE_OPERATION_CODES */
 
 /** table of object handlers */
 	MessageTagHandlerReference m_objects[MAXIMUM_NUMBER_OF_TAG_HANDLERS];

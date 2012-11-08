@@ -25,8 +25,20 @@
 #include <core/master_modes.h>
 #include <handlers/MasterModeHandler.h>
 
+/**
+ * This class is responsible to handling event 
+ * for master modes.
+ * The technology uses aggressive caching.
+ *
+ * \author Sébastien Boisvert
+ */
 class MasterModeExecutor{
 
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	MasterMode m_cachedOperationCode;
+	MasterModeHandlerReference m_cachedOperationHandler;
+#endif /* CONFIG_CACHE_OPERATION_CODES */
+	
 /** a list of objects to use for calling methods */
 	MasterModeHandlerReference m_objects[MAXIMUM_NUMBER_OF_MASTER_HANDLERS];
 
@@ -39,7 +51,6 @@ public:
 
 /** initialise default object and method handlers */
 	MasterModeExecutor();
-
 };
 
 #endif

@@ -29,7 +29,17 @@
 #endif
 
 void MasterModeExecutor::callHandler(MasterMode mode){
+
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	MasterModeHandlerReference object=m_cachedOperationHandler;
+/*
+ * We don't want to look up too much.
+ */
+	if(mode!=m_cachedOperationCode)
+		object=m_objects[mode];
+#else
 	MasterModeHandlerReference object=m_objects[mode];
+#endif /* CONFIG_CACHE_OPERATION_CODES */
 
 	// don't do it if it is NULL because it does nothing
 	if(object==NULL)
@@ -37,25 +47,30 @@ void MasterModeExecutor::callHandler(MasterMode mode){
 
 	/** otherwise, fetch the method and call it*/
 
-	#ifdef CONFIG_MINI_RANKS
+#ifdef CONFIG_MINI_RANKS
 	object->call();
-	#else
+#else
 	object();
-	#endif
+#endif
 }
 
 MasterModeExecutor::MasterModeExecutor(){
 	for(int i=0;i<MAXIMUM_NUMBER_OF_MASTER_HANDLERS;i++){
 		m_objects[i]=NULL;
 	}
+
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	m_cachedOperationCode=INVALID_HANDLE;
+	m_cachedOperationHandler=NULL;
+#endif
 }
 
 void MasterModeExecutor::setObjectHandler(MasterMode mode,MasterModeHandlerReference object){
 
-	#ifdef ASSERT
+#ifdef ASSERT
 	assert(mode>=0);
 	assert(mode < MAXIMUM_NUMBER_OF_MASTER_HANDLERS);
-	#endif
+#endif
 
 	m_objects[mode]=object;
 }

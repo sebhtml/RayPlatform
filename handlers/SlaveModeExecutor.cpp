@@ -26,31 +26,46 @@
 #include <stdlib.h> /* for NULL */
 
 void SlaveModeExecutor::callHandler(SlaveMode mode){
+
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	SlaveModeHandlerReference object=m_cachedOperationHandler;
+
+	if(mode!=m_cachedOperationCode)
+		object=m_objects[mode];
+#else
 	SlaveModeHandlerReference object=m_objects[mode];
+#endif /* CONFIG_CACHE_OPERATION_CODES */
 
 	// don't call it if it is NULL
 	if(object==NULL)
 		return;
 
 	// call it
+#ifdef CONFIG_MINI_RANKS
 	object->call();
+#else
+	object();
+#endif
 }
 
 SlaveModeExecutor::SlaveModeExecutor(){
 	for(int i=0;i<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS;i++){
 		m_objects[i]=NULL;
 	}
+
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	m_cachedOperationCode=INVALID_HANDLE;
+	m_cachedOperationHandler=NULL;
+#endif
 }
 
 void SlaveModeExecutor::setObjectHandler(SlaveMode mode,SlaveModeHandlerReference object){
 
-	#ifdef ASSERT
+#ifdef ASSERT
 	assert(mode>=0);
 	assert(mode<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS);
-	#endif
+#endif
 
 	m_objects[mode]=object;
 }
-
-
 

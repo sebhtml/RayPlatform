@@ -18,9 +18,6 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-
-
-
 #ifndef _SlaveModeExecutor_h
 #define _SlaveModeExecutor_h
 
@@ -28,7 +25,19 @@
 #include <core/slave_modes.h>
 #include <core/types.h>
 
+/**
+ * This class is responsible to handling event 
+ * for master modes.
+ * The technology uses aggressive caching.
+ *
+ * \author Sébastien Boisvert
+ */
 class SlaveModeExecutor{
+
+#ifdef CONFIG_CACHE_OPERATION_CODES
+	SlaveMode m_cachedOperationCode;
+	SlaveModeHandlerReference m_cachedOperationHandler;
+#endif /* CONFIG_CACHE_OPERATION_CODES */
 
 /** table of slave objects */
 	SlaveModeHandlerReference m_objects[MAXIMUM_NUMBER_OF_SLAVE_HANDLERS];
