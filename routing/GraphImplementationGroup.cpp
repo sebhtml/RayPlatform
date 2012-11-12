@@ -19,7 +19,8 @@
 
 */
 
-#include <routing/GraphImplementationGroup.h>
+#include "GraphImplementationGroup.h"
+
 #include <assert.h>
 
 /**

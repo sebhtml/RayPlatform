@@ -21,7 +21,7 @@
 #ifndef _DefragmentationLane_H
 #define _DefragmentationLane_H
 
-#include <memory/DefragmentationGroup.h>
+#include "DefragmentationGroup.h"
 
 /** value for a invalid DefragmentationGroup */
 #define INVALID_GROUP 123467

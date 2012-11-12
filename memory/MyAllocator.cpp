@@ -19,10 +19,12 @@
 
 */
 
-#include <memory/allocator.h>
-#include <memory/MyAllocator.h>
+#include "allocator.h"
+#include "MyAllocator.h"
+
+#include <RayPlatform/core/OperatingSystem.h>
+
 #include <stdlib.h>
-#include <core/OperatingSystem.h>
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>

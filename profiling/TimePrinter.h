@@ -24,10 +24,10 @@
 
 
 // TODO: move this class in the core
-#include<time.h>
-#include<vector>
+#include <time.h>
+#include <vector>
 #include <fstream>
-#include<string>
+#include <string>
 using namespace std;
 
 /**

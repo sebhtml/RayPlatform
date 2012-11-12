@@ -22,8 +22,8 @@
 #ifndef _StaticVector
 #define _StaticVector
 
-#include <communication/Message.h>
-#include <communication/mpi_tags.h>
+#include <RayPlatform/communication/Message.h>
+#include <RayPlatform/communication/mpi_tags.h>
 
 /**
  * A static vector of Message.

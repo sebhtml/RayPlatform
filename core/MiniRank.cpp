@@ -19,7 +19,7 @@
 
 */
 
-#include "core/MiniRank.h"
+#include "MiniRank.h"
 
 ComputeCore*MiniRank::getCore(){
 	return &m_computeCore;

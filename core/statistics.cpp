@@ -1,6 +1,6 @@
 /*
  	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+    Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -18,7 +18,8 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <core/statistics.h>
+#include "statistics.h"
+
 #include <math.h> /* for sqrt */
 #include <stdint.h>
 #include <map>

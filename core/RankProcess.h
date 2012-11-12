@@ -20,11 +20,11 @@
 */
 
 #ifndef _RankProcess_h
-
 #define _RankProcess_h
 
-#include "communication/MessagesHandler.h"
-#include "core/MiniRank.h"
+#include "MiniRank.h"
+
+#include <RayPlatform/communication/MessagesHandler.h>
 
 #if defined(CONFIG_DEBUG_MPI_RANK) || defined(ASSERT)
 #include <iostream>

@@ -18,12 +18,14 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <scheduling/SwitchMan.h>
+#include "SwitchMan.h"
+
+#include <RayPlatform/core/OperatingSystem.h>
+#include <RayPlatform/core/ComputeCore.h>
+
+#include <iostream>
 #include <assert.h>
 #include <vector>
-#include <core/OperatingSystem.h>
-#include <iostream>
-#include <core/ComputeCore.h>
 using namespace std;
 
 //#define CONFIG_SWITCHMAN_VERBOSITY

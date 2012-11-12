@@ -22,11 +22,12 @@
 #ifndef _SplayTreeIterator
 #define _SplayTreeIterator
 
-#include<structures/MyStack.h>
-#include<structures/SplayNode.h>
-#include<structures/SplayTree.h>
-#include<assert.h>
-#include<stdlib.h>
+#include "MyStack.h"
+#include "SplayNode.h"
+#include "SplayTree.h"
+
+#include <assert.h>
+#include <stdlib.h>
 
 /**
  * An iterator on SplayTree

@@ -19,10 +19,11 @@
 
 */
 
-#include <profiling/Derivative.h>
-#include <core/statistics.h>
-#include <core/slave_modes.h>
-#include <core/OperatingSystem.h>
+#include "Derivative.h"
+
+#include <RayPlatform/core/statistics.h>
+#include <RayPlatform/core/slave_modes.h>
+#include <RayPlatform/core/OperatingSystem.h>
 
 #include <iostream>
 using namespace std;

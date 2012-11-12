@@ -19,7 +19,8 @@
 
 */
 
-#include <routing/Hypercube.h>
+#include "Hypercube.h"
+
 #include <iostream>
 using namespace std;
 

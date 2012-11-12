@@ -19,7 +19,8 @@
 
 */
 
-#include <memory/ReusableMemoryStore.h>
+#include "ReusableMemoryStore.h"
+
 #include <iostream>
 #include <assert.h>
 using namespace std;

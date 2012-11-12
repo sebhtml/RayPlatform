@@ -39,14 +39,16 @@
  */
 #define MAX_SAVED_PROBE 16
 
-#include <stdint.h>
-#include <time.h>
-#include "structures/MyHashTableGroup.h"
-#include <memory/ChunkAllocatorWithDefragmentation.h>
+#include "MyHashTableGroup.h"
+
+#include <RayPlatform/memory/ChunkAllocatorWithDefragmentation.h>
+#include <RayPlatform/memory/allocator.h> /* for __Malloc */
+
 #include <iostream>
 #include <assert.h>
 #include <string.h> /* for strcpy */
-#include <memory/allocator.h> /* for __Malloc */
+#include <stdint.h>
+#include <time.h>
 using namespace std;
 
 /**

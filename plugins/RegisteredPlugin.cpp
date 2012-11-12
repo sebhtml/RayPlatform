@@ -19,10 +19,11 @@
 
 */
 
-#include <plugins/RegisteredPlugin.h>
-#include <core/slave_modes.h>
-#include <core/master_modes.h>
-#include <communication/mpi_tags.h>
+#include "RegisteredPlugin.h"
+
+#include <RayPlatform/core/slave_modes.h>
+#include <RayPlatform/core/master_modes.h>
+#include <RayPlatform/communication/mpi_tags.h>
 
 #include <iostream>
 using namespace std;

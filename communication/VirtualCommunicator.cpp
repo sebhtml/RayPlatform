@@ -18,12 +18,11 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-/* #define DEBUG_VIRTUAL_COMMUNICATOR */
+#include "VirtualCommunicator.h"
 
-#include <communication/VirtualCommunicator.h>
-#include <core/OperatingSystem.h>
-#include <core/types.h>
-#include <core/ComputeCore.h>
+#include <RayPlatform/core/OperatingSystem.h>
+#include <RayPlatform/core/types.h>
+#include <RayPlatform/core/ComputeCore.h>
 
 #include <assert.h>
 #include <iostream>
@@ -31,6 +30,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 using namespace std;
+
+/* #define DEBUG_VIRTUAL_COMMUNICATOR */
 
 /** set the number of elements per message for a given tag */
 void VirtualCommunicator::setElementsPerQuery(int tag,int size){

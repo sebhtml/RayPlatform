@@ -22,7 +22,7 @@ Sébastien Boisvert has a scholarship from the Canadian Institutes of Health Res
 
 */
 
-#include <communication/mpi_tags.h>
+#include "mpi_tags.h"
 
 char MESSAGE_TAGS[MAXIMUM_NUMBER_OF_TAG_HANDLERS][128];
 

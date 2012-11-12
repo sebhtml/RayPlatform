@@ -22,7 +22,7 @@
 #ifndef _GraphImplementationRandom_h
 #define _GraphImplementationRandom_h
 
-#include <routing/GraphImplementation.h>
+#include "GraphImplementation.h"
 
 /**
  * random graph with n*log(n)/2 edges

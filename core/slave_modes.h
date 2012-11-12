@@ -21,7 +21,7 @@
 #ifndef _slave_modes
 #define _slave_modes
 
-#include <core/types.h>
+#include "types.h"
 
 extern char SLAVE_MODES[MAXIMUM_NUMBER_OF_SLAVE_HANDLERS][128];
 

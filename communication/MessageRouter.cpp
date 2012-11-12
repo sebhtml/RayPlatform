@@ -28,12 +28,14 @@
  * \reviewedBy Elénie Godzaridis 2011-11-05
 */
 
-#include <communication/MessageRouter.h>
+#include "MessageRouter.h"
+
+#include <RayPlatform/core/OperatingSystem.h>
+#include <RayPlatform/core/ComputeCore.h>
+
+#include <time.h> /* for time */
 #include <string.h> /* for memcpy */
 #include <assert.h>
-#include <core/OperatingSystem.h>
-#include <core/ComputeCore.h>
-#include <time.h> /* for time */
 using namespace std;
 
 /* 

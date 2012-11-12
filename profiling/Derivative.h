@@ -22,9 +22,10 @@
 #ifndef _Derivative_h
 #define _Derivative_h
 
+#include <RayPlatform/core/OperatingSystem.h>
+
 #include <vector>
 #include <fstream>
-#include <core/OperatingSystem.h>
 #include <map>
 #include <stdint.h>
 using namespace std;

@@ -19,8 +19,9 @@
 
 */
 
-#include <structures/StaticVector.h>
-#include <memory/allocator.h>
+#include "StaticVector.h"
+
+#include <RayPlatform/memory/allocator.h>
 
 #include <assert.h>
 #include <string.h>

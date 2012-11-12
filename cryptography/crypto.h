@@ -22,7 +22,7 @@
 #ifndef _crypto
 #define _crypto
 
-#include<stdint.h>
+#include <stdint.h>
 
 uint64_t uniform_hashing_function_1_64_64(uint64_t key);
 uint64_t uniform_hashing_function_2_64_64(uint64_t key);

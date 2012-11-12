@@ -22,9 +22,10 @@
 #ifndef _RingAllocator
 #define _RingAllocator
 
+#include <RayPlatform/core/types.h> 
+
 #include <set>
 #include <stdint.h>
-#include <core/types.h> 
 #include <mpi.h>
 using namespace std;
 

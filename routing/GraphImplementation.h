@@ -35,7 +35,7 @@ public:
 #include <vector>
 #include <set>
 #include <map>
-#include <core/types.h>
+#include <RayPlatform/core/types.h>
 using namespace std;
 
 /** virtual interface for graphs */

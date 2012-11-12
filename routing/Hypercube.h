@@ -22,7 +22,8 @@
 #ifndef _Hypercube_h
 #define _Hypercube_h
 
-#include <routing/GraphImplementation.h>
+#include "GraphImplementation.h"
+
 #include <vector>
 #include <stdint.h>
 using namespace std;

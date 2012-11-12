@@ -21,9 +21,10 @@
 #ifndef _SlaveModeExecutor_h
 #define _SlaveModeExecutor_h
 
-#include <handlers/SlaveModeHandler.h>
-#include <core/slave_modes.h>
-#include <core/types.h>
+#include "SlaveModeHandler.h"
+
+#include <RayPlatform/core/slave_modes.h>
+#include <RayPlatform/core/types.h>
 
 /**
  * This class is responsible to handling event 

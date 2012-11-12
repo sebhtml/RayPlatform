@@ -22,19 +22,20 @@
 #ifndef _MessageRouter_h
 #define _MessageRouter_h
 
-#include <memory/RingAllocator.h>
-#include <structures/StaticVector.h>
-#include <communication/Message.h>
-#include <routing/ConnectionGraph.h>
-#include <core/types.h>
+#include "Message.h"
 
-class ComputeCore;
+#include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/structures/StaticVector.h>
+#include <RayPlatform/routing/ConnectionGraph.h>
+#include <RayPlatform/core/types.h>
 
 #include <string>
 #include <map>
 #include <vector>
 #include <time.h> /* for time() */
 using namespace std;
+
+class ComputeCore;
 
 /**
  * \author Sébastien Boisvert 2011-11-04

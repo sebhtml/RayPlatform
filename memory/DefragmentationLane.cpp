@@ -18,7 +18,8 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <memory/DefragmentationLane.h>
+#include "DefragmentationLane.h"
+
 #include <stdlib.h>
 #include <assert.h>
 #include <iostream>

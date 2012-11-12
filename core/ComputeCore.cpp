@@ -19,18 +19,17 @@
 
 */
 
-#include <core/ComputeCore.h>
-#include <core/OperatingSystem.h>
-#include <cryptography/crypto.h>
+#include "ComputeCore.h"
+#include "OperatingSystem.h"
+
+#include <RayPlatform/cryptography/crypto.h>
+#include <RayPlatform/communication/MessagesHandler.h>
+
 #include <stdlib.h>
 #include <string.h> /* for strcpy */
-
 #ifdef ASSERT
 #include <assert.h>
 #endif
-
-#include "communication/MessagesHandler.h"
-
 #include <iostream>
 using namespace std;
 

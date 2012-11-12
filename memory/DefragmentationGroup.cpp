@@ -27,8 +27,9 @@
 
 /* #define LOW_LEVEL_ASSERT */
 
-#include <memory/DefragmentationGroup.h>
-#include <memory/allocator.h>
+#include "DefragmentationGroup.h"
+#include "allocator.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>

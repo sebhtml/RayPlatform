@@ -21,9 +21,9 @@
 #ifndef _TaskCreator_H
 #define _TaskCreator_H
 
-#include <scheduling/Worker.h>
-#include <scheduling/VirtualProcessor.h>
-#include <memory/MyAllocator.h>
+#include <RayPlatform/scheduling/Worker.h>
+#include <RayPlatform/scheduling/VirtualProcessor.h>
+#include <RayPlatform/memory/MyAllocator.h>
 
 /** this is an interface that should be implemented by child classes 
  * m_initialized must be set to false in the child class

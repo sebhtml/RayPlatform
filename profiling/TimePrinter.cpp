@@ -19,8 +19,9 @@
 
 */
 
-#include <profiling/TimePrinter.h>
-#include <core/OperatingSystem.h>
+#include "TimePrinter.h"
+
+#include <RayPlatform/core/OperatingSystem.h>
 
 #include <stdio.h>
 #include <iostream>

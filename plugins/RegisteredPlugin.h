@@ -22,7 +22,8 @@
 #ifndef _RegisteredPlugin_h
 #define _RegisteredPlugin_h
 
-#include <core/types.h>
+#include <RayPlatform/core/types.h>
+
 #include <set>
 #include <string>
 #include <iostream>

@@ -22,9 +22,10 @@
 #ifndef _MyHashTableGroup_hh
 #define _MyHashTableGroup_hh
 
+#include <RayPlatform/memory/ChunkAllocatorWithDefragmentation.h>
+
 #include <stdint.h>
 #include <time.h>
-#include <memory/ChunkAllocatorWithDefragmentation.h>
 #include <iostream>
 #include <assert.h>
 using namespace std;

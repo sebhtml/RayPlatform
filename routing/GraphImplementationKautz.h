@@ -22,7 +22,8 @@
 #ifndef _GraphImplementationKautz_h
 #define _GraphImplementationKautz_h
 
-#include <routing/GraphImplementation.h>
+#include "GraphImplementation.h"
+
 #include <vector>
 #include <stdint.h>
 using namespace std;

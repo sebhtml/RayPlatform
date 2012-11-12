@@ -22,23 +22,25 @@
 #ifndef _ConnectionGraph
 #define _ConnectionGraph
 
+#include "GraphImplementation.h"
+#include "GraphImplementationRandom.h"
+#include "GraphImplementationGroup.h"
+#include "GraphImplementationDeBruijn.h"
+#include "GraphImplementationKautz.h"
+#include "GraphImplementationExperimental.h"
+#include "GraphImplementationComplete.h"
+#include "Hypercube.h"
+
+#include <RayPlatform/core/types.h>
+#include <RayPlatform/core/statistics.h>
+
 #include <vector>
-#include <set>
-#include <map>
-#include <core/statistics.h>
+#include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <routing/GraphImplementation.h>
-#include <routing/GraphImplementationRandom.h>
-#include <routing/GraphImplementationGroup.h>
-#include <routing/GraphImplementationDeBruijn.h>
-#include <routing/GraphImplementationKautz.h>
-#include <routing/GraphImplementationExperimental.h>
-#include <routing/GraphImplementationComplete.h>
-#include <routing/Hypercube.h>
-#include <string>
-#include <core/types.h>
+#include <set>
+#include <map>
 using namespace std;
 
 /** a graph for connections between compute cores */

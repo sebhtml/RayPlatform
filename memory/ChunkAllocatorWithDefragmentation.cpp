@@ -18,13 +18,12 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <memory/ChunkAllocatorWithDefragmentation.h>
-#include <memory/allocator.h>
+#include "ChunkAllocatorWithDefragmentation.h"
+#include "allocator.h"
 
 #ifdef ASSERT
 #include <assert.h>
 #endif
-
 #include <iostream>
 using namespace std;
 

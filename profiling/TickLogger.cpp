@@ -18,11 +18,13 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <profiling/TickLogger.h>
+#include "TickLogger.h"
+
+#include <RayPlatform/core/OperatingSystem.h>
+
 #include <assert.h>
 #include <iostream>
 #include <time.h>
-#include <core/OperatingSystem.h>
 using namespace std;
 
 //#define CONFIG_DISPLAY_TICKS

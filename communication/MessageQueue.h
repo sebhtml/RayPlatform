@@ -22,8 +22,9 @@
 #ifndef _MessageQueue_h
 #define _MessageQueue_h
 
-#include <communication/Message.h>
-#include <memory/allocator.h> /* for __Malloc and __Free */
+#include "Message.h"
+
+#include <RayPlatform/memory/allocator.h> /* for __Malloc and __Free */
 
 /*
  * For uint32_t

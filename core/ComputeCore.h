@@ -22,31 +22,34 @@
 #ifndef _ComputeCore_h
 #define _ComputeCore_h
 
-#include <handlers/MessageTagHandler.h>
-#include <handlers/MessageTagExecutor.h>
-#include <handlers/SlaveModeHandler.h>
-#include <handlers/MasterModeHandler.h>
-#include <handlers/MasterModeExecutor.h>
-#include <handlers/SlaveModeExecutor.h>
-#include <profiling/Profiler.h>
-#include <structures/StaticVector.h>
-#include <communication/Message.h>
-#include <communication/MessageRouter.h>
-#include <profiling/TickLogger.h>
-#include <scheduling/SwitchMan.h>
-#include <memory/RingAllocator.h>
-#include <scheduling/VirtualProcessor.h>
-#include <communication/VirtualCommunicator.h>
-#include <communication/MessageQueue.h>
-#include <plugins/CorePlugin.h>
-#include <plugins/RegisteredPlugin.h>
-#include "core/OperatingSystem.h"
-#include "communication/MessagesHandler.h"
-
 /*
  * For the runtime configuration parameters.
  */
-#include "core/types.h"
+#include "types.h"
+#include "OperatingSystem.h"
+
+#include <RayPlatform/handlers/MessageTagHandler.h>
+#include <RayPlatform/handlers/MessageTagExecutor.h>
+#include <RayPlatform/handlers/SlaveModeHandler.h>
+#include <RayPlatform/handlers/MasterModeHandler.h>
+#include <RayPlatform/handlers/MasterModeExecutor.h>
+#include <RayPlatform/handlers/SlaveModeExecutor.h>
+
+#include <RayPlatform/profiling/Profiler.h>
+#include <RayPlatform/profiling/TickLogger.h>
+#include <RayPlatform/structures/StaticVector.h>
+#include <RayPlatform/scheduling/SwitchMan.h>
+#include <RayPlatform/scheduling/VirtualProcessor.h>
+
+#include <RayPlatform/communication/Message.h>
+#include <RayPlatform/communication/MessageRouter.h>
+#include <RayPlatform/communication/MessagesHandler.h>
+#include <RayPlatform/communication/VirtualCommunicator.h>
+#include <RayPlatform/communication/MessageQueue.h>
+
+#include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/plugins/CorePlugin.h>
+#include <RayPlatform/plugins/RegisteredPlugin.h>
 
 #include <iostream>
 #include <stdlib.h>

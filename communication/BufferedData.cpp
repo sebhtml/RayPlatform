@@ -19,10 +19,11 @@
 
 */
 
-#include <communication/BufferedData.h>
-#include <memory/RingAllocator.h>
-#include <memory/allocator.h>
-#include <structures/StaticVector.h>
+#include "BufferedData.h"
+
+#include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/memory/allocator.h>
+#include <RayPlatform/structures/StaticVector.h>
 
 #include <string.h>
 #include <stdio.h>

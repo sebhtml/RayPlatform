@@ -18,7 +18,7 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <handlers/SlaveModeExecutor.h>
+#include "SlaveModeExecutor.h"
 
 #ifdef ASSERT
 #include <assert.h>

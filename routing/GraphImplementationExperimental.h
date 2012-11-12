@@ -22,7 +22,8 @@
 #ifndef _GraphImplementationExperimental_h
 #define _GraphImplementationExperimental_h
 
-#include <routing/GraphImplementation.h>
+#include "GraphImplementation.h"
+
 #include <vector>
 #include <stdint.h>
 using namespace std;

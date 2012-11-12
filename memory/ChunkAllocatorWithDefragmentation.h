@@ -21,8 +21,9 @@
 #ifndef _ChunkAllocatorWithDefragmentation_H
 #define _ChunkAllocatorWithDefragmentation_H
 
-#include <memory/DefragmentationGroup.h>
-#include <memory/DefragmentationLane.h>
+#include "DefragmentationGroup.h"
+#include "DefragmentationLane.h"
+
 #include <stdlib.h>
 
 /**

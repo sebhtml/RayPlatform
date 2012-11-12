@@ -19,7 +19,8 @@
 
 */
 
-#include <core/OperatingSystem.h>
+#include "OperatingSystem.h"
+
 #include <iostream>
 #include <string>
 #include <fstream>

@@ -21,8 +21,8 @@
 #ifndef _TickLogger_h
 #define _TickLogger_h
 
-#include <core/master_modes.h>
-#include <core/slave_modes.h>
+#include <RayPlatform/core/master_modes.h>
+#include <RayPlatform/core/slave_modes.h>
 
 #include <time.h>
 #include <fstream>

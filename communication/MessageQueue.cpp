@@ -19,9 +19,9 @@
 
 */
 
-#include <communication/MessageQueue.h>
-#include <iostream>
+#include "MessageQueue.h"
 
+#include <iostream>
 using namespace std;
 
 #ifdef ASSERT

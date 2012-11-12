@@ -22,7 +22,8 @@
 #ifndef _MyHashTableIterator_H
 #define _MyHashTableIterator_H
 
-#include <structures/MyHashTable.h>
+#include "MyHashTable.h"
+
 #include <assert.h>
 
 /**

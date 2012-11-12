@@ -23,10 +23,11 @@
 #ifndef _VirtualCommunicator
 #define _VirtualCommunicator
 
-#include <memory/RingAllocator.h>
-#include <structures/StaticVector.h>
-#include <communication/Message.h>
-#include <memory/MyAllocator.h>
+#include "Message.h"
+
+#include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/memory/MyAllocator.h>
+#include <RayPlatform/structures/StaticVector.h>
 
 #include <map>
 #include <vector>

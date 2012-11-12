@@ -21,9 +21,10 @@
 #ifndef _MasterModeExecutor_h
 #define _MasterModeExecutor_h
 
-#include <core/types.h>
-#include <core/master_modes.h>
-#include <handlers/MasterModeHandler.h>
+#include "MasterModeHandler.h"
+
+#include <RayPlatform/core/types.h>
+#include <RayPlatform/core/master_modes.h>
 
 /**
  * This class is responsible to handling event 

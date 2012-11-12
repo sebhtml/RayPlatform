@@ -22,8 +22,9 @@
 #ifndef _Message_H
 #define _Message_H
 
+#include <RayPlatform/core/types.h>
+
 #include <stdint.h>
-#include <core/types.h>
 
 /**
  * In Ray, every message is a Message.

@@ -22,7 +22,7 @@
 #ifndef _GraphImplementationGroup_h
 #define _GraphImplementationGroup_h
 
-#include <routing/GraphImplementation.h>
+#include "GraphImplementation.h"
 
 /**
  * Graph with groups

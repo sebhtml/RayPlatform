@@ -21,8 +21,8 @@
 #ifndef _MasterModeHandler_h
 #define _MasterModeHandler_h
 
-#include <core/types.h>
-#include <core/master_modes.h>
+#include <RayPlatform/core/types.h>
+#include <RayPlatform/core/master_modes.h>
 
 #ifdef CONFIG_MINI_RANKS
 

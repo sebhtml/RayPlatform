@@ -19,7 +19,7 @@
 
 */
 
-#include <routing/ConnectionGraph.h>
+#include "ConnectionGraph.h"
 
 enum {
 __COMPLETE,

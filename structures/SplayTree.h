@@ -21,12 +21,14 @@
 #ifndef _SplayTree
 #define _SplayTree
 
-#include<structures/MyStack.h>
-#include<vector>
-#include<stdlib.h>
-#include<structures/SplayNode.h>
-#include<iostream>
-#include<memory/MyAllocator.h>
+#include "MyStack.h"
+#include "SplayNode.h"
+
+#include <RayPlatform/memory/MyAllocator.h>
+
+#include <iostream>
+#include <vector>
+#include <stdlib.h>
 using namespace std;
 
 /**

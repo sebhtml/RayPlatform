@@ -19,9 +19,11 @@
 
 */
 
-#include <core/OperatingSystem.h>
-#include <profiling/Profiler.h>
-#include <core/slave_modes.h>
+#include "Profiler.h"
+
+#include <RayPlatform/core/OperatingSystem.h>
+#include <RayPlatform/core/slave_modes.h>
+
 #include <assert.h>
 #include <iostream>
 #include <iomanip>

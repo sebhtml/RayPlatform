@@ -21,6 +21,8 @@
 #ifndef _DefragmentationGroup_H
 #define _DefragmentationGroup_H
 
+#include <stdint.h>
+
 /* 
  * How many elements per group ?
  * this is the number of values of uint16_t */
@@ -32,7 +34,6 @@
  */
 #define FAST_POINTERS 256
 
-#include <stdint.h>
 
 /**
  * A SmallSmartPointer is a smart pointer than only a DefragmentationGroup

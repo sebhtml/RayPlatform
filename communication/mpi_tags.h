@@ -26,7 +26,7 @@
 // these are the message types used by Ray
 // Ray instances like to communicate a lots!
 
-#include <core/types.h>
+#include <RayPlatform/core/types.h>
 
 extern char MESSAGE_TAGS[MAXIMUM_NUMBER_OF_TAG_HANDLERS][128];
 

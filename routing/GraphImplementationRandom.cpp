@@ -19,7 +19,8 @@
 
 */
 
-#include <routing/GraphImplementationRandom.h>
+#include "GraphImplementationRandom.h"
+
 #include <math.h> /* for log */
 #include <algorithm> /* random_shuffle */
 #include <assert.h>

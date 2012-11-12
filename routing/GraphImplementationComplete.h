@@ -22,7 +22,7 @@
 #ifndef _GraphImplementationComplete_h
 #define _GraphImplementationComplete_h
 
-#include <routing/GraphImplementation.h>
+#include "GraphImplementation.h"
 
 /**
  * complete graph 

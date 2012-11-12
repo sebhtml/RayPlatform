@@ -22,10 +22,11 @@
 #ifndef _BufferedData
 #define _BufferedData
 
+#include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/memory/MyAllocator.h>
+#include <RayPlatform/structures/StaticVector.h>
+
 #include <stdint.h>
-#include <memory/MyAllocator.h>
-#include <structures/StaticVector.h>
-#include <memory/RingAllocator.h>
 
 /**
  *  This class accumulates messages and flush them when the threshold is reached.

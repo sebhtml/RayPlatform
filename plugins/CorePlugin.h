@@ -22,7 +22,7 @@
 #ifndef _CorePlugin_h
 #define _CorePlugin_h
 
-#include <core/types.h>
+#include <RayPlatform/core/types.h>
 
 #ifdef CONFIG_MINI_RANKS
 

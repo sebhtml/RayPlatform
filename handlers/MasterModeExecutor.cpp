@@ -18,12 +18,11 @@
 	see <http://www.gnu.org/licenses/>
 */
 
+#include "MasterModeExecutor.h"
 
+#include <RayPlatform/core/types.h>
 
-#include <handlers/MasterModeExecutor.h>
-#include <core/types.h>
 #include <stdlib.h> /* for NULL */
-
 #ifdef ASSERT
 #include <assert.h>
 #endif

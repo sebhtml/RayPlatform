@@ -21,9 +21,9 @@
 #ifndef _MessageTagHandler_h
 #define _MessageTagHandler_h
 
-#include <communication/Message.h>
-#include <core/types.h>
-#include <communication/mpi_tags.h>
+#include <RayPlatform/core/types.h>
+#include <RayPlatform/communication/Message.h>
+#include <RayPlatform/communication/mpi_tags.h>
 
 #ifdef CONFIG_MINI_RANKS
 

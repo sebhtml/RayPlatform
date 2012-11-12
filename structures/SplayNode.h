@@ -21,7 +21,7 @@
 #ifndef _SplayNode
 #define _SplayNode
 
-#include<iostream>
+#include <iostream>
 using namespace std;
 
 /**

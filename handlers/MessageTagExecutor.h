@@ -18,15 +18,14 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-
-
 #ifndef _MessageTagExecutor_h
 #define _MessageTagExecutor_h
 
-#include <handlers/MessageTagHandler.h>
-#include <communication/Message.h>
-#include <core/types.h>
-#include <communication/mpi_tags.h>
+#include "MessageTagHandler.h"
+
+#include <RayPlatform/core/types.h>
+#include <RayPlatform/communication/Message.h>
+#include <RayPlatform/communication/mpi_tags.h>
 
 /**
  * This class is responsible to handling event 

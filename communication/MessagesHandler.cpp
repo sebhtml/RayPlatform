@@ -19,13 +19,13 @@
 
 */
 
-#include <communication/MessagesHandler.h>
+#include "MessagesHandler.h"
+#include "MessageRouter.h"
 
 /* for decoding message tags */
-#include <communication/MessageRouter.h> 
-#include <memory/allocator.h>
-#include <core/OperatingSystem.h>
-#include <core/ComputeCore.h>
+#include <RayPlatform/memory/allocator.h>
+#include <RayPlatform/core/OperatingSystem.h>
+#include <RayPlatform/core/ComputeCore.h>
 
 #include <fstream>
 #include <assert.h>

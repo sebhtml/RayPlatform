@@ -22,7 +22,8 @@
 #ifndef _GraphImplementationDeBruijn_h
 #define _GraphImplementationDeBruijn_h
 
-#include <routing/GraphImplementation.h>
+#include "GraphImplementation.h"
+
 #include <vector>
 #include <stdint.h>
 using namespace std;

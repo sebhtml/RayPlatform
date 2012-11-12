@@ -18,14 +18,14 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include "handlers/MessageTagHandler.h"
-#include "handlers/MessageTagExecutor.h"
-#include "communication/mpi_tags.h"
+#include "MessageTagHandler.h"
+#include "MessageTagExecutor.h"
+
+#include <RayPlatform/communication/mpi_tags.h>
 
 #ifdef ASSERT
 #include <assert.h>
 #endif
-
 #include <stdlib.h> /* for NULL */
 
 void MessageTagExecutor::callHandler(MessageTag messageTag,Message*message){

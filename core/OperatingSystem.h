@@ -29,8 +29,6 @@
 
 /** only this file knows the operating system */
 #include <string>
-//#include <core/constants.h> 
-//#include <communication/MessagesHandler.h>
 #include <stdint.h>
 using namespace std;
 

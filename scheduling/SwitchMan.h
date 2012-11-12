@@ -21,14 +21,14 @@
 #ifndef _SwitchMan_H
 #define _SwitchMan_H
 
-#include <core/master_modes.h>
-#include <structures/StaticVector.h>
-#include <communication/Message.h>
-#include <core/slave_modes.h>
-#include <core/master_modes.h>
-#include <plugins/CorePlugin.h>
-#include <handlers/MessageTagHandler.h>
-#include <handlers/SlaveModeHandler.h>
+#include <RayPlatform/communication/Message.h>
+#include <RayPlatform/core/slave_modes.h>
+#include <RayPlatform/core/master_modes.h>
+#include <RayPlatform/core/master_modes.h>
+#include <RayPlatform/plugins/CorePlugin.h>
+#include <RayPlatform/handlers/MessageTagHandler.h>
+#include <RayPlatform/handlers/SlaveModeHandler.h>
+#include <RayPlatform/structures/StaticVector.h>
 
 #include <map>
 #include <vector>

@@ -19,7 +19,8 @@
 
 */
 
-#include <routing/GraphImplementation.h>
+#include "GraphImplementation.h"
+
 #include <iostream>
 #include <stdlib.h> /* srand, rand */
 #include <algorithm> /* random_shuffle */

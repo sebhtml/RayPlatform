@@ -21,9 +21,10 @@
 #ifndef _Worker_h
 #define _Worker_h
 
+#include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/communication/VirtualCommunicator.h>
+
 #include <stdint.h>
-#include <memory/RingAllocator.h>
-#include <communication/VirtualCommunicator.h>
 
 /** a general worker class 
  * \author Sébastien Boisvert

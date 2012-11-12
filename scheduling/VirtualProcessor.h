@@ -21,10 +21,9 @@
 #ifndef _VirtualProcessor_h
 #define _VirtualProcessor_h
 
-#include <structures/StaticVector.h>
-#include <memory/RingAllocator.h>
-#include <scheduling/Worker.h>
-
+#include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/scheduling/Worker.h>
+#include <RayPlatform/structures/StaticVector.h>
 
 #include <set>
 #include <vector>

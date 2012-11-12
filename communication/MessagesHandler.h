@@ -22,6 +22,18 @@
 #ifndef _MessagesHandler
 #define _MessagesHandler
 
+#include "Message.h"
+
+#include <RayPlatform/memory/MyAllocator.h>
+#include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/structures/StaticVector.h>
+
+// this is one of the two includes for mpi.h
+#include <mpi.h> 
+#include <string>
+#include <vector>
+using namespace std;
+
 /* Many communication models are implemented:
  * latencies are for a system with 36 cores (or 120 cores), QLogic interconnect, 
  *  and Performance scaled messaging
@@ -74,21 +86,8 @@
  */
 //#define CONFIG_COMM_IRECV_TESTANY
 
-// this is one of the two includes for mpi.h
-#include <mpi.h> 
-
-#include <memory/MyAllocator.h>
-#include <communication/Message.h>
-#include <memory/RingAllocator.h>
-#include <structures/StaticVector.h>
-
 class ComputeCore;
 class MessageQueue;
-
-#include <string>
-#include <vector>
-using namespace std;
-
 
 /*
  Open-MPI eager threshold is 4k (4096), and this include Open-MPI's metadata.

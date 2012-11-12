@@ -21,7 +21,7 @@
 #ifndef _master_modes
 #define _master_modes
 
-#include <core/types.h>
+#include "types.h"
 
 extern char MASTER_MODES[MAXIMUM_NUMBER_OF_MASTER_HANDLERS][128];
 

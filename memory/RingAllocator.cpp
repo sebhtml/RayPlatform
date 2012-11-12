@@ -19,8 +19,8 @@
 
 */
 
-#include <memory/RingAllocator.h>
-#include <memory/allocator.h>
+#include "RingAllocator.h"
+#include "allocator.h"
 
 #include <string.h>
 #include <assert.h>

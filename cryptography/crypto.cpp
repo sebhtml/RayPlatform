@@ -19,9 +19,9 @@
 
 */
 
-#include <cryptography/crypto.h>
-#include <string.h>
+#include "crypto.h"
 
+#include <string.h>
 #ifdef ASSERT
 #include <assert.h>
 #endif

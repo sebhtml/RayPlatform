@@ -22,7 +22,7 @@
 #ifndef _MiniRank_h
 #define _MiniRank_h
 
-#include "core/ComputeCore.h"
+#include "ComputeCore.h"
 
 /**
  * The class for a minirank.

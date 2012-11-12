@@ -1,6 +1,6 @@
 /*
  	Ray
-    Copyright (C) 2010, 2011  Sébastien Boisvert
+    Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -19,13 +19,14 @@
 
 */
 
-#include <memory/allocator.h>
+#include "allocator.h"
+
+#include <RayPlatform/core/OperatingSystem.h>
+
 #include <iostream>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <core/OperatingSystem.h>
-//#include <core/constants.h>
 using namespace std;
 
 /**

@@ -21,7 +21,8 @@
 
 //#define CONFIG_ROUTING_DE_BRUIJN_COMPUTE_ROUTES
 
-#include <routing/GraphImplementationDeBruijn.h>
+#include "GraphImplementationDeBruijn.h"
+
 #include <iostream>
 using namespace std;
 

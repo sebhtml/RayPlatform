@@ -1,6 +1,6 @@
 /*
  	Ray
-    Copyright (C) 2011  Sébastien Boisvert
+    Copyright (C) 2011, 2012  Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
 
@@ -19,6 +19,7 @@
 
 */
 
-#include <core/slave_modes.h>
+#include "slave_modes.h"
 
 char SLAVE_MODES[MAXIMUM_NUMBER_OF_SLAVE_HANDLERS][128];
+

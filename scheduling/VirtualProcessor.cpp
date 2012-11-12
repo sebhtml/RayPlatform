@@ -18,8 +18,9 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <scheduling/VirtualProcessor.h>
-#include <core/ComputeCore.h>
+#include "VirtualProcessor.h"
+
+#include <RayPlatform/core/ComputeCore.h>
 
 #include <iostream>
 using namespace std;

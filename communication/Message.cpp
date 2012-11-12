@@ -19,9 +19,10 @@
 
 */
 
-#include <communication/Message.h>
+#include "Message.h"
+#include "mpi_tags.h"
+
 #include <iostream>
-#include <communication/mpi_tags.h>
 using namespace std;
 
 /** buffer must be allocated or else it will CORE DUMP. */

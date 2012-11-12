@@ -19,7 +19,7 @@
 
 */
 
-#include <core/master_modes.h>
+#include "master_modes.h"
 
 char MASTER_MODES[MAXIMUM_NUMBER_OF_MASTER_HANDLERS][128];
 

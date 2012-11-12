@@ -21,8 +21,8 @@
 #ifndef _SlaveModeHandler_h
 #define _SlaveModeHandler_h
 
-#include <core/slave_modes.h>
-#include <core/types.h>
+#include <RayPlatform/core/slave_modes.h>
+#include <RayPlatform/core/types.h>
 
 #ifdef CONFIG_MINI_RANKS
 

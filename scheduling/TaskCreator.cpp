@@ -18,7 +18,8 @@
 	see <http://www.gnu.org/licenses/>
 */
 
-#include <scheduling/TaskCreator.h>
+#include "TaskCreator.h"
+
 #include <stdlib.h> /* for NULL */
 
 #ifdef ASSERT

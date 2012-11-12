@@ -21,7 +21,8 @@
 
 //#define CONFIG_ROUTING_KAUTZ_COMPUTE_ROUTES
 
-#include <routing/GraphImplementationExperimental.h>
+#include "GraphImplementationExperimental.h"
+
 #include <iostream>
 using namespace std;
 
