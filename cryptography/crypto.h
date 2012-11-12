@@ -2,7 +2,7 @@
  	RayPlatform: a message-passing development framework
     Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
 
-	http://DeNovoAssembler.SourceForge.Net/
+	http://github.com/sebhtml/RayPlatform
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
