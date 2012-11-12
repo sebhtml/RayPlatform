@@ -1,6 +1,6 @@
 /*
  	RayPlatform
-    Copyright (C) 2010, 2011, 2012  Sébastien Boisvert
+    Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
 
 	http://github.com/sebhtml/RayPlatform
 
