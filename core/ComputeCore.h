@@ -1,8 +1,8 @@
 /*
- 	RayPlatform
+ 	RayPlatform: a message-passing development framework
     Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
 
-	http://github.com/sebhtml/RayPlatform
+	http://github.com/sebhtml/RayPlatform: a message-passing development framework
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by

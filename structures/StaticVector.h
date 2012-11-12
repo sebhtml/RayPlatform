@@ -1,5 +1,5 @@
 /*
- 	Ray
+ 	RayPlatform: a message-passing development framework
     Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
@@ -27,7 +27,7 @@
 
 /**
  * A static vector of Message.
- * This is used for the inbox and the outbox in Ray
+ * This is used for the inbox and the outbox in Ray ranks or mini-ranks
  *
  * clear is basically O(1), it just sets m_size=0
  * \author Sébastien Boisvert

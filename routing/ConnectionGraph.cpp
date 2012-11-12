@@ -1,5 +1,5 @@
 /*
- 	RayPlatform
+ 	RayPlatform: a message-passing development framework
     Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/

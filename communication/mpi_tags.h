@@ -1,5 +1,5 @@
 /*
- 	Ray
+ 	RayPlatform: a message-passing development framework
     Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
 
 	http://DeNovoAssembler.SourceForge.Net/
@@ -23,7 +23,7 @@
 #define _mpi_tags
 
 // tags for MPI
-// these are the message types used by Ray
+// these are the message types used by Ray plugins
 // Ray instances like to communicate a lots!
 
 #include <RayPlatform/core/types.h>
