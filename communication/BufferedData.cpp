@@ -175,7 +175,7 @@ bool BufferedData::flush(int destination,int period,int tag,RingAllocator*outbox
 		message[i]=getAt(destination,i);
 	}
 	Message aMessage(message,amount,destination,tag,rank);
-	outbox->push_back(aMessage);
+	outbox->push_back(&aMessage);
 	m_flushedMessages++;
 	reset(destination);
 	return true;

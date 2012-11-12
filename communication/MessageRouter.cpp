@@ -297,7 +297,7 @@ void MessageRouter::relayMessage(Message*message,Rank destination){
 	assert(m_graph.isConnected(m_rank,destination));
 	#endif
 
-	m_outbox->push_back(*message);
+	m_outbox->push_back(message);
 }
 
 

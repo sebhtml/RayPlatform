@@ -231,7 +231,7 @@ void VirtualCommunicator::flushMessage(int tag,int destination){
 	}
 
 	Message aMessage(messageContent,currentSize,destination,tag,m_rank);
-	m_outbox->push_back(aMessage);
+	m_outbox->push_back(&aMessage);
 
 	m_pendingMessages++;
 }

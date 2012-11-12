@@ -661,7 +661,7 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	}
 
 	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
-	core->getInbox()->push_back(aMessage);
+	core->getInbox()->push_back(&aMessage);
 
 	#ifdef ASSERT
 	// this assertion is not valid for mini-ranks.
@@ -1077,7 +1077,7 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 	MPI_Recv(incoming,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
 
 	Message aMessage(incoming,count,m_rank,actualTag,actualSource);
-	inbox->push_back(aMessage);
+	inbox->push_back(&aMessage);
 
 	#ifdef ASSERT
 	assert(aMessage.getDestination() == m_rank);
@@ -1138,7 +1138,7 @@ void MessagesHandler::receiveMessagesForComputeCore(StaticVector*inbox,RingAlloc
  */
 		message.setBuffer(incoming);
 
-		inbox->push_back(message);
+		inbox->push_back(&message);
 	}
 
 #ifdef CONFIG_USE_LOCKING

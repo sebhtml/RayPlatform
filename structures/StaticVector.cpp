@@ -48,9 +48,9 @@ Message*StaticVector::at(int i){
 	return m_messages+i;
 }
 
-// TODO: the message a should be passed as a pointer
-void StaticVector::push_back(Message a){
-	m_messages[m_size++]=a;
+// The message is be passed as a pointer.
+void StaticVector::push_back(Message*a){
+	m_messages[m_size++]=*a;
 }
 
 int StaticVector::size(){
