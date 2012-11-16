@@ -38,6 +38,8 @@ using namespace std;
 //#define CONFIG_DEBUG_MPI_RANK
 //#define CONFIG_DEBUG_MINI_RANK_COMMUNICATION
 
+#define CONFIG_MESSAGE_QUEUE_RETRY_WARNING 1024
+
 /**
  *
  */
@@ -405,7 +407,19 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 
 	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
 
-	inbox->push(&aMessage);
+/*
+ * Try to push the message. If it does not work, just try again.
+ * It should work eventually.
+ */
+	int ticks=0;
+
+	while(!inbox->push(&aMessage)){
+
+		if(ticks%CONFIG_MESSAGE_QUEUE_RETRY_WARNING ==0)
+			cout<<"[MessagesHandler] Warning: inbox message queue is full, will retry in a bit... (#"<<ticks<<")"<<endl;
+
+		ticks++;
+	}
 
 #ifdef CONFIG_USE_LOCKING
 	inbox->unlock();
@@ -1097,11 +1111,25 @@ void MessagesHandler::sendMessagesForComputeCore(StaticVector*outbox,MessageQueu
 
 /*
  * TODO: I am not sure that it is safe to give our own buffer to
- * the other thread. If the ring is large enough and the communication.
+ * the other thread. If the ring is large enough and the communication
+ * is steady, probably.
  */
 	for(int i=0;i<messages;i++){
 		Message*message=(*outbox)[i];
-		bufferedOutbox->push(message);
+
+/*
+ * If the queue is full, we just retry endlessly, it will work eventually.
+ * If not, something is wrong.
+ */
+		int ticks=0;
+
+		while(!bufferedOutbox->push(message)){
+
+			if(ticks%CONFIG_MESSAGE_QUEUE_RETRY_WARNING ==0)
+				cout<<"[MessagesHandler] Warning: outbox message queue is full, will retry in a bit... (#"<<ticks<<")"<<endl;
+
+			ticks++;
+		}
 	}
 
 #ifdef CONFIG_USE_LOCKING
