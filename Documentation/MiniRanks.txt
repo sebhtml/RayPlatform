@@ -51,15 +51,15 @@ Figure 2: The MPI programming model, with mini ranks.
     +------+------+---+--+------+------+
     |      |      |      |      |      |
   +---+  +---+  +---+  +---+  +---+  +---+ 
-  | 0 |  | 1 |  | 2 |  | 3 |  | 4 |  | 5 |    MPI ranks   (1 VirtualMachine.cpp instance per rank)
-  +---+  +---+  +---+  +---+  +---+  +---+                    with the main for MPI calls
+  | 0 |  | 1 |  | 2 |  | 3 |  | 4 |  | 5 |    MPI ranks   (1 RankProcess.cpp instance per rank)
+  +---+  +---+  +---+  +---+  +---+  +---+                    with the thread from main() for MPI calls
   |   |  |   |  |   |  |   |  |   |  |   |
   | 0 |  | 4 |  | 8 |  |12 |  |16 |  |20 |  |                
-  | 1 |  | 5 |  | 9 |  |13 |  |17 |  |21 |  | => mini ranks
+  | 1 |  | 5 |  | 9 |  |13 |  |17 |  |21 |  | => mini-ranks
   | 2 |  | 6 |  |10 |  |14 |  |18 |  |22 |  |
-  | 3 |  | 7 |  |11 |  |15 |  |19 |  |23 |  |  (1 Minirank instance per minirank (in 1 pthread))
-  |   |  |   |  |   |  |   |  |   |  |   |
-  +---+  +---+  +---+  +---+  +---+  +---+       (will wrap Machine.cpp and ComputeCore.cpp)
+  | 3 |  | 7 |  |11 |  |15 |  |19 |  |23 |  |  (1 MiniRank.cpp instance per minirank (in 1 pthread))
+  |   |  |   |  |   |  |   |  |   |  |   |  |   (1 Application running with its RayPlatform ComputeCore.cpp)
+  +---+  +---+  +---+  +---+  +---+  +---+       
 
 Current programming model:
 
