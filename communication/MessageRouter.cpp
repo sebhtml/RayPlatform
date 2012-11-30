@@ -19,7 +19,7 @@
 
 */
 
-//#define CONFIG_ROUTING_VERBOSITY
+/* #define CONFIG_ROUTING_VERBOSITY */
 
 /**
  * \brief Message router implementation
@@ -330,11 +330,14 @@ void MessageRouter::enable(StaticVector*inbox,StaticVector*outbox,RingAllocator*
 	m_outboxAllocator=outboxAllocator;
 	m_rank=rank;
 	m_enabled=true;
-
-	if(m_rank==MASTER_RANK)
-		m_graph.writeFiles(prefix);
-
 	m_deletionTime=0;
+
+	m_prefix=prefix;
+}
+
+void MessageRouter::writeFiles(){
+	if(m_rank==MASTER_RANK)
+		m_graph.writeFiles(m_prefix);
 }
 
 bool MessageRouter::hasCompletedRelayEvents(){

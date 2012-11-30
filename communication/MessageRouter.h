@@ -38,13 +38,14 @@ using namespace std;
 class ComputeCore;
 
 /**
- * \author Sébastien Boisvert 2011-11-04
- * \reviewedBy Elénie Godzaridis 2011-11-05
- *
  * the MessageRouter makes communication more efficient.
  *
+ * \author Sébastien Boisvert 2011-11-04
+ * \reviewedBy Elénie Godzaridis 2011-11-05
  */
 class MessageRouter {
+
+	string m_prefix;
 
 /** the extra ticks after the computation has completed. **/
 	time_t m_deletionTime;
@@ -128,6 +129,12 @@ string prefix,int numberOfRanks,string type,int degree);
 	bool hasCompletedRelayEvents();
 
 	ConnectionGraph*getGraph();
+
+/**
+ * Write routing information files.
+ */
+	void writeFiles();
+
 };
 
 #endif /* _MessageRouter_h */

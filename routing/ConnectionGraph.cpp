@@ -21,6 +21,8 @@
 
 #include "ConnectionGraph.h"
 
+#include <RayPlatform/core/OperatingSystem.h>
+
 enum {
 __COMPLETE,
 __GROUP,
@@ -63,6 +65,10 @@ bool ConnectionGraph::isConnected(Rank source,Rank destination){
  * Write files.
  */
 void ConnectionGraph::writeFiles(string prefix){
+
+	if(m_rank==MASTER_RANK)
+		createDirectory(prefix.c_str());
+
 	// dump the connections in a file
 	ostringstream file;
 	file<<prefix<<"Connections.txt";
