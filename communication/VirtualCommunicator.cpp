@@ -31,7 +31,7 @@
 #include <stdio.h>
 using namespace std;
 
-/* #define DEBUG_VIRTUAL_COMMUNICATOR */
+/* #define CONFIG_DEBUG_VIRTUAL_COMMUNICATOR */
 
 /** set the number of elements per message for a given tag */
 void VirtualCommunicator::setElementsPerQuery(int tag,int size){
@@ -189,7 +189,7 @@ void VirtualCommunicator::pushMessage(WorkerHandle workerId,Message*message){
 }
 
 void VirtualCommunicator::flushMessage(int tag,int destination){
-	#ifdef DEBUG_VIRTUAL_COMMUNICATOR
+	#ifdef CONFIG_DEBUG_VIRTUAL_COMMUNICATOR
 	cout<<"VirtualCommunicator:: sending multiplexed message to "<<destination<<endl;
 	#endif
 
@@ -257,10 +257,10 @@ void VirtualCommunicator::getMessageResponseElements(WorkerHandle workerId,vecto
 }
 
 void VirtualCommunicator::constructor(int rank,int size,RingAllocator*outboxAllocator,StaticVector*inbox,StaticVector*outbox){
-	m_debug=false;
-
-	if(m_debug)
-		cout<<"Rank "<<rank<<" Initializing VirtualCommunicator"<<endl;
+	
+#ifdef CONFIG_DEBUG_VIRTUAL_COMMUNICATOR
+	cout<<"Rank "<<rank<<" Initializing VirtualCommunicator"<<endl;
+#endif
 
 	resetCounters();
 
@@ -297,7 +297,7 @@ void VirtualCommunicator::processInbox(vector<WorkerHandle>*activeWorkers){
 
 		int queryTag=m_replyTagToQueryTag[incomingTag];
 		if(m_activeTag==queryTag&&m_activeDestination==source){
-			#ifdef DEBUG_VIRTUAL_COMMUNICATOR
+			#ifdef CONFIG_DEBUG_VIRTUAL_COMMUNICATOR
 			cout<<"VirtualCommunicator: receiving multiplexed message, de-multiplexing data..."<<endl;
 			#endif
 
@@ -332,9 +332,11 @@ void VirtualCommunicator::processInbox(vector<WorkerHandle>*activeWorkers){
 			for(int i=0;i<(int)workers.size();i++){
 				WorkerHandle workerId=workers[i];
 				activeWorkers->push_back(workerId);
-				if(m_debug){
-					cout<<"Reactivating "<<workerId<<" tag="<<queryTag<<endl;
-				}
+
+#ifdef CONFIG_DEBUG_VIRTUAL_COMMUNICATOR
+				cout<<"Reactivating "<<workerId<<" tag="<<queryTag<<endl;
+#endif
+
 				int basePosition=i*elementsPerWorker;
 
 				#ifdef ASSERT
@@ -387,14 +389,16 @@ bool VirtualCommunicator::isReady(){
 
 // force the first encountered thing
 void VirtualCommunicator::forceFlush(){
-	if(m_debug){
-		cout<<__func__<<endl;
-	}
+
+#ifdef CONFIG_DEBUG_VIRTUAL_COMMUNICATOR
+	cout<<__func__<<endl;
+#endif
 
 	if(m_priorityQueue.size()==0){
-		if(m_debug){
-			cout<<"queue is empty"<<endl;
-		}
+
+#ifdef CONFIG_DEBUG_VIRTUAL_COMMUNICATOR
+		cout<<"queue is empty"<<endl;
+#endif
 		return;
 	}
 
@@ -449,11 +453,6 @@ void VirtualCommunicator::printStatistics(){
 	cout<<"Rank "<<m_rank<<" : VirtualCommunicator (service provided by VirtualCommunicator): "<<m_pushedMessages;
 	cout<<" virtual messages generated "<<m_flushedMessages;
 	cout<<" real messages ("<<ratio<<"%)"<<endl;
-}
-
-/** debugging will display a lot of messages */
-void VirtualCommunicator::setDebug(){
-	m_debug=true;
 }
 
 uint64_t VirtualCommunicator::getMessageUniqueId(Rank destination ,int tag){

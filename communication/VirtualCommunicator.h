@@ -49,7 +49,6 @@ using namespace std;
  * \author Sébastien Boisvert
 */
 class VirtualCommunicator{
-	bool m_debug;
 	uint64_t m_pushedMessages;
 	uint64_t m_flushedMessages;
 
@@ -210,8 +209,6 @@ public:
 
 	void printStatistics();
 	void resetCounters();
-
-	void setDebug();
 
 	int getReplyType(int tag);
 

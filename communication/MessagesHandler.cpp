@@ -190,6 +190,7 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 /*
  * It would obviously be better if the copy could be avoid 
  * by using the original buffer directly.
+ * But it is not possible because it is not thread-safe to do so.
  */
 		MessageUnit*theBuffer=(MessageUnit*)outboxBufferAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 		memcpy(theBuffer,buffer,count*sizeof(MessageUnit));
