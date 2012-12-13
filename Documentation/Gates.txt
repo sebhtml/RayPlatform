@@ -1,7 +1,5 @@
 Gates for non-linear scheduling
 2012-12-04
-Sébastien Boisvert
-(the idea of Gate objects was provided by E. Godzaridis)
 
 
 Currently, SwitchMan only allows linear scheduling of master modes.
@@ -29,65 +27,15 @@ o---->o---->o---->o---->o---->o---->o---->o
           ->o---->o---->o---->o---->o---->o
 
 
-
-
 The current way of setting the next master mode for a current master mode is:
-
 
 	void ComputeCore::setMasterModeNextMasterMode(PluginHandle plugin,MasterMode mode,MasterMode next);
 
+So the new prototype is still:
 
-For the non-linear case, Gate objects need to be added where there is a choice to do.
+	void CompureCore::setMasterModeNextMasterMode(PluginHandle plugin,MasterMode mode,MasterMode next);
 
-So the new prototype would become:
+But there is this new method (called somewhere where the decision is made):
 
-	void setMasterModeNextMasterMode(PluginHandle plugin,MasterMode mode,MasterMode next,Gate*gate);
-
-
-Then, gate->isEnabled() will be called. If true, the transition will occur. Otherwise,
-the gate of the next transition will be tested, and so on.
-
-Since a plugin may want to disable any gate of any other plugin, gates should have global name, but this
-should at the same time not break the orthogonality between plugins.
-
-Hence, there will also be these new API calls:
-
-/**
- * Returns a gate. The gate is created if it does not exists.
- */
-Gate* ComputeCore::findGate(PluginHandle pluginToken,const char*gateName)
-
-void Gate::disable()
-
-void Gate::enable()
-
-bool Gate::isEnabled()
-
-
-When a gate is built, it is enabled by default. Therefore, the first gate tested that fire up something
-that's enabled is the one that wins if other gates are enabled at the same point.
-
-
-So in registerPlugin of plugin A:
-
-m_core->setMasterModeNextMasterMode(m_pluginToken,MASTER_MODE_X1, MASTER_MODE_X2,m_core->findGate(m_pluginToken,"RAY_GATE_X1_TO_X2"));
-
-
-In registerPlugin of plugin B:
-
-m_gateForX1toX7=m_core->findGate(m_pluginToken,"RAY_GATE_X1_TO_X7");
-m_core->setMasterModeNextMasterMode(m_pluginToken,MASTER_MODE_X1, MASTER_MODE_X7,m_core->findGate(m_pluginToken,"RAY_GATE_X1_TO_X7"));
-
-
-The default is X1->X2 is plugin A register before plugin B, as gates are enabled by default.
-
-Somewhere in master mode X1, this is needed to disable a gate if X7 is where we want to go:
-
-if(theCodeShouldGoToX7InsteadOfX2)
-    m_core->findGate(m_pluginToken,"RAY_GATE_X1_TO_X2")->disable();
-
-
-
--Sébastien
-
+	void CompureCore::setSelectNextMasterMode(PluginHandle plugin,MasterMode masterMode, MasterMode selectedNextMasterMode);
 
