@@ -1,0 +1,37 @@
+A Torus with radix k and with dimension n has k^n vertices.
+
+Vertices <x_1,x_2,x_3,...,x_n> and <y_1,y_2,y_3,...,y_n> are linked
+if and only if only one dimension i \in \{1,...,n\} exists such as
+
+	inc(x_i) = y_i or inc(y_i) = x_i 
+
+	where inc(v) = (v+1) mod k
+
+
+Complete
+	diameter = 0
+	vertices = 4096
+	degree = 4096
+	edges = vertices * degree = 16777216
+
+Polytope
+	radix = 64
+	diameter = 2
+	vertices = radix ^ diameter = 4096
+	degree = (radix - 1) * diameter = 126
+	edges = vertices * degree = 524288
+
+Polytope
+	radix = 4
+	diameter = 6
+	vertices = radix ^ diameter = 4096
+	degree = (radix - 1) * diameter = 18
+	edges = vertices * degree = 73728
+
+Torus
+	radix = 4
+	dimension = 6
+	vertices = radix ^ dimension = 4096
+	degree = 2 * dimension = 12
+	edges = vertices * degree = 49152
+	diameter = 6
