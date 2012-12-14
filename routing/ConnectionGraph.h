@@ -30,6 +30,7 @@
 #include "GraphImplementationExperimental.h"
 #include "GraphImplementationComplete.h"
 #include "Polytope.h"
+#include "Torus.h"
 
 #include <RayPlatform/core/types.h>
 #include <RayPlatform/core/statistics.h>
@@ -60,6 +61,7 @@ class ConnectionGraph{
 	GraphImplementationExperimental m_experimental;
 	GraphImplementationGroup m_group;
 	Polytope m_polytope;
+	Torus m_torus;
 
 /** verbosity */
 	bool m_verbose;

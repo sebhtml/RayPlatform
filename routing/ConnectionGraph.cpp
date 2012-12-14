@@ -30,7 +30,8 @@ __RANDOM,
 __DEBRUIJN,
 __KAUTZ,
 __EXPERIMENTAL,
-__HYPERCUBE
+__POLYTOPE,
+__TORUS
 };
 
 /**
@@ -98,7 +99,7 @@ void ConnectionGraph::writeFiles(string prefix){
 	file2<<prefix<<"Routes.txt";
 	ofstream f2(file2.str().c_str());
 	
-	if(m_typeCode==__HYPERCUBE){
+	if(m_typeCode==__POLYTOPE || m_typeCode==__TORUS){
 		f2<<"Routes are dynamically determined with real-time load-balancing."<<endl;
 	}else{
 		f2<<"#Source	Destination	Hops	Route"<<endl;
@@ -247,10 +248,13 @@ int degree){
 
 	m_size=numberOfRanks;
 
-	/** provide the user-provided degree for those
- * requiring it */
+/** 
+ * Provide the user-provided degree for those
+ * requiring it.
+ */
 	m_deBruijn.setDegree(degree);
 	m_polytope.setDegree(degree);
+	m_torus.setDegree(degree);
 
 	if(type==""){
 		type="debruijn";
@@ -261,11 +265,19 @@ int degree){
 	if(type=="random"){
 		m_implementation=&m_random;
 		m_typeCode=__RANDOM;
-	}else if((type=="polytope"||type=="polytope")
+
+	}else if((type=="hypercube"||type=="polytope")
 		 && m_polytope.isValid(numberOfRanks)){
 
 		m_implementation=&m_polytope;
-		m_typeCode=__HYPERCUBE;
+		m_typeCode=__POLYTOPE;
+
+	}else if(type=="torus"
+		 && m_torus.isValid(numberOfRanks)){
+
+		m_implementation=&m_torus;
+		m_typeCode=__TORUS;
+
 	}else if(type=="group"){
 		m_implementation=&m_group;
 		m_typeCode=__GROUP;
@@ -316,14 +328,19 @@ int ConnectionGraph::getRelaysTo0(Rank rank){
 
 void ConnectionGraph::printStatus(){
 
-	if(m_typeCode==__HYPERCUBE)
+	if(m_typeCode==__POLYTOPE)
 		m_polytope.printStatus(m_rank);
+	else if(m_typeCode==__TORUS)
+		m_torus.printStatus(m_rank);
+
 }
 
 void ConnectionGraph::start(Rank rank){
 
 	m_rank=rank;
 
-	if(m_typeCode==__HYPERCUBE)
+	if(m_typeCode==__POLYTOPE)
 		m_polytope.start();
+	else if(m_typeCode==__TORUS)
+		m_torus.start();
 }
