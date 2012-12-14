@@ -19,8 +19,8 @@
 
 */
 
-#ifndef _Hypercube_h
-#define _Hypercube_h
+#ifndef _Polytope_h
+#define _Polytope_h
 
 #include "GraphImplementation.h"
 
@@ -42,15 +42,15 @@ using namespace std;
 #define __NUMBER_OF_STORED_LOAD_VALUES 256
 
 /**
- * Hypercube
- * n must be a power of 2 to be a hypercube.
+ * Polytope
+ * n must be a power of 2 to be a polytope.
  * Otherwise, it is an other polytope.
- * A hypercube is a convex regular polytope.
- * This class in fact implements a generalized hypercube,
+ * A polytope is a convex regular polytope.
+ * This class in fact implements a generalized polytope,
  * usually called a convex regular polytope.
  * \author Sébastien Boisvert
  */
-class Hypercube : public GraphImplementation{
+class Polytope : public GraphImplementation{
 
 	uint64_t m_loadValues[__NUMBER_OF_STORED_LOAD_VALUES];
 

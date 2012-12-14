@@ -19,7 +19,7 @@
 
 */
 
-#include "Hypercube.h"
+#include "Polytope.h"
 
 #include <iostream>
 using namespace std;
@@ -33,7 +33,7 @@ using namespace std;
 /**
  * TODO: move this upstream
  */
-int Hypercube::getPower(int base,int exponent){
+int Polytope::getPower(int base,int exponent){
 	int a=1;
 	while(exponent--)
 		a*=base;
@@ -44,7 +44,7 @@ int Hypercube::getPower(int base,int exponent){
  * TODO: move this upstream
  *  convert a number to a vertex
  */
-void Hypercube::convertToVertex(int i,Tuple*tuple){
+void Polytope::convertToVertex(int i,Tuple*tuple){
 	for(int power=0;power<m_wordLength;power++){
 		int value=(i%getPower(m_alphabetSize,power+1))/getPower(m_alphabetSize,power);
 		tuple->m_digits[power]=value;
@@ -54,7 +54,7 @@ void Hypercube::convertToVertex(int i,Tuple*tuple){
 /**
  * TODO: move this upstream
  */
-bool Hypercube::isAPowerOf(int n,int base){
+bool Polytope::isAPowerOf(int n,int base){
 	int remaining=n;
 	
 	while(remaining>1){
@@ -66,9 +66,9 @@ bool Hypercube::isAPowerOf(int n,int base){
 }
 
 /**
- * only implemented for the hypercube with alphabet {0,1}
+ * only implemented for the polytope with alphabet {0,1}
  */
-void Hypercube::configureGraph(int n){
+void Polytope::configureGraph(int n){
 
 	#if 0
 	// test some cases
@@ -102,9 +102,9 @@ void Hypercube::configureGraph(int n){
 	//
 	//	(alphabetSize -1) * log(numberOfVertices) = degree * log(alphabetSize)
 	//
-	// The alphabetSize of a hypercube is 2.
+	// The alphabetSize of a polytope is 2.
 	//
-	// However, we can build similar things to a hypercube
+	// However, we can build similar things to a polytope
 	// with a different alphabetSize
 	//
 	// alphabetSize=2, 1024 vertices
@@ -151,7 +151,7 @@ void Hypercube::configureGraph(int n){
 		if(n == getPower(alphabetSize,wordLength)){
 			int degree=(alphabetSize-1)*wordLength;
 			if(degree==m_degree){
-				cout<<"[Hypercube] found a hypercube topology that matches the provided degree "<<m_degree<<endl;
+				cout<<"[Polytope] found a polytope topology that matches the provided degree "<<m_degree<<endl;
 
 				base=alphabetSize;
 			}
@@ -160,7 +160,7 @@ void Hypercube::configureGraph(int n){
 
 
 	if(!isAPowerOf(n,base)){
-		cout<<"Error: "<<n<<" is not a power of 2, can not use the hypercube."<<endl;
+		cout<<"Error: "<<n<<" is not a power of 2, can not use the polytope."<<endl;
 		m_alphabetSize=__INVALID_ALPHABET_SIZE;
 		return;
 	}
@@ -179,15 +179,15 @@ void Hypercube::configureGraph(int n){
 	m_wordLength=digits; // this is wordLength
 	m_size=n; // this is the number of vertices
 
-	cout<<"[Hypercube] Size: "<<m_size<<" AlphabetSize: "<<m_alphabetSize<<" WordLength: "<<m_wordLength<<" Degree: "<<m_degree<<endl;
+	cout<<"[Polytope] Size: "<<m_size<<" AlphabetSize: "<<m_alphabetSize<<" WordLength: "<<m_wordLength<<" Degree: "<<m_degree<<endl;
 	start();
 }
 
-void Hypercube::setLoad(int position,int symbol,uint64_t value){
+void Polytope::setLoad(int position,int symbol,uint64_t value){
 	m_loadValues[position*m_alphabetSize+symbol]=value;
 }
 
-uint64_t Hypercube::getLoad(int position,int symbol){
+uint64_t Polytope::getLoad(int position,int symbol){
 	
 	#ifdef ASSERT
 	assert(position<m_wordLength);
@@ -197,15 +197,15 @@ uint64_t Hypercube::getLoad(int position,int symbol){
 	return m_loadValues[position*m_alphabetSize+symbol];
 }
 
-void Hypercube::makeConnections(int n){
+void Polytope::makeConnections(int n){
 
 	configureGraph(n);
 
 	if(m_verbose){
-		cout<<"[Hypercube::makeConnections] using "<<m_wordLength<<" for diameter with base ";
+		cout<<"[Polytope::makeConnections] using "<<m_wordLength<<" for diameter with base ";
 		cout<<m_alphabetSize<<endl;
-		cout<<"[Hypercube::makeConnections] The MPI graph has "<<m_size<<" vertices"<<endl;
-		cout<<"[Hypercube::makeConnections] The hypercube has "<<m_size<<" vertices"<<endl;
+		cout<<"[Polytope::makeConnections] The MPI graph has "<<m_size<<" vertices"<<endl;
+		cout<<"[Polytope::makeConnections] The polytope has "<<m_size<<" vertices"<<endl;
 	}
 
 	// create empty sets.
@@ -237,7 +237,7 @@ void Hypercube::makeConnections(int n){
  * base m_alphabetSize to base 10 
  * TODO: this should be moved upstream 
  */
-int Hypercube::convertToBase10(Tuple*vertex){
+int Polytope::convertToBase10(Tuple*vertex){
 	int a=0;
 	for(int i=0;i<m_wordLength;i++){
 		a+=vertex->m_digits[i]*getPower(m_alphabetSize,i);
@@ -248,7 +248,7 @@ int Hypercube::convertToBase10(Tuple*vertex){
 /**
  * TODO: this should be moved upstream
  */
-void Hypercube::printVertex(Tuple*a){
+void Polytope::printVertex(Tuple*a){
 	for(int i=0;i<m_wordLength;i++){
 		if(i!=0)
 			cout<<",";
@@ -260,11 +260,11 @@ void Hypercube::printVertex(Tuple*a){
 /**
  * TODO: remove me
  */
-void Hypercube::computeRoute(Rank a,Rank b,vector<Rank>*route){}
+void Polytope::computeRoute(Rank a,Rank b,vector<Rank>*route){}
 
 // use a round-robin algorithm.
 //#define __ROUND_ROBIN__
-Rank Hypercube::getNextRankInRoute(Rank source,Rank destination,Rank rank){
+Rank Polytope::getNextRankInRoute(Rank source,Rank destination,Rank rank){
 
 	#ifdef __ROUND_ROBIN__
 
@@ -278,7 +278,7 @@ Rank Hypercube::getNextRankInRoute(Rank source,Rank destination,Rank rank){
 }
 
 /** with de Bruijn routing, no route are pre-computed at all */
-void Hypercube::makeRoutes(){
+void Polytope::makeRoutes(){
 	/* compute relay points */
 	computeRelayEvents();
 }
@@ -326,7 +326,7 @@ void Hypercube::makeRoutes(){
 	// case m_digits destination can be obtained with m_digits shifts, overlap is 0
 
  */
-Rank Hypercube::computeNextRankInRoute(Rank source,Rank destination,Rank current){
+Rank Polytope::computeNextRankInRoute(Rank source,Rank destination,Rank current){
 
 	#ifdef ASSERT
 	assert(destination!=current); // we don't need any routing...
@@ -404,7 +404,7 @@ Rank Hypercube::computeNextRankInRoute(Rank source,Rank destination,Rank current
 /**
  * TODO: move this upstream
  */
-bool Hypercube::isConnected(Rank source,Rank destination){
+bool Polytope::isConnected(Rank source,Rank destination){
 	if(source==destination)
 		return true;
 
@@ -416,7 +416,7 @@ bool Hypercube::isConnected(Rank source,Rank destination){
  * also, we allow any vertex to communicate with itself
  * regardless of the property
  */
-bool Hypercube::computeConnection(Rank source,Rank destination){
+bool Polytope::computeConnection(Rank source,Rank destination){
 
 	if(source==destination) // no difference
 		return false;
@@ -441,7 +441,7 @@ bool Hypercube::computeConnection(Rank source,Rank destination){
 /**
  * TODO: move this upstream, instead, add a protected m_valid field.
  */
-bool Hypercube::isValid(int n){
+bool Polytope::isValid(int n){
 	configureGraph(n);
 
 	return m_alphabetSize!=__INVALID_ALPHABET_SIZE;
@@ -450,12 +450,12 @@ bool Hypercube::isValid(int n){
 /**
  * TODO: move this upstream
  */
-void Hypercube::setDegree(int degree){
+void Polytope::setDegree(int degree){
 	m_degree=degree;
 }
 
-void Hypercube::printStatus(Rank rank){
-	cout<<"[Hypercube] Load values:"<<endl;
+void Polytope::printStatus(Rank rank){
+	cout<<"[Polytope] Load values:"<<endl;
 	cout<<"AlphabetSize: "<<m_alphabetSize<<endl;
 	cout<<"WordLength: "<<m_wordLength<<endl;
 	cout<<"Self: ";
@@ -490,7 +490,7 @@ void Hypercube::printStatus(Rank rank){
 	}
 }
 
-void Hypercube::start(){
+void Polytope::start(){
 	for(int i=0;i<m_wordLength;i++)
 		for(int j=0;j<m_alphabetSize;j++)
 			setLoad(i,j,0);
@@ -499,7 +499,7 @@ void Hypercube::start(){
 	m_currentSymbol=0;
 }
 
-Rank Hypercube::computeNextRankInRouteWithRoundRobin(Rank source,Rank destination,Rank current){
+Rank Polytope::computeNextRankInRouteWithRoundRobin(Rank source,Rank destination,Rank current){
 
 	#ifdef ASSERT
 	assert(destination!=current); // we don't need any routing...

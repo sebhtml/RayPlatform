@@ -250,7 +250,7 @@ int degree){
 	/** provide the user-provided degree for those
  * requiring it */
 	m_deBruijn.setDegree(degree);
-	m_hypercube.setDegree(degree);
+	m_polytope.setDegree(degree);
 
 	if(type==""){
 		type="debruijn";
@@ -261,10 +261,10 @@ int degree){
 	if(type=="random"){
 		m_implementation=&m_random;
 		m_typeCode=__RANDOM;
-	}else if((type=="hypercube"||type=="polytope")
-		 && m_hypercube.isValid(numberOfRanks)){
+	}else if((type=="polytope"||type=="polytope")
+		 && m_polytope.isValid(numberOfRanks)){
 
-		m_implementation=&m_hypercube;
+		m_implementation=&m_polytope;
 		m_typeCode=__HYPERCUBE;
 	}else if(type=="group"){
 		m_implementation=&m_group;
@@ -317,7 +317,7 @@ int ConnectionGraph::getRelaysTo0(Rank rank){
 void ConnectionGraph::printStatus(){
 
 	if(m_typeCode==__HYPERCUBE)
-		m_hypercube.printStatus(m_rank);
+		m_polytope.printStatus(m_rank);
 }
 
 void ConnectionGraph::start(Rank rank){
@@ -325,5 +325,5 @@ void ConnectionGraph::start(Rank rank){
 	m_rank=rank;
 
 	if(m_typeCode==__HYPERCUBE)
-		m_hypercube.start();
+		m_polytope.start();
 }

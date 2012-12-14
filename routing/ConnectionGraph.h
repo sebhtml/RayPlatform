@@ -29,7 +29,7 @@
 #include "GraphImplementationKautz.h"
 #include "GraphImplementationExperimental.h"
 #include "GraphImplementationComplete.h"
-#include "Hypercube.h"
+#include "Polytope.h"
 
 #include <RayPlatform/core/types.h>
 #include <RayPlatform/core/statistics.h>
@@ -59,7 +59,7 @@ class ConnectionGraph{
 	GraphImplementationKautz m_kautz;
 	GraphImplementationExperimental m_experimental;
 	GraphImplementationGroup m_group;
-	Hypercube m_hypercube;
+	Polytope m_polytope;
 
 /** verbosity */
 	bool m_verbose;
