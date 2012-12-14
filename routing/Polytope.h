@@ -43,7 +43,7 @@ using namespace std;
 
 /**
  * Polytope
- * n must be a power of 2 to be a polytope.
+ * n must be a power of 2 to be a hypercube.
  * Otherwise, it is an other polytope.
  * A polytope is a convex regular polytope.
  * This class in fact implements a generalized polytope,
