@@ -1,8 +1,13 @@
 MPICXX = mpicxx
 AR = ar
-CXXFLAGS= -O3 -Wall -ansi
 RM = rm
 ECHO = echo
+
+Q=@
+
+ASSERT=n
+ASSERT-$(ASSERT)= -DASSERT
+CXXFLAGS= -O3 -Wall -std=c++98 $(ASSERT-y)
 
 #memory
 obj-y += memory/ReusableMemoryStore.o 
@@ -14,6 +19,7 @@ obj-y += memory/ChunkAllocatorWithDefragmentation.o
 obj-y += memory/DefragmentationLane.o
 
 # routing stuff for option -route-messages
+obj-y += routing/ConnectionGraph.o
 obj-y += routing/GraphImplementation.o
 obj-y += routing/GraphImplementationRandom.o
 obj-y += routing/GraphImplementationComplete.o
@@ -22,7 +28,7 @@ obj-y += routing/GraphImplementationKautz.o
 obj-y += routing/GraphImplementationExperimental.o
 obj-y += routing/GraphImplementationGroup.o
 obj-y += routing/Polytope.o
-obj-y += routing/ConnectionGraph.o
+obj-y += routing/Torus.o
 
 # communication
 obj-y += communication/mpi_tags.o
