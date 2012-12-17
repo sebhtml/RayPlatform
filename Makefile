@@ -3,8 +3,8 @@
 # based on http://www.ravnborg.org/kbuild/makefiles.html
 #
 
-VERSION = 7
-PATCHLEVEL = 0
+VERSION = 1
+PATCHLEVEL = 2
 SUBLEVEL = 0
 EXTRAVERSION = -devel
 NAME = Nested Droids of Luck
