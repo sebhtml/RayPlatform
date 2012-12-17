@@ -28,6 +28,13 @@
 using namespace std;
 
 /*
+ * Use System Programming Interface on the IBM Blue Gene/Q to get memory usage.
+ */
+#ifdef __bgq__
+#include <spi/include/kernel/memory.h>
+#endif
+
+/*
  * Detect the operating system
  */
 
@@ -134,11 +141,36 @@ string getOperatingSystem(){
 	return "Unknown";
 }
 
-/** only ported to Linux */
+/**
+ * only ported to Linux and IBM Blue Gene/Q
+ */
 uint64_t getMemoryUsageInKiBytes(){
+
+/*
+ * For the IBM Blue Gene/Q
+ *
+ * The code is based on the one from Argonne National Laboratory wiki.
+ *
+ * \see https://wiki.alcf.anl.gov/parts/index.php/Blue_Gene/Q#Malloc_Information_and_Tuning
+ * \see https://svn.mcs.anl.gov/repos/ZeptoOS/branches/UPC-lib-hack/arch/include/spi/kernel_interface.h
+ * \see https://support.scinet.utoronto.ca/wiki/index.php/BGQ
+ * \see http://www.vlsci.org.au/AvocaPreview
+ */
+	#if defined(__bgq__)
+
+	uint64_t heapSize=0;
+	Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP,&heapSize);
+
+	return heapSize/1024;// return KiB units
+
+/*
+ * Get the memory usage with a Linux kernel.
+ * It is (wrongly) assumed that /proc is mounted.
+ */
+	#elif defined(__linux__)
+
 	uint64_t count=0;
 
-	#ifdef __linux__
 	ifstream f("/proc/self/status");
 	while(!f.eof()){
 		string key;
@@ -149,9 +181,15 @@ uint64_t getMemoryUsageInKiBytes(){
 		}
 	}
 	f.close();
-	#endif
 
 	return count;
+
+	#endif
+
+/*
+ * Any other system will report 0 KiB !
+ */
+	return 0;
 }
 
 /** real-time only ported to real-time POSIX systems */
