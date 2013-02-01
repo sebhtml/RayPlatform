@@ -1,6 +1,6 @@
 /*
  	RayPlatform: a message-passing development framework
-    Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
+    Copyright (C) 2010, 2011, 2012, 2013 Sébastien Boisvert
 
 	http://github.com/sebhtml/RayPlatform
 
@@ -1702,7 +1702,11 @@ void ComputeCore::setMasterModeNextMasterMode(PluginHandle plugin,MasterMode cur
 	m_plugins[plugin].addRegisteredMasterModeNextMasterMode(current);
 }
 
-void ComputeCore::setFirstMasterMode(PluginHandle plugin,MasterMode mode){
+bool ComputeCore::isPublicMasterMode(PluginHandle plugin,MasterMode mode){
+	return m_publicMasterModes.count(mode)>0;
+}
+
+void ComputeCore::setMasterModePublicAccess(PluginHandle plugin,MasterMode mode){
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -1710,6 +1714,19 @@ void ComputeCore::setFirstMasterMode(PluginHandle plugin,MasterMode mode){
 		return;
 
 	if(!validationMasterModeOwnership(plugin,mode))
+		return;
+
+	m_publicMasterModes.insert(mode);
+}
+
+void ComputeCore::setFirstMasterMode(PluginHandle plugin,MasterMode mode){
+	if(!validationPluginAllocated(plugin))
+		return;
+
+	if(!validationMasterModeRange(plugin,mode))
+		return;
+
+	if(!isPublicMasterMode(plugin,mode) && !validationMasterModeOwnership(plugin,mode))
 		return;
 
 	if(m_hasFirstMode)

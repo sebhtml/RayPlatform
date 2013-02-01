@@ -1,6 +1,6 @@
 /*
  	RayPlatform: a message-passing development framework
-    Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
+    Copyright (C) 2010, 2011, 2012, 2013 Sébastien Boisvert
 
 	http://github.com/sebhtml/RayPlatform: a message-passing development framework
 
@@ -52,12 +52,13 @@
 #include <RayPlatform/plugins/RegisteredPlugin.h>
 
 #include <iostream>
-#include <stdlib.h>
-#include <stdint.h>
 using namespace std;
 
+#include <stdlib.h>
+#include <stdint.h>
 
-/** this class is a compute core
+/**
+ * this class is a compute core
  * to use it, you must set the handlers of your program
  * using setMessageTagObjectHandler(), setSlaveModeObjectHandler(),
  * and setMasterModeObjectHandler().
@@ -106,6 +107,7 @@ class ComputeCore{
 	bool m_firstRegistration;
 
 	vector<CorePlugin*> m_listOfPlugins;
+	set<MasterMode> m_publicMasterModes;
 
 	vector<void*> m_objects;
 
@@ -231,6 +233,7 @@ class ComputeCore{
 	void addMessageChecksums();
 
 	void registerDummyPlugin();
+	bool isPublicMasterMode(PluginHandle plugin,MasterMode mode);
 public:
 	/** this is the main method */
 	void run();
@@ -387,6 +390,7 @@ Not all master modes have yet been ported to that list.
 	int getMiniRanksPerRank();
 
 	MessagesHandler*getMessagesHandler();
+	void setMasterModePublicAccess(PluginHandle plugin,MasterMode mode);
 };
 
 #endif
