@@ -1,6 +1,6 @@
 /*
  	RayPlatform: a message-passing development framework
-    Copyright (C) 2010, 2011, 2012 Sébastien Boisvert
+    Copyright (C) 2010, 2011, 2012, 2013 Sébastien Boisvert
 
 	http://github.com/sebhtml/RayPlatform
 
@@ -94,6 +94,7 @@ class CorePlugin{
 protected:
 
 	PluginHandle m_plugin;
+	ComputeCore*m_core;
 
 public:
 
