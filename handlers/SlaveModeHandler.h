@@ -50,7 +50,12 @@ void Adapter_ ## handle ::call(){ \
 	m_object->call_ ## handle(); \
 }
 
-
+#define __ConfigureSlaveModeHandler(pluginName, handlerHandle) \
+	handlerHandle= m_core->allocateSlaveModeHandle(m_plugin); \
+	m_core->setSlaveModeObjectHandler(m_plugin, handlerHandle, \
+		__GetAdapter(pluginName,handlerHandle)); \
+	m_core->setSlaveModeSymbol(m_plugin, handlerHandle, # handlerHandle); \
+	__BindAdapter(pluginName, handlerHandle);
 
 /**
  * base class for handling slave modes 

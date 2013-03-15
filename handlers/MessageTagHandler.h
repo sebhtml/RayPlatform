@@ -51,7 +51,12 @@ void Adapter_ ## handle ::call(Message*message){ \
 	m_object->call_ ## handle(message); \
 }
 
-
+#define __ConfigureMessageTagHandler(pluginName, handlerHandle) \
+	handlerHandle= m_core->allocateMessageTagHandle(m_plugin); \
+	m_core->setMessageTagObjectHandler(m_plugin, handlerHandle, \
+		__GetAdapter(pluginName,handlerHandle)); \
+	m_core->setMessageTagSymbol(m_plugin, handlerHandle, # handlerHandle); \
+	__BindAdapter(pluginName, handlerHandle);
 
 /**
  * base class for handling message tags

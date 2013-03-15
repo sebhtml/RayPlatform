@@ -50,17 +50,22 @@ void Adapter_ ## handle ::call(){ \
 	m_object->call_ ## handle(); \
 }
 
+#define __ConfigureMasterModeHandler(pluginName,handlerHandle) \
+	handlerHandle= m_core->allocateMasterModeHandle(m_plugin); \
+	m_core->setMasterModeObjectHandler(m_plugin,handlerHandle, \
+		__GetAdapter(pluginName,handlerHandle)); \
+	m_core->setMasterModeSymbol(m_plugin, handlerHandle, # handlerHandle); \
+	__BindAdapter(pluginName, handlerHandle);
+
 /**
  * base class for handling master modes 
+ *
  * \author Sébastien Boisvert
+ *
  * with help from Élénie Godzaridis for the design
+ *
  * \date 2012-08-08 replaced this with function pointers
  */
-/**
- *  * base class for handling master modes 
- *   * \author Sébastien Boisvert
- *    * with help from Élénie Godzaridis for the design
- *     */
 class MasterModeHandler{
 
 public:

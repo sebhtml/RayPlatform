@@ -15,13 +15,13 @@ Otherwise, the code must be written for adapters (declaration, implementation, b
 
 ## in the .h file of a plugin, before the class declaration
 
-__DeclarePlugin(PluginExample)	->	declares a plugin
+__DeclarePlugin(PluginExample)	->	declares a plugin. this is required because adapters need a forward declaration
 
 __DeclareMasterModeAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	declares a master mode adapter for a plugin
 
 __DeclareSlaveModeAdapter(PluginExample,SLAVE_MODE_EXAMPLE)	->	declares a slave mode adapter for a plugin
 
-__DeclareMessageTagAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	declares a message mode adapter for a plugin
+__DeclareMessageTagAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	declares a message tag adapter for a plugin
 
 
 ## in the .h file of a plugin, inside the class declaration
@@ -35,7 +35,7 @@ __AddAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)
 
 ## in the .cpp file of a plugin, before the first method implementation
 
-__CreatePlugin(PluginExample)
+__CreatePlugin(PluginExample)  -> this is used when mini-ranks are not enabled.
 
 __CreateMasterModeAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	creates the actual code for a master mode adapter
 
@@ -46,11 +46,11 @@ __CreateSlaveModeAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	creates the actua
 
 ## in the .cpp file of a plugin, inside registerPlugin or resolveSymbols
 
-__GetAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	gets the reference to a adapter
+__GetAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	gets the reference to an adapter
 
-__GetAdapter(PluginExample,SLAVE_MODE_EXAMPLE)	->	gets the reference to a adapter
+__GetAdapter(PluginExample,SLAVE_MODE_EXAMPLE)	->	gets the reference to an adapter
 
-__GetAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	gets the reference to a adapter
+__GetAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	gets the reference to an adapter
 
 __BindPlugin(PluginExample)	-> binds a plugin
 
@@ -59,3 +59,16 @@ __BindAdapter(PluginExample,MASTER_MODE_EXAMPLE)	->	binds a adapter
 __BindAdapter(PluginExample,SLAVE_MODE_EXAMPLE)	->	binds a adapter
 
 __BindAdapter(PluginExample,MESSAGE_TAG_EXAMPLE)	->	binds a adapter
+
+
+
+## Simplified API
+
+It is possible to use only a single API call to configure a given handler.
+
+
+__ConfigureMasterModeHandler(PluginExample, MASTER_MODE_EXAMPLE);  -> configure a handler
+
+__ConfigureSlaveModeHandler(PluginExample, SLAVE_MODE_EXAMPLE);    -> configure a handler
+
+__ConfigureMessageTagHandler(PluginExample, MESSAGE_TAG_EXAMPLE);  -> configure a handler
