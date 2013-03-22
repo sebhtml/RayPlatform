@@ -56,6 +56,12 @@ class corePlugin;
 
 #else
 
+/**
+ * Without mini-ranks.
+ */
+
+#define __BindAdapter(corePlugin, handle)
+
 /** get the static name for the variable **/
 #define __GetPlugin(corePlugin) \
 	staticPlugin_ ## corePlugin

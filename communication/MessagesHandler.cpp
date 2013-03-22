@@ -40,6 +40,8 @@ using namespace std;
 
 #define CONFIG_MESSAGE_QUEUE_RETRY_WARNING 1024
 
+#ifdef CONFIG_MINI_RANKS
+
 /**
  *
  */
@@ -132,6 +134,8 @@ void MessagesHandler::sendAndReceiveMessagesForRankProcess(ComputeCore**cores,in
 	if(deadMiniRanks==miniRanksPerRank)
 		(*communicate)=false;
 }
+
+#endif
 
 /*
  * send messages,
@@ -314,6 +318,8 @@ void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAlloc
 
 #endif /* CONFIG_COMM_PERSISTENT */
 
+#ifdef CONFIG_MINI_RANKS
+
 void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank){
 
 	// the code here will probe from rank source
@@ -434,6 +440,8 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	m_receivedMessages++;
 
 }
+
+#endif
 
 #ifdef CONFIG_COMM_IRECV_TESTANY
 

@@ -25,6 +25,7 @@
 #include "MiniRank.h"
 
 #include <RayPlatform/communication/MessagesHandler.h>
+#include <RayPlatform/core/types.h> /* for CONFIG_MINI_RANKS */
 
 #if defined(CONFIG_DEBUG_MPI_RANK) || defined(ASSERT)
 #include <iostream>
@@ -38,8 +39,17 @@ using namespace std;
 #include <assert.h>
 #endif /* ASSERT */
 
+#ifdef CONFIG_MINI_RANKS
 
 #define MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK 64
+#include <pthread.h>
+
+#else
+
+#define MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK 1
+
+#endif
+
 
 /*
  * The Rank is part of the layered minirank
@@ -62,7 +72,11 @@ class RankProcess{
 	MessagesHandler m_messagesHandler;
 
 	MiniRank*m_miniRanks[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
+
+#ifdef CONFIG_MINI_RANKS
 	pthread_t m_threads[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
+#endif
+
 	ComputeCore*m_cores[MAXIMUM_NUMBER_OF_MINIRANKS_PER_RANK];
 
 /**
@@ -83,10 +97,13 @@ class RankProcess{
  */
 	int m_numberOfMiniRanks;
 
+#ifdef CONFIG_MINI_RANKS
 	void startMiniRanks();
+#endif
 	void startMiniRank();
 
 	void spawnApplicationObjects(int argc,char**argv);
+
 	void addMiniRank(MiniRank*miniRank);
 
 /*
@@ -133,8 +150,6 @@ void RankProcess<Application>::spawnApplicationObjects(int argc,char**argv){
 		MiniRank*miniRank=new Application(argc,argv);
 		addMiniRank(miniRank);
 	}
-
-
 }
 
 template<class Application>
@@ -208,8 +223,14 @@ void RankProcess<Application>::run(){
 
 	bool useMiniRanks=m_numberOfMiniRanksPerRank>1;
 
+#ifndef CONFIG_MINI_RANKS
+	useMiniRanks = false;
+#endif
+
 	if(useMiniRanks){
+#ifdef CONFIG_MINI_RANKS
 		startMiniRanks();
+#endif
 	}else{
 		startMiniRank();
 	}
@@ -223,6 +244,8 @@ void RankProcess<Application>::run(){
 
 	destructor();
 }
+
+#ifdef CONFIG_MINI_RANKS
 
 template<class Application>
 void RankProcess<Application>::startMiniRanks(){
@@ -266,6 +289,7 @@ void RankProcess<Application>::startMiniRanks(){
 	}
 
 }
+#endif /* CONFIG_MINI_RANKS */
 
 template<class Application>
 void RankProcess<Application>::destructor(){

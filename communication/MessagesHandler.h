@@ -201,13 +201,7 @@ class MessagesHandler{
 	/** initialize persistent communication parameters */
 	void initialiseMembers();
 
-#ifdef CONFIG_MINI_RANKS
-
 	void probeAndRead(int source,int tag,ComputeCore**cores,int miniRanksPerRank);
-#else
-	/** probe and read a message -- this method is not utilised */
-	void probeAndRead(int source,int tag,StaticVector*inbox,RingAllocator*inboxAllocator);
-#endif
 
 #ifdef CONFIG_COMM_PERSISTENT
 	/** pump a message from the persistent ring */

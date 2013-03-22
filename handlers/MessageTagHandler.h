@@ -51,13 +51,6 @@ void Adapter_ ## handle ::call(Message*message){ \
 	m_object->call_ ## handle(message); \
 }
 
-#define __ConfigureMessageTagHandler(pluginName, handlerHandle) \
-	handlerHandle= m_core->allocateMessageTagHandle(m_plugin); \
-	m_core->setMessageTagObjectHandler(m_plugin, handlerHandle, \
-		__GetAdapter(pluginName,handlerHandle)); \
-	m_core->setMessageTagSymbol(m_plugin, handlerHandle, # handlerHandle); \
-	__BindAdapter(pluginName, handlerHandle);
-
 /**
  * base class for handling message tags
  * \author Sébastien Boisvert
@@ -72,6 +65,12 @@ public:
 };
 
 #else
+
+/*
+ * Without mini-ranks.
+ */
+
+#define __DeclareMessageTagAdapter(plugin, handle)
 
 /* this is a macro to create the cpp code for an adapter */
 #define __CreateMessageTagAdapter( corePlugin, handle ) \
@@ -90,5 +89,13 @@ typedef void (*MessageTagHandler) (Message*message) /* */ ;
 #define MessageTagHandlerReference MessageTagHandler
 
 #endif /* CONFIG_MINI_RANKS */
+
+#define __ConfigureMessageTagHandler(pluginName, handlerHandle) \
+	handlerHandle= m_core->allocateMessageTagHandle(m_plugin); \
+	m_core->setMessageTagObjectHandler(m_plugin, handlerHandle, \
+		__GetAdapter(pluginName,handlerHandle)); \
+	m_core->setMessageTagSymbol(m_plugin, handlerHandle, # handlerHandle); \
+	__BindAdapter(pluginName, handlerHandle);
+
 
 #endif

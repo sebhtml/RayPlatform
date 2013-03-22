@@ -50,13 +50,6 @@ void Adapter_ ## handle ::call(){ \
 	m_object->call_ ## handle(); \
 }
 
-#define __ConfigureMasterModeHandler(pluginName,handlerHandle) \
-	handlerHandle= m_core->allocateMasterModeHandle(m_plugin); \
-	m_core->setMasterModeObjectHandler(m_plugin,handlerHandle, \
-		__GetAdapter(pluginName,handlerHandle)); \
-	m_core->setMasterModeSymbol(m_plugin, handlerHandle, # handlerHandle); \
-	__BindAdapter(pluginName, handlerHandle);
-
 /**
  * base class for handling master modes 
  *
@@ -77,6 +70,12 @@ public:
 
 #else
 
+/*
+ * Without mini-ranks.
+ */
+
+#define __DeclareMasterModeAdapter(corePlugin, handle)
+
 /* this is a macro to create the cpp code for an adapter */
 #define __CreateMasterModeAdapter( corePlugin,handle )\
 void __GetAdapter( corePlugin, handle ) () { \
@@ -94,5 +93,14 @@ typedef void (*MasterModeHandler) () /* */ ;
 #define MasterModeHandlerReference MasterModeHandler
 
 #endif
+
+#define __ConfigureMasterModeHandler(pluginName,handlerHandle) \
+	handlerHandle= m_core->allocateMasterModeHandle(m_plugin); \
+	m_core->setMasterModeObjectHandler(m_plugin,handlerHandle, \
+		__GetAdapter(pluginName,handlerHandle)); \
+	m_core->setMasterModeSymbol(m_plugin, handlerHandle, # handlerHandle); \
+	__BindAdapter(pluginName, handlerHandle);
+
+
 
 #endif

@@ -65,6 +65,8 @@ typedef uint64_t MessageUnit;
 
 /**
  * Enable the mini-ranks technology.
+ *
+ * This is disabled by default.
  */
 #define CONFIG_MINI_RANKS
 
