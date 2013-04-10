@@ -33,6 +33,10 @@
 #include <iostream>
 using namespace std;
 
+#ifdef CONFIG_SLEEPY_RAY
+#include <unistd.h>
+#endif
+
 //#define CONFIG_DEBUG_SLAVE_SYMBOLS
 //#define CONFIG_DEBUG_MASTER_SYMBOLS
 //#define CONFIG_DEBUG_TAG_SYMBOLS
@@ -123,6 +127,9 @@ void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,
  */
 void ComputeCore::run(){
 
+	if(m_doChecksum){
+		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message." << endl;
+	}
 
 	// ask the router if it is enabled
 	// the virtual router will disable itself if there were
@@ -183,7 +190,11 @@ void ComputeCore::runVanilla(){
  * picks up the messages.
  */
 	while(m_alive || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
-		
+
+#ifdef CONFIG_SLEEPY_RAY
+		usleep(10);
+#endif
+
 		// 1. receive the message (0 or 1 message is received)
 		// blazing fast, receives 0 or 1 message, never more, never less, other messages will wait for the next iteration !
 		receiveMessages(); 
@@ -763,6 +774,8 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 
 	m_doChecksum=false;
 
+	m_addExtraBytes = true;
+
 	m_miniRanksAreEnabled=useMiniRanks;
 
 	#ifdef CONFIG_DEBUG_CORE
@@ -772,20 +785,7 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 	// checksum calculation is only tested
 	// for cases with sizeof(MessageUnit)>=4 bytes
 
-	const char verifyMessages[]="-verify-message-integrity";
-	const char router[]="-route-messages";
-
 	m_routerIsEnabled=false;
-
-	int match=0;
-
-	for(int i=0;i<(argc);i++){
-		if(strcmp( ((argv)[i]), verifyMessages) == match){
-			m_doChecksum=true;
-		}else if(strcmp( ((argv)[i]),router) == match){
-			m_routerIsEnabled=true;
-		}
-	}
 
 	m_argumentCount=argc;
 	m_argumentValues=argv;
@@ -808,10 +808,6 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 
 	m_rank=miniRankNumber;
 	m_size=numberOfMiniRanks;
-
-	if(m_doChecksum){
-		cout<<"[RayPlatform] Rank "<<m_rank<<" will compute a CRC32 checksum for any non-empty message."<<" ("<<verifyMessages<<")"<<endl;
-	}
 
 	// set the number of buffers to use
 	int minimumNumberOfBuffers=128;
@@ -866,7 +862,7 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
 	// TODO: RayPlatform can not do both routing and checksums 
-	if(useMiniRanks || m_doChecksum || m_routerIsEnabled){
+	if(useMiniRanks || m_doChecksum || m_routerIsEnabled || m_addExtraBytes){
 		if(sizeof(MessageUnit)>=4){
 			maximumMessageSizeInByte+=2*sizeof(MessageUnit);
 		}else if(sizeof(MessageUnit)>=2){
@@ -919,6 +915,10 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 	m_currentMasterModeToAllocate=0;
 	m_currentMessageTagToAllocate=0;
 
+}
+
+void ComputeCore::enableCheckSums(){
+	m_doChecksum=true;
 }
 
 void ComputeCore::setMiniRank(int miniRank,int numberOfMiniRanks){

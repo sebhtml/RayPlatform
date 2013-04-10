@@ -75,6 +75,8 @@ class ComputeCore{
  */
 	MessagesHandler*m_messagesHandler;
 
+	bool m_addExtraBytes;
+
 /*
  * In the legacy mode, RayPlatform will not
  * spawn a thread for MPI and every MPI rank will do
@@ -391,6 +393,7 @@ Not all master modes have yet been ported to that list.
 
 	MessagesHandler*getMessagesHandler();
 	void setMasterModePublicAccess(PluginHandle plugin,MasterMode mode);
+	void enableCheckSums();
 };
 
 #endif
