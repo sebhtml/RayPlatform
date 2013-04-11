@@ -75,8 +75,6 @@ class ComputeCore{
  */
 	MessagesHandler*m_messagesHandler;
 
-	bool m_addExtraBytes;
-
 /*
  * In the legacy mode, RayPlatform will not
  * spawn a thread for MPI and every MPI rank will do
@@ -236,6 +234,7 @@ class ComputeCore{
 
 	void registerDummyPlugin();
 	bool isPublicMasterMode(PluginHandle plugin,MasterMode mode);
+	void configureEngine();
 public:
 	/** this is the main method */
 	void run();

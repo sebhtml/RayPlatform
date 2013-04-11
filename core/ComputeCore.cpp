@@ -136,6 +136,8 @@ void ComputeCore::run(){
 	// problems during configuration
 	m_routerIsEnabled=m_router.isEnabled();
 
+	configureEngine();
+
 	if(!m_resolvedSymbols)
 		resolveSymbols();
 
@@ -774,8 +776,6 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 
 	m_doChecksum=false;
 
-	m_addExtraBytes = true;
-
 	m_miniRanksAreEnabled=useMiniRanks;
 
 	#ifdef CONFIG_DEBUG_CORE
@@ -809,13 +809,17 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 	m_rank=miniRankNumber;
 	m_size=numberOfMiniRanks;
 
+}
+
+void ComputeCore::configureEngine() {
+
 	// set the number of buffers to use
 	int minimumNumberOfBuffers=128;
 
 	int availableBuffers=minimumNumberOfBuffers;
 
 	// even a message with a NULL buffer requires a buffer for routing
-	if(m_routerIsEnabled||useMiniRanks)
+	if(m_routerIsEnabled|| m_miniRanksAreEnabled)
 		availableBuffers=m_size*2;
 
 	// this will occur when using the virtual router with a few processes
@@ -861,8 +865,7 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 
 	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
-	// TODO: RayPlatform can not do both routing and checksums 
-	if(useMiniRanks || m_doChecksum || m_routerIsEnabled || m_addExtraBytes){
+	if(m_miniRanksAreEnabled || m_doChecksum || m_routerIsEnabled){
 		if(sizeof(MessageUnit)>=4){
 			maximumMessageSizeInByte+=2*sizeof(MessageUnit);
 		}else if(sizeof(MessageUnit)>=2){
