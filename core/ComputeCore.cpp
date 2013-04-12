@@ -809,6 +809,19 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 	m_rank=miniRankNumber;
 	m_size=numberOfMiniRanks;
 
+	for(int i=0;i<MAXIMUM_NUMBER_OF_MASTER_HANDLERS;i++){
+		strcpy(MASTER_MODES[i],"UnnamedMasterMode");
+	}
+	for(int i=0;i<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS;i++){
+		strcpy(SLAVE_MODES[i],"UnnamedSlaveMode");
+	}
+	for(int i=0;i<MAXIMUM_NUMBER_OF_TAG_HANDLERS;i++){
+		strcpy(MESSAGE_TAGS[i],"UnnamedMessageTag");
+	}
+
+	m_currentSlaveModeToAllocate=0;
+	m_currentMasterModeToAllocate=0;
+	m_currentMessageTagToAllocate=0;
 }
 
 void ComputeCore::configureEngine() {
@@ -903,20 +916,6 @@ void ComputeCore::configureEngine() {
 	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
 	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedOutboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for outbox messages"<<endl;
 	#endif
-
-	for(int i=0;i<MAXIMUM_NUMBER_OF_MASTER_HANDLERS;i++){
-		strcpy(MASTER_MODES[i],"UnnamedMasterMode");
-	}
-	for(int i=0;i<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS;i++){
-		strcpy(SLAVE_MODES[i],"UnnamedSlaveMode");
-	}
-	for(int i=0;i<MAXIMUM_NUMBER_OF_TAG_HANDLERS;i++){
-		strcpy(MESSAGE_TAGS[i],"UnnamedMessageTag");
-	}
-
-	m_currentSlaveModeToAllocate=0;
-	m_currentMasterModeToAllocate=0;
-	m_currentMessageTagToAllocate=0;
 
 }
 
