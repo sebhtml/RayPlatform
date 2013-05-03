@@ -14,7 +14,7 @@
     GNU Lesser General Public License for more details.
 
     You have received a copy of the GNU Lesser General Public License
-    along with this program (lgpl-3.0.txt).  
+    along with this program (lgpl-3.0.txt).
 	see <http://www.gnu.org/licenses/>
 
 */
@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
+#include <time.h>
 using namespace std;
 
 void TimePrinter::printElapsedTime(string description){
@@ -33,7 +34,7 @@ void TimePrinter::printElapsedTime(string description){
 	m_endingTime=time(NULL);
 	int differenceWithLast=m_endingTime-m_lastTime;
 	m_lastTime=m_endingTime;
-	struct tm * timeinfo;
+	struct tm* timeinfo;
 	timeinfo=localtime(&m_endingTime);
 
 	m_descriptions.push_back(description);
@@ -42,12 +43,11 @@ void TimePrinter::printElapsedTime(string description){
 	printElapsedTimeInStream(&cout,description,timeinfo,differenceWithLast);
 
 	if(m_fileSet){
-		printElapsedTimeInStream(&m_file,description,timeinfo,differenceWithLast);
+		printElapsedTimeInStreamWithTabulation(&m_file,description,timeinfo,differenceWithLast);
 	}
 }
 
-void TimePrinter::printElapsedTimeInStream(ostream*stream,string description,struct tm*timeinfo,
-int differenceWithLast){
+void TimePrinter::printElapsedTimeInStream(ostream*stream,string description,struct tm*timeinfo, int differenceWithLast) {
 	(*stream)<<endl;
 	(*stream)<<"***"<<endl;
 	(*stream)<<"Step: "<<description<<endl;
@@ -61,7 +61,18 @@ int differenceWithLast){
 	(*stream)<<endl;
 	(*stream)<<"***"<<endl;
 	(*stream)<<endl;
-	fflush(stdout);
+}
+
+void TimePrinter::printElapsedTimeInStreamWithTabulation(ostream* stream, string description, struct tm* timeinfo, int differenceWithLast) {
+	int totalSeconds = m_endingTime - m_startingTime;
+	char buffer[20];
+	strftime(buffer, sizeof(buffer), "%FT%T",timeinfo);
+
+	(*stream) << description << "\t" << buffer << "\t";
+	printDifference(differenceWithLast, stream);
+	(*stream) << "\t";
+	printDifference(totalSeconds, stream);
+	(*stream) << endl;
 }
 
 void TimePrinter::printDifferenceFromStart(int rank){
@@ -89,11 +100,12 @@ void TimePrinter::constructor(){
 
 void TimePrinter::setFile(string prefix){
 	ostringstream fileName;
+	string head = "#Step\tDate\tElapsed time\tSince Beginning\n";
+
 	fileName<<prefix<<"ElapsedTime.txt";
-
 	m_file.open(fileName.str().c_str(),ios_base::out);
-
 	m_fileSet=true;
+	m_file.write(head.c_str(), head.size());
 }
 
 void TimePrinter::printDifference(int difference,ostream*stream){

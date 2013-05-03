@@ -49,7 +49,10 @@ class TimePrinter{
 
 	void printDurationsInStream(ostream*stream,struct tm*t);
 	void printElapsedTimeInStream(ostream*stream, string description,struct tm*timeinfo,
-int differenceWithLast);
+		int differenceWithLast);
+
+	void printElapsedTimeInStreamWithTabulation(ostream*stream, string description,struct tm*timeinfo,
+		int differenceWithLast);
 public:
 	void printElapsedTime(string description);
 	void setFile(string prefix);
