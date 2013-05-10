@@ -10,67 +10,67 @@ ASSERT-$(ASSERT)= -DASSERT
 CXXFLAGS= -O3 -Wall -std=c++98 $(ASSERT-y)
 
 #memory
-obj-y += memory/ReusableMemoryStore.o 
-obj-y += memory/MyAllocator.o
-obj-y += memory/RingAllocator.o 
-obj-y += memory/allocator.o
-obj-y += memory/DefragmentationGroup.o
-obj-y += memory/ChunkAllocatorWithDefragmentation.o
-obj-y += memory/DefragmentationLane.o
+obj-y += RayPlatform/memory/ReusableMemoryStore.o 
+obj-y += RayPlatform/memory/MyAllocator.o
+obj-y += RayPlatform/memory/RingAllocator.o 
+obj-y += RayPlatform/memory/allocator.o
+obj-y += RayPlatform/memory/DefragmentationGroup.o
+obj-y += RayPlatform/memory/ChunkAllocatorWithDefragmentation.o
+obj-y += RayPlatform/memory/DefragmentationLane.o
 
 # routing stuff for option -route-messages
-obj-y += routing/ConnectionGraph.o
-obj-y += routing/GraphImplementation.o
-obj-y += routing/GraphImplementationRandom.o
-obj-y += routing/GraphImplementationComplete.o
-obj-y += routing/GraphImplementationDeBruijn.o
-obj-y += routing/GraphImplementationKautz.o
-obj-y += routing/GraphImplementationExperimental.o
-obj-y += routing/GraphImplementationGroup.o
-obj-y += routing/Polytope.o
-obj-y += routing/Torus.o
+obj-y += RayPlatform/routing/ConnectionGraph.o
+obj-y += RayPlatform/routing/GraphImplementation.o
+obj-y += RayPlatform/routing/GraphImplementationRandom.o
+obj-y += RayPlatform/routing/GraphImplementationComplete.o
+obj-y += RayPlatform/routing/GraphImplementationDeBruijn.o
+obj-y += RayPlatform/routing/GraphImplementationKautz.o
+obj-y += RayPlatform/routing/GraphImplementationExperimental.o
+obj-y += RayPlatform/routing/GraphImplementationGroup.o
+obj-y += RayPlatform/routing/Polytope.o
+obj-y += RayPlatform/routing/Torus.o
 
 # communication
-obj-y += communication/mpi_tags.o
-obj-y += communication/VirtualCommunicator.o
-obj-y += communication/BufferedData.o
-obj-y += communication/Message.o
-obj-y += communication/MessagesHandler.o
-obj-y += communication/MessageQueue.o
-obj-y += communication/MessageRouter.o
+obj-y += RayPlatform/communication/mpi_tags.o
+obj-y += RayPlatform/communication/VirtualCommunicator.o
+obj-y += RayPlatform/communication/BufferedData.o
+obj-y += RayPlatform/communication/Message.o
+obj-y += RayPlatform/communication/MessagesHandler.o
+obj-y += RayPlatform/communication/MessageQueue.o
+obj-y += RayPlatform/communication/MessageRouter.o
 
 # scheduling
-obj-y += scheduling/VirtualProcessor.o
-obj-y += scheduling/TaskCreator.o
-obj-y += scheduling/SwitchMan.o
+obj-y += RayPlatform/scheduling/VirtualProcessor.o
+obj-y += RayPlatform/scheduling/TaskCreator.o
+obj-y += RayPlatform/scheduling/SwitchMan.o
 
 # core
-obj-y += core/ComputeCore.o
-obj-y += core/MiniRank.o
-obj-y += core/slave_modes.o 
-obj-y += core/OperatingSystem.o
-obj-y += core/master_modes.o
-obj-y += core/statistics.o
+obj-y += RayPlatform/core/ComputeCore.o
+obj-y += RayPlatform/core/MiniRank.o
+obj-y += RayPlatform/core/slave_modes.o 
+obj-y += RayPlatform/core/OperatingSystem.o
+obj-y += RayPlatform/core/master_modes.o
+obj-y += RayPlatform/core/statistics.o
 
 # modular plugin architecture
-obj-y += plugins/CorePlugin.o
-obj-y += plugins/RegisteredPlugin.o
+obj-y += RayPlatform/plugins/CorePlugin.o
+obj-y += RayPlatform/plugins/RegisteredPlugin.o
 
 # structures
-obj-y += structures/StaticVector.o 
+obj-y += RayPlatform/structures/StaticVector.o 
 
 # profiling
-obj-y += profiling/Profiler.o
-obj-y += profiling/Derivative.o
-obj-y += profiling/TickLogger.o
-obj-y += profiling/TimePrinter.o
+obj-y += RayPlatform/profiling/Profiler.o
+obj-y += RayPlatform/profiling/Derivative.o
+obj-y += RayPlatform/profiling/TickLogger.o
+obj-y += RayPlatform/profiling/TimePrinter.o
 
 # handlers
-obj-y += handlers/MasterModeExecutor.o
-obj-y += handlers/SlaveModeExecutor.o
-obj-y += handlers/MessageTagExecutor.o
+obj-y += RayPlatform/handlers/MasterModeExecutor.o
+obj-y += RayPlatform/handlers/SlaveModeExecutor.o
+obj-y += RayPlatform/handlers/MessageTagExecutor.o
 
 #cryptography
-obj-y += cryptography/crypto.o
+obj-y += RayPlatform/cryptography/crypto.o
 
 
