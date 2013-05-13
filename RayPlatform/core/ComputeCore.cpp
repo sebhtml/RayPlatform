@@ -831,8 +831,42 @@ void ComputeCore::configureEngine() {
 
 	int availableBuffers=minimumNumberOfBuffers;
 
+	/**
+	 * Instead of limiting the buffers, just use a sane amount already.
+	 *
+	 * The VirtualCommunicator layer will use one group per tag-rank tuple anyway.
+	 * So using more buffers does not change anything.
+	 *
+	 * At 4096 ranks, this will use 32768000 bytes, or roughly 32 MiB.
+	 *
+	 * ***************************
+	 *
+	 * On the IBM Blue Gene/Q in Toronto, using 1024 nodes provides 16 TiB of memory.
+	 * At the moment, the highly symmetric identity mapping in the virtual
+	 * memory layer on BGQ  prohibits Ray at low memory ranges.
+	 *
+	 * This is because most of Ray processes uses < 800 MiB, but a few rogue
+	 * processes sit sometimes at 2.5 GiB. Rank 0 is one of them since it is the
+	 * master of the tribe. If 0 dies, so does everyone.
+	 *
+	 * Access to bgq-fen0 is provided by SciNet. The hardware is owned by
+	 * SOSCIP | Southern Ontario Smart Computing Innovation Platform
+	 *
+	 * \see https://support.scinet.utoronto.ca/wiki/index.php/BGQ
+	 * \see http://soscip.org/
+	 *
+	 * ***************************
+	 *
+	 * On the Cray XE6 at Cray, Inc. (collaboration with Cray, Inc. with Carlos Sosa), there was
+	 * a segmentation fault on 2048 ranks.
+	 *
+	 * This was most likely due to this lack of buffers. Because of this depletion,
+	 * buffers were reused.
+	 */
+	bool useMoreBuffers = true;
+
 	// even a message with a NULL buffer requires a buffer for routing
-	if(m_routerIsEnabled|| m_miniRanksAreEnabled)
+	if(useMoreBuffers || m_routerIsEnabled || m_miniRanksAreEnabled)
 		availableBuffers=m_size*2;
 
 	// this will occur when using the virtual router with a few processes
