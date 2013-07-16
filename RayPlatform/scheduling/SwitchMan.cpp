@@ -116,7 +116,8 @@ void SwitchMan::addNextMasterMode(MasterMode a,MasterMode b){
 
 void SwitchMan::openSlaveMode(MessageTag tag,StaticVector*outbox,Rank source,Rank destination){
 	#ifdef CONFIG_SWITCHMAN_VERBOSITY
-	cout<<"[SwitchMan::openSlaveMode] Opening remotely slave mode on rank "<<destination<<endl;
+	cout<<"[SwitchMan::openSlaveMode] Opening remotely slave mode on rank "<<destination;
+	cout << " message on bus: " << MESSAGE_TAGS[tag] <<endl;
 	#endif
 
 	#ifdef ASSERT
@@ -153,7 +154,7 @@ void SwitchMan::openMasterMode(StaticVector*outbox,Rank source){
 	MessageTag tag=m_masterModeToTagTable[m_masterMode];
 
 	#ifdef CONFIG_SWITCHMAN_VERBOSITY
-	cout<<"[SwitchMan::openMasterMode] Opening master mode on rank "<<source<<endl;
+	cout<<"[SwitchMan::openMasterMode] Opening master mode " << MASTER_MODES[m_masterMode] << " on rank "<<source<<endl;
 	cout<<"[SwitchMan::openMasterMode] tag= "<<MESSAGE_TAGS[tag]<<" source= "<<source<<" Outbox= "<<outbox<<endl;
 	#endif
 
@@ -258,7 +259,7 @@ int*SwitchMan::getSlaveModePointer(){
 
 void SwitchMan::setSlaveMode(SlaveMode mode){
 	#ifdef CONFIG_SWITCHMAN_VERBOSITY
-	cout<<"setSlaveMode "<<SLAVE_MODES[mode]<<endl;
+	cout<<"[SwitchMan::setSlaveMode] "<<SLAVE_MODES[mode]<<endl;
 	#endif
 
 	m_slaveMode=mode;
@@ -271,7 +272,7 @@ MasterMode SwitchMan::getMasterMode(){
 void SwitchMan::setMasterMode(MasterMode mode){
 
 	#ifdef CONFIG_SWITCHMAN_VERBOSITY
-	cout<<"setMasterMode "<<MASTER_MODES[mode]<<endl;
+	cout<<"[SwitchMan::setMasterMode] "<<MASTER_MODES[mode]<<endl;
 	#endif
 
 	m_masterMode=mode;
