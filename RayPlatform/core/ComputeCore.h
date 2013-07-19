@@ -393,6 +393,8 @@ Not all master modes have yet been ported to that list.
 	MessagesHandler*getMessagesHandler();
 	void setMasterModePublicAccess(PluginHandle plugin,MasterMode mode);
 	void enableCheckSums();
+
+	void closeSlaveModeLocally();
 };
 
 #endif

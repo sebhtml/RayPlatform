@@ -159,7 +159,7 @@ void ComputeCore::run(){
 
 	if(m_routerIsEnabled)
 		m_router.getGraph()->printStatus();
-	
+
 }
 
 /**
@@ -246,7 +246,7 @@ void ComputeCore::runWithProfiler(){
 	map<int,int> receivedTags;
 	map<int,int> sentTagsInProcessMessages;
 	map<int,int> sentTagsInProcessData;
-	
+
 	int resolution=100;// milliseconds
 	int parts=1000/resolution;
 
@@ -304,10 +304,10 @@ void ComputeCore::runWithProfiler(){
 /*
 				int average1=getAverage(&distancesForProcessMessages);
 				int deviation1=getStandardDeviation(&distancesForProcessMessages);
-			
+
 				cout<<"Rank "<<m_rank<<" distance between processMessages messages: average= "<<average1<<", stddev= "<<deviation1<<
 					", n= "<<distancesForProcessMessages.size()<<endl;
-				
+
 */
 				#ifdef FULL_DISTRIBUTION
 				map<int,int> distribution1;
@@ -334,10 +334,10 @@ void ComputeCore::runWithProfiler(){
 /*
 				int average2=getAverage(&distancesForProcessData);
 				int deviation2=getStandardDeviation(&distancesForProcessData);
-	
+
 				cout<<"Rank "<<m_rank<<" distance between processData messages: average= "<<average2<<", stddev= "<<deviation2<<
 					", n= "<<distancesForProcessData.size()<<endl;
-				
+
 */
 				#ifdef FULL_DISTRIBUTION
 				map<int,int> distribution2;
@@ -371,7 +371,7 @@ void ComputeCore::runWithProfiler(){
 		// 1. receive the message (0 or 1 message is received)
 		receiveMessages(); 
 		receivedMessages+=m_inbox.size();
-		
+
 		for(int i=0;i<(int)m_inbox.size();i++){
 			// stript routing information, if any
 			uint8_t tag=m_inbox[i]->getTag();
@@ -402,7 +402,7 @@ void ComputeCore::runWithProfiler(){
 		uint64_t endingTime = getThreadMicroseconds();
 
 		int difference = endingTime - startingTime;
-		
+
 		m_profiler.addGranularity(currentSlaveMode,difference);
 
 		/* threshold to say something is taking too long */
@@ -884,7 +884,7 @@ void ComputeCore::configureEngine() {
 
 	m_maximumAllocatedInboxBuffers=1;
 	m_maximumAllocatedOutboxBuffers=availableBuffers;
-	
+
 	m_maximumNumberOfInboxMessages=1;
 	m_maximumNumberOfOutboxMessages=availableBuffers;
 
@@ -898,7 +898,7 @@ void ComputeCore::configureEngine() {
 	getOutbox()->constructor(m_maximumNumberOfOutboxMessages,"RAY_MALLOC_TYPE_OUTBOX_VECTOR",false);
 
 	if(m_miniRanksAreEnabled){
-		
+
 		getBufferedInbox()->constructor(m_maximumNumberOfOutboxMessages);
 		getBufferedOutbox()->constructor(m_maximumNumberOfOutboxMessages);
 	}
@@ -1020,7 +1020,7 @@ VirtualCommunicator*ComputeCore::getVirtualCommunicator(){
 }
 
 void ComputeCore::registerPlugin(CorePlugin*plugin){
-	
+
 	if(m_firstRegistration){
 
 		m_firstRegistration=false;
@@ -1106,7 +1106,7 @@ void ComputeCore::stop(){
 void ComputeCore::setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const char*symbol){
 	if(!validationPluginAllocated(plugin))
 		return;
-	
+
 	if(!validationSlaveModeRange(plugin,mode))
 		return;
 
@@ -1149,7 +1149,7 @@ void ComputeCore::setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const ch
 }
 
 void ComputeCore::setMasterModeSymbol(PluginHandle plugin,MasterMode mode,const char*symbol){
-	
+
 	if(!validationPluginAllocated(plugin))
 		return;
 
@@ -1229,7 +1229,7 @@ void ComputeCore::setMessageTagSymbol(PluginHandle plugin,MessageTag tag,const c
 
 PluginHandle ComputeCore::allocatePluginHandle(){
 	PluginHandle handle=generatePluginHandle();
-	
+
 	while(m_plugins.count(handle)>0){
 		handle=generatePluginHandle();
 	}
@@ -1275,7 +1275,7 @@ SlaveMode ComputeCore::allocateSlaveModeHandle(PluginHandle plugin){
 	assert(m_allocatedSlaveModes.count(handle)>0);
 	assert(m_plugins[plugin].hasSlaveMode(handle));
 	#endif
-	
+
 	return handle;
 }
 
@@ -1421,7 +1421,7 @@ void ComputeCore::printPlugins(string directory){
 
 	for(map<PluginHandle,RegisteredPlugin>::iterator i=m_plugins.begin();
 		i!=m_plugins.end();i++){
-		
+
 		f1<<i->first<<"	plugin_"<<i->second.getPluginName()<<endl;
 	}
 
@@ -1452,7 +1452,7 @@ SlaveMode ComputeCore::getSlaveModeFromSymbol(PluginHandle plugin,const char*sym
 
 	if(m_slaveModeSymbols.count(key)>0){
 		SlaveMode handle=m_slaveModeSymbols[key];
-		
+
 		m_plugins[plugin].addResolvedSlaveMode(handle);
 
 		#ifdef CONFIG_DEBUG_SLAVE_SYMBOLS
@@ -1934,4 +1934,9 @@ int ComputeCore::getMiniRanksPerRank(){
 
 MessagesHandler*ComputeCore::getMessagesHandler(){
 	return m_messagesHandler;
+}
+
+void ComputeCore::closeSlaveModeLocally() {
+
+	getSwitchMan()->closeSlaveModeLocally(getOutbox(), getRank());
 }
