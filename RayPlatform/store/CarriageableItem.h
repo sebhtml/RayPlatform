@@ -43,7 +43,7 @@ public:
 	 *
 	 * \returns bytes loaded
 	 */
-	virtual int load(const uint8_t * buffer) = 0;
+	virtual int load(const char * buffer) = 0;
 
 	/**
 	 *
@@ -51,9 +51,9 @@ public:
 	 *
 	 * \returns bytes written
 	 */
-	virtual int dump(uint8_t * buffer) const = 0;
+	virtual int dump(char * buffer) const = 0;
 
-	//virtual int getRequiredNumberOfBytes() const = 0;
+	virtual int getRequiredNumberOfBytes() const = 0;
 
 	virtual ~CarriageableItem() {}
 };
