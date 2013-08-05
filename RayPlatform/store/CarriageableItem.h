@@ -53,7 +53,7 @@ public:
 	 */
 	virtual int dump(uint8_t * buffer) const = 0;
 
-	//virtual int getRequiredNumberOfBytes() = 0;
+	//virtual int getRequiredNumberOfBytes() const = 0;
 
 	virtual ~CarriageableItem() {}
 };

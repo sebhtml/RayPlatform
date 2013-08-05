@@ -60,12 +60,12 @@ public:
 	/**
  * assign a size to the allocator.
  */
-	void constructor(int a,const char*type,bool show);
+	void constructor(int chunkSize, const char*type, bool show);
 
 /**
  * allocate memory
  */
-	void*allocate(int s);
+	void*allocate(int numberOfBytes);
 
 	~MyAllocator();
 	int getChunkSize();
@@ -80,7 +80,7 @@ public:
 	void reset();
 
 /** free memory */
-	void free(void*a,int b);
+	void free(void * address, int numberOfBytes);
 };
 
 int roundNumber(int number,int alignment);

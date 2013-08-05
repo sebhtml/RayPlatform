@@ -39,6 +39,9 @@ void KeyValueStore::initialize(Rank rank, int size, RingAllocator * outboxAlloca
 	m_outboxAllocator = outboxAllocator;
 	m_inbox = inbox;
 	m_outbox = outbox;
+
+	int chunkSize = 33554432; // 32 MiB    4194304 is 4 MiB
+	m_memoryAllocator.constructor(chunkSize, "/allocator/KeyValueStore.ram", false);
 }
 
 bool KeyValueStore::getKey(const char * key, int keyLength, string & keyObject) {
@@ -95,6 +98,11 @@ bool KeyValueStore::remove(const char * key, int keyLength) {
 	if(m_items.count(keyObject) == 0)
 		return true;
 
+	int size = m_items[keyObject].getValueLength();
+	char * content = m_items[keyObject].getValue();
+
+	m_memoryAllocator.free(content, size);
+
 	m_items.erase(keyObject);
 
 #ifdef CONFIG_ASSERT
@@ -133,9 +141,21 @@ bool KeyValueStore::receiveKeyAndValueFromRank(const char * key, int keyLength, 
 
 void KeyValueStore::clear() {
 	m_items.clear();
+
+	// free used memory, but don't give it back to the
+	// operatign system
+	m_memoryAllocator.reset();
 }
 
 void KeyValueStore::destroy() {
 	clear();
+
+	// give back the memory to the operating system
+	m_memoryAllocator.clear();
 }
 
+char * KeyValueStore::allocateMemory(int bytes) {
+	char * address = (char*)m_memoryAllocator.allocate(bytes);
+
+	return address;
+}

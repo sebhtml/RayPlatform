@@ -14,7 +14,7 @@
     GNU Lesser General Public License for more details.
 
     You have received a copy of the GNU Lesser General Public License
-    along with this program (lgpl-3.0.txt).  
+    along with this program (lgpl-3.0.txt).
 	see <http://www.gnu.org/licenses/>
 
 */
@@ -43,7 +43,7 @@ void MyAllocator::reset(){
 /** the constructor does not allocate a chunk */
 void MyAllocator::constructor(int chunkSize,const char*type,bool show){
 	m_show=show;
-	m_CHUNK_SIZE=chunkSize; 
+	m_CHUNK_SIZE=chunkSize;
 	strcpy(m_type,type);
 }
 
@@ -58,7 +58,7 @@ void MyAllocator::addChunk(){
 	m_currentPosition=0;
 }
 
-/** this is a chunk allocator 
+/** this is a chunk allocator
  * when a chunk is consumed totally,
  * a new one is created
  */
@@ -142,7 +142,8 @@ void*MyAllocator::allocate(int s){
 	return r;
 }
 
-MyAllocator::~MyAllocator(){}
+MyAllocator::~MyAllocator(){
+}
 
 void MyAllocator::clear(){
 	m_store.reset();
@@ -171,8 +172,8 @@ int MyAllocator::getNumberOfChunks(){
 	return m_chunks.size();
 }
 
-void MyAllocator::free(void*a,int b){
-	m_store.addAddressToReuse(a,b);
+void MyAllocator::free(void * address, int bytes){
+	m_store.addAddressToReuse(address, bytes);
 }
 
 MyAllocator::MyAllocator(){

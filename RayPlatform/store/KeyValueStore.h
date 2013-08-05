@@ -26,6 +26,7 @@
 
 #include <RayPlatform/core/types.h>
 #include <RayPlatform/memory/RingAllocator.h>
+#include <RayPlatform/memory/MyAllocator.h>
 #include <RayPlatform/structures/StaticVector.h>
 
 #include <map>
@@ -48,7 +49,8 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class KeyValueStore {
-	
+	MyAllocator m_memoryAllocator;
+
 	map<string,KeyValueStoreItem> m_items;
 
 	Rank m_rank;
@@ -86,6 +88,8 @@ public:
 	 * }
 	 */
 	bool receiveKeyAndValueFromRank(const char * key, int keyLength, Rank source);
+
+	char * allocateMemory(int bytes);
 
 	void clear();
 	void destroy();
