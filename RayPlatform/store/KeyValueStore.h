@@ -25,15 +25,22 @@
 #include "KeyValueStoreItem.h"
 
 #include <RayPlatform/core/types.h>
+#include <RayPlatform/plugins/CorePlugin.h>
 #include <RayPlatform/memory/RingAllocator.h>
 #include <RayPlatform/memory/MyAllocator.h>
 #include <RayPlatform/structures/StaticVector.h>
+#include <RayPlatform/handlers/MessageTagHandler.h>
 
 #include <map>
 #include <string>
 using namespace std;
 
 #include <stdint.h>
+
+__DeclarePlugin(KeyValueStore);
+
+__DeclareMessageTagAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART);
+__DeclareMessageTagAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY);
 
 /**
  *
@@ -46,9 +53,25 @@ using namespace std;
  * The purpose of this is to ease synchronization between ranks
  * when the message size is bounded.
  *
+ * TODO: implement the code necessary to have more than one active transfer
+ * at any given time.
+ *
+ * TODO: the system does not support empty values
+ *
  * \author Sébastien Boisvert
  */
-class KeyValueStore {
+class KeyValueStore : public CorePlugin {
+
+	bool m_messageWasSent;
+	uint32_t m_valueSize;
+	uint32_t m_offset;
+
+	MessageTag RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART;
+	MessageTag RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY;
+
+	__AddAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART);
+	__AddAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY);
+
 	MyAllocator m_memoryAllocator;
 
 	map<string,KeyValueStoreItem> m_items;
@@ -60,6 +83,7 @@ class KeyValueStore {
 	StaticVector*m_outbox;
 
 	bool getKey(const char * key, int keyLength, string & keyObject);
+	int dumpMessageHeader(const char* key, int valueLength, int offset, char * buffer) const;
 
 public:
 
@@ -71,7 +95,7 @@ public:
 	bool remove(const char * key, int keyLength);
 	bool get(const char * key, int keyLength, char ** value, int * valueLength);
 
-	bool sendKeyAndValueToRank(const char * key, int keyLength, Rank destination);
+	bool push(const char * key, int keyLength, Rank destination);
 
 	/**
 	 * Get a key-value entry from a source.
@@ -87,12 +111,18 @@ public:
 	 *       cout << valueLength << " bytes" << endl;
 	 * }
 	 */
-	bool receiveKeyAndValueFromRank(const char * key, int keyLength, Rank source);
+	bool pull(const char * key, int keyLength, Rank source);
 
 	char * allocateMemory(int bytes);
 
 	void clear();
 	void destroy();
+
+	void call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY(Message * message);
+	void call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART(Message * message);
+
+	void resolveSymbols(ComputeCore*core);
+	void registerPlugin(ComputeCore * core);
 };
 
 #endif /* KeyValueStoreHeader */
