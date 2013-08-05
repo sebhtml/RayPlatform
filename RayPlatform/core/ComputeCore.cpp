@@ -877,6 +877,8 @@ void ComputeCore::configureEngine() {
 
 	m_virtualCommunicator.constructor(m_rank,m_size,&m_outboxAllocator,&m_inbox,&m_outbox);
 
+	m_keyValueStore.initialize(m_rank, m_size, &m_outboxAllocator, &m_inbox, &m_outbox);
+
 	/***********************************************************************************/
 	/** initialize the VirtualProcessor */
 	m_virtualProcessor.constructor(&m_outbox,&m_inbox,&m_outboxAllocator,
@@ -1939,4 +1941,9 @@ MessagesHandler*ComputeCore::getMessagesHandler(){
 void ComputeCore::closeSlaveModeLocally() {
 
 	getSwitchMan()->closeSlaveModeLocally(getOutbox(), getRank());
+}
+
+KeyValueStore & ComputeCore::getKeyValueStore() {
+
+	return m_keyValueStore;
 }

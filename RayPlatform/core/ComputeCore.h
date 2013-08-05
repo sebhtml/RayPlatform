@@ -51,6 +51,8 @@
 #include <RayPlatform/plugins/CorePlugin.h>
 #include <RayPlatform/plugins/RegisteredPlugin.h>
 
+#include <RayPlatform/store/KeyValueStore.h>
+
 #include <iostream>
 using namespace std;
 
@@ -68,6 +70,8 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class ComputeCore{
+
+	KeyValueStore m_keyValueStore;
 
 /*
  * This is the middleware communication layer.
@@ -395,6 +399,8 @@ Not all master modes have yet been ported to that list.
 	void enableCheckSums();
 
 	void closeSlaveModeLocally();
+
+	KeyValueStore & getKeyValueStore();
 };
 
 #endif

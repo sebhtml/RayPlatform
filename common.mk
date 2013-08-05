@@ -73,4 +73,6 @@ obj-y += RayPlatform/handlers/MessageTagExecutor.o
 #cryptography
 obj-y += RayPlatform/cryptography/crypto.o
 
-
+#store
+obj-y += RayPlatform/store/KeyValueStore.o
+obj-y += RayPlatform/store/KeyValueStoreItem.o
