@@ -1030,6 +1030,7 @@ void ComputeCore::registerPlugin(CorePlugin*plugin){
 		// register some built-in plugins
 
 		registerPlugin(&m_switchMan);
+		registerPlugin(&m_keyValueStore);
 
 	}
 

@@ -24,6 +24,8 @@
 
 #include <RayPlatform/core/ComputeCore.h>
 
+//#define KeyValueStore_DEBUG_NOW "Yes"
+
 __CreatePlugin(KeyValueStore);
 
 __CreateMessageTagAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART);
@@ -32,6 +34,12 @@ __CreateMessageTagAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT
 KeyValueStore::KeyValueStore() {
 
 	clear();
+}
+
+
+bool KeyValueStore::pullRemoteStringKey(const string & key, Rank rank) {
+
+	return pullRemoteKey(key.c_str(), key.length(), rank);
 }
 
 void KeyValueStore::initialize(Rank rank, int size, RingAllocator * outboxAllocator, StaticVector * inbox, StaticVector * outbox) {
@@ -43,10 +51,10 @@ void KeyValueStore::initialize(Rank rank, int size, RingAllocator * outboxAlloca
 	m_outbox = outbox;
 
 	int chunkSize = 33554432; // 32 MiB    4194304 is 4 MiB
-	m_memoryAllocator.constructor(chunkSize, "/allocator/KeyValueStore.ram", false);
+	m_memoryAllocator.constructor(chunkSize, "/allocator/KeyValueStore.DRAM", false);
 }
 
-bool KeyValueStore::getKey(const char * key, int keyLength, string & keyObject) {
+bool KeyValueStore::getStringKey(const char * key, int keyLength, string & keyObject) {
 
 	#define MAXIMUM_KEY_LENGTH 256
 	char buffer[MAXIMUM_KEY_LENGTH];
@@ -66,14 +74,19 @@ bool KeyValueStore::getKey(const char * key, int keyLength, string & keyObject) 
 	return true;
 }
 
+bool KeyValueStore::insertLocalStringKey(const string & key, char * value, int valueLength) {
+
+	return insertLocalKey(key.c_str(), key.length(), value, valueLength);
+}
+
 /**
  * TODO: remove limit on key length
  */
-bool KeyValueStore::insert(const char * key, int keyLength, char * value, int valueLength) {
+bool KeyValueStore::insertLocalKey(const char * key, int keyLength, char * value, int valueLength) {
 
-	string keyObject;
+	string keyObject = "";
 
-	if(!getKey(key, keyLength, keyObject))
+	if(!getStringKey(key, keyLength, keyObject))
 		return false;
 
 	if(m_items.count(keyObject) != 0)
@@ -82,18 +95,20 @@ bool KeyValueStore::insert(const char * key, int keyLength, char * value, int va
 	KeyValueStoreItem item(value, valueLength);
 	m_items[keyObject] = item;
 
+#ifdef KeyValueStore_DEBUG_NOW
 	cout << "[DEBUG] KeyValueStore registered key " << keyObject << " (length: " << keyLength;
 	cout << ")";
 	cout << " with value (length: " << valueLength << ")";
 	cout << endl;
+#endif /* KeyValueStore_DEBUG_NOW */
 
 	return true;
 }
 
-bool KeyValueStore::remove(const char * key, int keyLength) {
+bool KeyValueStore::removeLocalKey(const char * key, int keyLength) {
 
 	string keyObject;
-	if(!getKey(key, keyLength, keyObject))
+	if(!getStringKey(key, keyLength, keyObject))
 		return false;
 
 	// nothing to remove
@@ -114,11 +129,15 @@ bool KeyValueStore::remove(const char * key, int keyLength) {
 	return true;
 }
 
-bool KeyValueStore::get(const char * key, int keyLength, char ** value, int * valueLength) {
+bool KeyValueStore::getLocalStringKey(const string & key, char ** value, int * valueLength) {
+
+	return getLocalKey(key.c_str(), key.length(), value, valueLength);
+}
+
+bool KeyValueStore::getLocalKey(const char * key, int keyLength, char ** value, int * valueLength) {
 
 	string keyObject;
-
-	if(!getKey(key, keyLength, keyObject))
+	if(!getStringKey(key, keyLength, keyObject))
 		return false;
 
 	// nothing to remove
@@ -127,14 +146,33 @@ bool KeyValueStore::get(const char * key, int keyLength, char ** value, int * va
 
 	KeyValueStoreItem & item = m_items[keyObject];
 
+
+	if(!item.isItemReady())
+		return false;
+
 	(*value) = item.getValue();
 	(*valueLength) = item.getValueLength();
 
 	return true;
 }
 
-bool KeyValueStore::push(const char * key, int keyLength, Rank destination) {
+bool KeyValueStore::pushLocalKey(const char * key, int keyLength, Rank destination) {
+
+	// not implemented.
+
 	return false;
+}
+
+KeyValueStoreItem * KeyValueStore::getLocalItemFromKey(const char * key, int keyLength) {
+
+	string keyObject;
+	if(!getStringKey(key, keyLength, keyObject))
+		return NULL;
+
+	if(m_items.count(keyObject) == 0)
+		return NULL;
+
+	return &(m_items[keyObject]);
 }
 
 /**
@@ -143,28 +181,49 @@ bool KeyValueStore::push(const char * key, int keyLength, Rank destination) {
  *
  * If the new offset is lower than the value length, then the transfer is not complete.
  */
-bool KeyValueStore::pull(const char * key, int keyLength, Rank source) {
+bool KeyValueStore::pullRemoteKey(const char * key, int keyLength, Rank source) {
+
+	KeyValueStoreItem * item = getLocalItemFromKey(key, keyLength);
+
+	if(item == NULL) {
+
+		// insert an item with an empty value
+		insertLocalKey(key, keyLength, NULL, 0);
+
+		item = getLocalItemFromKey(key, keyLength);
+
+		// this will mark the key as not ready.
+		item->startDownload();
+
+#ifdef KeyValueStore_DEBUG_NOW
+		cout << "[DEBUG] KeyValueStore marked key " << key << " for download." << endl;
+#endif
+
+		return false;
+	}
 
 	// the transfer has completed.
-	if(m_valueSize != 0 && m_valueSize == m_offset) {
+	if(item != NULL && item->isItemReady()){
 
-		// reset the states for the next one.
-
-		m_valueSize = 0;
-		m_offset = 0;
-		m_messageWasSent = false;
+#ifdef KeyValueStore_DEBUG_NOW
+		cout << "[DEBUG] item is ready to be used." << endl;
+#endif
 
 		return true;
 
-	} else if(!m_messageWasSent) {
+	} else if(item != NULL && !item->messageWasSent()) {
 
 		char * buffer=(char *) m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 
-		cout << "[DEBUG] KeyValueStore::pull key= " << key << " m_valueSize= " << m_valueSize;
+#ifdef KeyValueStore_DEBUG_NOW
+		cout << "[DEBUG] KeyValueStore::pullRemoteKey key= " << key << " m_valueSize= " << m_valueSize;
 		cout << " m_offset= " << m_offset;
 		cout << endl;
+#endif /* KeyValueStore_DEBUG_NOW */
 
-		int outputPosition = dumpMessageHeader(key, m_valueSize, m_offset, buffer);
+		int outputPosition = 0;
+
+		outputPosition += dumpMessageHeader(key, m_valueSize, m_offset, buffer);
 
 		int units = outputPosition / sizeof(MessageUnit);
 		if(outputPosition % sizeof(MessageUnit))
@@ -175,9 +234,13 @@ bool KeyValueStore::pull(const char * key, int keyLength, Rank source) {
 
 		m_outbox->push_back(&aMessage);
 
+		// this will mark the item as being being currently fetched.
+		item->sendMessage();
 
-		m_messageWasSent = true;
-
+#ifdef KeyValueStore_DEBUG_NOW
+		cout << "[DEBUG] message RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART sent to " << source;
+		cout << endl;
+#endif
 		return false;
 	}
 
@@ -215,14 +278,36 @@ char * KeyValueStore::allocateMemory(int bytes) {
 	return address;
 }
 
-int KeyValueStore::dumpMessageHeader(const char* key, int valueLength, int offset, char * buffer) const {
+int KeyValueStore::loadMessageHeader(string & key, uint32_t & valueSize, uint32_t & offset, const char * buffer) const {
+
+	// read the message header
+	key = buffer;
+
+	int inputPosition = 0;
+	int size = key.length();
+	inputPosition += size;
+	inputPosition ++; // for the \0
+
+	size = sizeof(uint32_t);
+	memcpy(&valueSize, buffer + inputPosition, size);
+	inputPosition += size;
+
+	memcpy(&offset, buffer + inputPosition, size);
+	inputPosition += size;
+
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "[DEBUG] loadMessageHeader key= " << key << " valueSize= " << valueSize;
+	cout << " offset= " << offset << " headerSize= " << inputPosition << endl;
+#endif
+
+	return inputPosition;
+}
+
+int KeyValueStore::dumpMessageHeader(const char* key, uint32_t valueLength, uint32_t offset, char * buffer) const {
 
 	int outputPosition = 0;
 
 	int size = strlen(key);
-
-	uint32_t realValueLength = valueLength;
-	uint32_t realOffset = offset;
 
 	memcpy(buffer + outputPosition, key, size);
 	outputPosition += size;
@@ -230,10 +315,18 @@ int KeyValueStore::dumpMessageHeader(const char* key, int valueLength, int offse
 
 	size = sizeof(uint32_t);
 
-	memcpy(buffer + outputPosition, &realValueLength, size);
+	memcpy(buffer + outputPosition, &valueLength, size);
 	outputPosition += size;
-	memcpy(buffer + outputPosition, &realOffset, size);
+	memcpy(buffer + outputPosition, &offset, size);
 	outputPosition += size;
+
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "[DEBUG] dumpMessageHeader key= " << key << " valueLength= " << valueLength;
+	cout << " offset= " << offset << " HeaderSize= " << outputPosition;
+	cout << endl;
+#endif
+
+
 
 	return outputPosition;
 }
@@ -244,33 +337,32 @@ int KeyValueStore::dumpMessageHeader(const char* key, int valueLength, int offse
  * * the key, strlen(buffer) is the length of this key
  * * the length of the value (0 if the information is not known by the sender) uint32_t
  * * the offset (uint32_t) at buffer + length of key
+ *
+ * TODO: we need something to indicate that the object does not exist
+ * here. add this in the header...
  */
 void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART(Message * message) {
 
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "***" << endl;
+	cout << "call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART" << endl;
+#endif
+
 	char * buffer = (char*)message->getBuffer();
-	int position = 0;
-
-	// this will stop at the first '\0'
-	string key = buffer + position;
-
-	int size = key.length();
-	position += size;
-
-	uint32_t valueLength = 0;
-	size = sizeof(uint32_t);
-	memcpy(&valueLength, buffer + position, size);
-	position += size;
-
-	uint32_t offset = 0;
-	memcpy(&offset, buffer + position, size);
-	position += size;
 
 #ifdef CONFIG_ASSERT
 	assert(buffer != NULL);
 #endif /////// CONFIG_ASSERT
 
-	char * responseBuffer = (char *) m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+	// load the message header
+	string key = "";
+	uint32_t valueLength = 0;
+	uint32_t offset = 0;
 
+	int position = 0;
+	position += loadMessageHeader(key, valueLength, offset, buffer + position);
+
+	char * responseBuffer = (char *) m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 
 	char * value = NULL;
 	int actualValueLength = 0;
@@ -278,29 +370,44 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART(Message * 
 	// if the key is inside, we respond with
 	if(m_items.count(key) > 0) {
 
-		get(key.c_str(), key.length(), &value, &actualValueLength);
+		KeyValueStoreItem * item = getLocalItemFromKey(key.c_str(), key.length());
+		value = item->getValue();
+		actualValueLength = item->getValueLength();
 	}
+
+	// TODO: if object does not exist, a message will be returned regardless
+	// with size 0, which should not be the case.
+
 
 	// we need a header even when the key is not found
 	// in that case, we assign a value length of 0 in the response.
 	//
-	int outputPosition = dumpMessageHeader(key.c_str(), actualValueLength, offset, responseBuffer);
+	int outputPosition = 0;
+
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "[DEBUG] actualValueLength= " << actualValueLength << endl;
+#endif
+
+	outputPosition += dumpMessageHeader(key.c_str(), actualValueLength, offset, responseBuffer);
 
 	if(value != NULL) {
 
-		int bytesToCopy = actualValueLength = offset;
+		int bytesToCopy = actualValueLength - offset;
 
 		int remainingBytes = MAXIMUM_MESSAGE_SIZE_IN_BYTES - outputPosition;
 
 		if(remainingBytes < bytesToCopy)
 			bytesToCopy = remainingBytes;
 
+#ifdef KeyValueStore_DEBUG_NOW
 		cout << "[DEBUG] KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART key= " << key << " offset= " << offset;
 		cout << " actualValueLength= " << actualValueLength;
 		cout << " bytesToCopy= " << bytesToCopy;
+		cout << " source= " << message->getSource();
 		cout << endl;
+#endif /* KeyValueStore_DEBUG_NOW */
 
-		size = remainingBytes;
+		int size = bytesToCopy;
 		memcpy(responseBuffer + outputPosition, value, size);
 		outputPosition += size;
 	}
@@ -313,8 +420,13 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART(Message * 
 	if(outputPosition % sizeof(MessageUnit))
 		units ++;
 
-	Message aMessage((MessageUnit*) buffer, units, message->getSource(),
+	Message aMessage((MessageUnit*) responseBuffer, units, message->getSource(),
 			                       RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY, message->getDestination());
+
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "DEBUG reply RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY " << units << " units ";
+	cout << outputPosition << " bytes" << endl;
+#endif
 
 	// and hop we go, the message is now on the message bus
 	// let's hope that the message reaches its destination safely.
@@ -334,51 +446,89 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART(Message * 
  */
 void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY(Message * message) {
 
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "***" << endl;
+	cout << "[DEBUG] received call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY" << endl;
+	cout << " units " << message->getCount() << endl;
+#endif
+
 	char * buffer = (char*)message->getBuffer();
 
-	string key = buffer;
+#ifdef CONFIG_ASSERT
+	assert(buffer != NULL);
+#endif /////// CONFIG_ASSERT
 
-	int inputPosition = 0;
-	int size = key.length();
-	inputPosition += size;
 
-	uint32_t valueSize = 0;
+	string key = "";
+	uint32_t valueLength = 0;
 	uint32_t offset = 0;
 
-	size = sizeof(uint32_t);
+	int inputPosition = 0;
 
-	memcpy(&valueSize, buffer + inputPosition, size);
-	inputPosition += size;
+	inputPosition += loadMessageHeader(key, valueLength, offset, buffer);
 
-	memcpy(&offset, buffer + inputPosition, size);
-	inputPosition += size;
+	KeyValueStoreItem * item = getLocalItemFromKey(key.c_str(), key.length());
 
-	// the system does not support values with 0 bytes
-	// 0 bytes mean that the key does not exist.
-	if(valueSize == 0)
-		return;
+#ifdef CONFIG_ASSERT
+	assert(item != NULL);
+#endif
 
 	// if the offset is 0
 	if(offset == 0) {
-		char * value = allocateMemory(valueSize);
-		insert(key.c_str(), key.length(), value, valueSize);
 
-		m_offset = 0;
-		m_valueSize = valueSize;
+#ifdef CONFIG_ASSERT
+		assert(item->getValue() == NULL);
+		assert(item->getValueLength() == 0);
+#endif
+
+		if(valueLength != 0) {
+
+			char * value = allocateMemory(valueLength);
+			item->setValue(value);
+			item->setValueLength(valueLength);
+		}
+
+		// it is 0 bytes, the meta-data of the object
+		// are already registered correctly
+		//
+		// This was done when the first message of type
+		// RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART
+		// was sent.
 	}
 
-	char * value = NULL;
-	int dummySize = 0;
+	// TODO check if the object is invalid (does not exist on remote host)
+
+	// if we have 0 bytes to copy, we have nothing left to do.
+	if(item->getValueLength() == 0) {
+		item->receiveMessage();
+		return;
+	}
 
 	// get the local buffer copy
-	get(key.c_str(), key.length(), &value, &dummySize);
 
-	int bytesToCopy = valueSize - offset;
+	char * value = item->getValue();
+
+#ifdef CONFIG_ASSERT
+	int dummySize = item->getValueLength();
+
+	assert(value != NULL);
+	assert(dummySize == valueLength);
+#endif
+
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "DEBUG dummySize= " << dummySize << endl;
+#endif
+
+	int bytesToCopy = valueLength - offset;
 
 	int remainingBytes = MAXIMUM_MESSAGE_SIZE_IN_BYTES - inputPosition;
 
 	if(remainingBytes < bytesToCopy)
 		bytesToCopy = remainingBytes;
+
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "DEBUG memcpy inputPosition= " << inputPosition << " bytesToCopy= " << bytesToCopy << endl;
+#endif
 
 	// copy into the buffer what we received from
 	// a remote rank
@@ -386,9 +536,17 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY(Mess
 
 	uint32_t newOffset = offset + bytesToCopy;
 
+	item->setDownloadedSize(newOffset);
+
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "[DEBUG] setDownloadedSize " << newOffset << endl;
+#endif
+
 	// update data for next message
-	m_offset = newOffset;
-	m_messageWasSent = false;
+	item->receiveMessage();
+
+	// the progression will occur with a call to pullRemoteKey by the end-user
+	// code.
 }
 
 void KeyValueStore::registerPlugin(ComputeCore * core){

@@ -53,10 +53,10 @@ __DeclareMessageTagAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJEC
  * The purpose of this is to ease synchronization between ranks
  * when the message size is bounded.
  *
- * TODO: implement the code necessary to have more than one active transfer
+ * DONE =========> implement the code necessary to have more than one active transfer
  * at any given time.
  *
- * TODO: the system does not support empty values
+ * DONE ==========> the system does not support empty values
  *
  * \author Sébastien Boisvert
  */
@@ -82,8 +82,11 @@ class KeyValueStore : public CorePlugin {
 	StaticVector*m_inbox;
 	StaticVector*m_outbox;
 
-	bool getKey(const char * key, int keyLength, string & keyObject);
-	int dumpMessageHeader(const char* key, int valueLength, int offset, char * buffer) const;
+	bool getStringKey(const char * key, int keyLength, string & keyObject);
+	int dumpMessageHeader(const char* key, uint32_t valueLength, uint32_t offset, char * buffer) const;
+	int loadMessageHeader(string & key, uint32_t & valueLength, uint32_t & offset, const char * buffer) const;
+
+	KeyValueStoreItem * getLocalItemFromKey(const char * key, int keyLength);
 
 public:
 
@@ -91,11 +94,15 @@ public:
 
 	void initialize(Rank rank, int size, RingAllocator * outboxAllocator, StaticVector * inbox, StaticVector * outbox);
 
-	bool insert(const char * key, int keyLength, char * value, int valueLength);
-	bool remove(const char * key, int keyLength);
-	bool get(const char * key, int keyLength, char ** value, int * valueLength);
+	bool insertLocalKey(const char * key, int keyLength, char * value, int valueLength);
+	bool insertLocalStringKey(const string & key, char * value, int valueLength);
 
-	bool push(const char * key, int keyLength, Rank destination);
+	bool removeLocalKey(const char * key, int keyLength);
+
+	bool getLocalKey(const char * key, int keyLength, char ** value, int * valueLength);
+	bool getLocalStringKey(const string & key, char ** value, int * valueLength);
+
+	bool pushLocalKey(const char * key, int keyLength, Rank destination);
 
 	/**
 	 * Get a key-value entry from a source.
@@ -111,7 +118,14 @@ public:
 	 *       cout << valueLength << " bytes" << endl;
 	 * }
 	 */
-	bool pull(const char * key, int keyLength, Rank source);
+	bool pullRemoteKey(const char * key, int keyLength, Rank source);
+
+	/**
+	 * If you use ASCII keys (or any string key), you can also use this
+	 * API call:
+	 *
+	 */
+	bool pullRemoteStringKey(const string & key, Rank source);
 
 	char * allocateMemory(int bytes);
 
