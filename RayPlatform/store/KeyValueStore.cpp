@@ -23,6 +23,7 @@
 #include "KeyValueStore.h"
 
 #include <RayPlatform/core/ComputeCore.h>
+#include <RayPlatform/cryptography/crypto.h>
 
 //#define KeyValueStore_DEBUG_NOW "Yes"
 
