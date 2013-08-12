@@ -6,6 +6,9 @@
 
 #include "KeyValueStoreItem.h"
 
+#include <iostream>
+using namespace std;
+
 KeyValueStoreItem::KeyValueStoreItem() {
 
 }
@@ -33,6 +36,10 @@ void KeyValueStoreItem::markItemAsReady() {
 	assert( (m_value == NULL && m_valueSize == 0 && m_downloadedSize == 0) || (m_value != NULL && m_valueSize != 0));
 #endif
 
+#if 0
+	cout << "[DEBUG] markItemAsReady " << m_downloadedSize << "/" << m_valueSize << endl;
+#endif
+
 	m_ready = true;
 }
 
@@ -46,7 +53,7 @@ void KeyValueStoreItem::setDownloadedSize(int downloadedSize) {
 	assert(downloadedSize <= m_valueSize);
 #endif
 
-	m_downloadedSize = m_valueSize;
+	m_downloadedSize = downloadedSize;
 }
 
 void KeyValueStoreItem::sendMessage() {
@@ -87,4 +94,8 @@ void KeyValueStoreItem::startDownload() {
 
 	m_ready = false;
 	m_messageWasSent = false;
+}
+
+int KeyValueStoreItem::getOffset() const {
+	return m_downloadedSize;
 }

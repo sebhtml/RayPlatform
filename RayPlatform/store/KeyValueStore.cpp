@@ -38,9 +38,15 @@ KeyValueStore::KeyValueStore() {
 }
 
 
-bool KeyValueStore::pullRemoteStringKey(const string & key, Rank rank) {
+void KeyValueStore::pullRemoteKey(const string & key, const Rank & rank, KeyValueStoreRequest & request) {
 
-	return pullRemoteKey(key.c_str(), key.length(), rank);
+#ifdef KeyValueStore_DEBUG_NOW
+	cout << "[DEBUG] pullRemoteKey Request: key= " << key << " rank= " << rank << endl;
+#endif
+
+	request.initialize(key, rank);
+	request.setTypeToPullRequest();
+
 }
 
 void KeyValueStore::initialize(Rank rank, int size, RingAllocator * outboxAllocator, StaticVector * inbox, StaticVector * outbox) {
@@ -75,15 +81,15 @@ bool KeyValueStore::getStringKey(const char * key, int keyLength, string & keyOb
 	return true;
 }
 
-bool KeyValueStore::insertLocalStringKey(const string & key, char * value, int valueLength) {
+bool KeyValueStore::insertLocalKey(const string & key, char * value, int valueLength) {
 
-	return insertLocalKey(key.c_str(), key.length(), value, valueLength);
+	return insertLocalKeyWithLength(key.c_str(), key.length(), value, valueLength);
 }
 
 /**
  * TODO: remove limit on key length
  */
-bool KeyValueStore::insertLocalKey(const char * key, int keyLength, char * value, int valueLength) {
+bool KeyValueStore::insertLocalKeyWithLength(const char * key, int keyLength, char * value, int valueLength) {
 
 	string keyObject = "";
 
@@ -106,11 +112,9 @@ bool KeyValueStore::insertLocalKey(const char * key, int keyLength, char * value
 	return true;
 }
 
-bool KeyValueStore::removeLocalKey(const char * key, int keyLength) {
+bool KeyValueStore::removeLocalKey(const string & key) {
 
-	string keyObject;
-	if(!getStringKey(key, keyLength, keyObject))
-		return false;
+	string keyObject = key;
 
 	// nothing to remove
 	if(m_items.count(keyObject) == 0)
@@ -130,12 +134,12 @@ bool KeyValueStore::removeLocalKey(const char * key, int keyLength) {
 	return true;
 }
 
-bool KeyValueStore::getLocalStringKey(const string & key, char ** value, int * valueLength) {
+bool KeyValueStore::getLocalKey(const string & key, char ** value, int * valueLength) {
 
-	return getLocalKey(key.c_str(), key.length(), value, valueLength);
+	return getLocalKeyWithLength(key.c_str(), key.length(), value, valueLength);
 }
 
-bool KeyValueStore::getLocalKey(const char * key, int keyLength, char ** value, int * valueLength) {
+bool KeyValueStore::getLocalKeyWithLength(const char * key, int keyLength, char ** value, int * valueLength) {
 
 	string keyObject;
 	if(!getStringKey(key, keyLength, keyObject))
@@ -157,7 +161,7 @@ bool KeyValueStore::getLocalKey(const char * key, int keyLength, char ** value, 
 	return true;
 }
 
-bool KeyValueStore::pushLocalKey(const char * key, int keyLength, Rank destination) {
+bool KeyValueStore::pushLocalKeyWithLength(const char * key, int keyLength, Rank destination) {
 
 	// not implemented.
 
@@ -182,14 +186,14 @@ KeyValueStoreItem * KeyValueStore::getLocalItemFromKey(const char * key, int key
  *
  * If the new offset is lower than the value length, then the transfer is not complete.
  */
-bool KeyValueStore::pullRemoteKey(const char * key, int keyLength, Rank source) {
+bool KeyValueStore::pullRemoteKeyWithLength(const char * key, int keyLength, Rank source) {
 
 	KeyValueStoreItem * item = getLocalItemFromKey(key, keyLength);
 
 	if(item == NULL) {
 
 		// insert an item with an empty value
-		insertLocalKey(key, keyLength, NULL, 0);
+		insertLocalKeyWithLength(key, keyLength, NULL, 0);
 
 		item = getLocalItemFromKey(key, keyLength);
 
@@ -206,7 +210,7 @@ bool KeyValueStore::pullRemoteKey(const char * key, int keyLength, Rank source) 
 	// the transfer has completed.
 	if(item != NULL && item->isItemReady()){
 
-#ifdef KeyValueStore_DEBUG_NOW
+#if 0
 		cout << "[DEBUG] item is ready to be used." << endl;
 #endif
 
@@ -216,15 +220,18 @@ bool KeyValueStore::pullRemoteKey(const char * key, int keyLength, Rank source) 
 
 		char * buffer=(char *) m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 
+		uint32_t valueSize = item->getValueLength();
+		uint32_t offset = item->getOffset();
+
 #ifdef KeyValueStore_DEBUG_NOW
-		cout << "[DEBUG] KeyValueStore::pullRemoteKey key= " << key << " m_valueSize= " << m_valueSize;
-		cout << " m_offset= " << m_offset;
+		cout << "[DEBUG] KeyValueStore::pullRemoteKeyWithLength key= " << key << " valueSize= " << valueSize;
+		cout << " offset= " << offset;
 		cout << endl;
 #endif /* KeyValueStore_DEBUG_NOW */
 
 		int outputPosition = 0;
 
-		outputPosition += dumpMessageHeader(key, m_valueSize, m_offset, buffer);
+		outputPosition += dumpMessageHeader(key, valueSize, offset, buffer);
 
 		int units = outputPosition / sizeof(MessageUnit);
 		if(outputPosition % sizeof(MessageUnit))
@@ -254,10 +261,6 @@ void KeyValueStore::clear() {
 	m_outboxAllocator = NULL;
 	m_inbox = NULL;
 	m_outbox = NULL;
-
-	m_messageWasSent = false;
-	m_valueSize = 0;
-	m_offset = 0;
 
 	m_items.clear();
 
@@ -409,7 +412,7 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART(Message * 
 #endif /* KeyValueStore_DEBUG_NOW */
 
 		int size = bytesToCopy;
-		memcpy(responseBuffer + outputPosition, value, size);
+		memcpy(responseBuffer + outputPosition, value + offset, size);
 		outputPosition += size;
 	}
 
@@ -514,10 +517,10 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY(Mess
 
 	assert(value != NULL);
 	assert(dummySize == valueLength);
-#endif
 
 #ifdef KeyValueStore_DEBUG_NOW
 	cout << "DEBUG dummySize= " << dummySize << endl;
+#endif
 #endif
 
 	int bytesToCopy = valueLength - offset;
@@ -528,12 +531,17 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY(Mess
 		bytesToCopy = remainingBytes;
 
 #ifdef KeyValueStore_DEBUG_NOW
-	cout << "DEBUG memcpy inputPosition= " << inputPosition << " bytesToCopy= " << bytesToCopy << endl;
+	cout << "[DEBUG] memcpy destination= " << offset;
+	cout << " inputPosition= " << inputPosition << " bytesToCopy= " << bytesToCopy << endl;
 #endif
 
 	// copy into the buffer what we received from
 	// a remote rank
-	memcpy(value, buffer + inputPosition, bytesToCopy);
+	memcpy(value + offset, buffer + inputPosition, bytesToCopy);
+
+#ifdef CONFIG_ASSERT
+	assert(offset + bytesToCopy <= item->getValueLength());
+#endif
 
 	uint32_t newOffset = offset + bytesToCopy;
 
@@ -548,6 +556,27 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY(Mess
 
 	// the progression will occur with a call to pullRemoteKey by the end-user
 	// code.
+}
+
+bool KeyValueStore::test(KeyValueStoreRequest & request) {
+
+	const string & key = request.getKey();
+	const Rank & rank = request.getRank();
+
+#if 0
+	cout << "[DEBUG] test Request: key= " << key << " rank= " << rank << endl;
+#endif
+
+	if(request.isAPullRequest()) {
+
+		if(pullRemoteKeyWithLength(key.c_str(), key.length(), rank)) {
+
+			return true;
+		}
+
+	}
+
+	return false;
 }
 
 void KeyValueStore::registerPlugin(ComputeCore * core){

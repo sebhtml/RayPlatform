@@ -43,6 +43,8 @@ public:
 	void setDownloadedSize(int downloadedSize);
 
 	void startDownload();
+
+	int getOffset() const;
 };
 
 #endif // KeyValueStoreItem_Header

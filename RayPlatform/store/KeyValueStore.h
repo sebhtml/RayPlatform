@@ -23,6 +23,7 @@
 #define KeyValueStoreHeader
 
 #include "KeyValueStoreItem.h"
+#include "KeyValueStoreRequest.h"
 
 #include <RayPlatform/core/types.h>
 #include <RayPlatform/plugins/CorePlugin.h>
@@ -62,10 +63,6 @@ __DeclareMessageTagAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJEC
  */
 class KeyValueStore : public CorePlugin {
 
-	bool m_messageWasSent;
-	uint32_t m_valueSize;
-	uint32_t m_offset;
-
 	MessageTag RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART;
 	MessageTag RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY;
 
@@ -88,21 +85,7 @@ class KeyValueStore : public CorePlugin {
 
 	KeyValueStoreItem * getLocalItemFromKey(const char * key, int keyLength);
 
-public:
-
-	KeyValueStore();
-
-	void initialize(Rank rank, int size, RingAllocator * outboxAllocator, StaticVector * inbox, StaticVector * outbox);
-
-	bool insertLocalKey(const char * key, int keyLength, char * value, int valueLength);
-	bool insertLocalStringKey(const string & key, char * value, int valueLength);
-
-	bool removeLocalKey(const char * key, int keyLength);
-
-	bool getLocalKey(const char * key, int keyLength, char ** value, int * valueLength);
-	bool getLocalStringKey(const string & key, char ** value, int * valueLength);
-
-	bool pushLocalKey(const char * key, int keyLength, Rank destination);
+	bool pushLocalKeyWithLength(const char * key, int keyLength, Rank destination);
 
 	/**
 	 * Get a key-value entry from a source.
@@ -118,15 +101,59 @@ public:
 	 *       cout << valueLength << " bytes" << endl;
 	 * }
 	 */
-	bool pullRemoteKey(const char * key, int keyLength, Rank source);
+	bool pullRemoteKeyWithLength(const char * key, int keyLength, Rank source);
+	bool insertLocalKeyWithLength(const char * key, int keyLength, char * value, int valueLength);
+	bool getLocalKeyWithLength(const char * key, int keyLength, char ** value, int * valueLength);
+
+public:
+
+	KeyValueStore();
+
+	void initialize(Rank rank, int size, RingAllocator * outboxAllocator, StaticVector * inbox, StaticVector * outbox);
 
 	/**
+	 * Insert a local key
+	 */
+	bool insertLocalKey(const string & key, char * value, int valueLength);
+
+	/**
+	 * Remove a loacl key
+	 */
+	bool removeLocalKey(const string & key);
+
+	/**
+	 * Get a local key
+	 */
+	bool getLocalKey(const string & key, char ** value, int * valueLength);
+
+	// TODO: implement the update method.
+	// Also, implement
+	//
+	// getRemoteKey(key, value, valueLength, rank, request)
+	//
+	// too !
+
+	/**
+	 * Pull a key from a remote site.
+	 *
 	 * If you use ASCII keys (or any string key), you can also use this
 	 * API call:
 	 *
+	 * After this calling this method, the test method needs to be called using the request
+	 * object.
+	 *
 	 */
-	bool pullRemoteStringKey(const string & key, Rank source);
+	void pullRemoteKey(const string & key, const Rank & source, KeyValueStoreRequest & request);
 
+	/**
+	 * Test a request for completion
+	 */
+	bool test(KeyValueStoreRequest & request);
+
+	/**
+	 * allocate memory using the slab allocator
+	 * of the key-value store.
+	 */
 	char * allocateMemory(int bytes);
 
 	void clear();
