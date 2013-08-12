@@ -21,9 +21,13 @@
 
 #include "KeyValueStoreRequest.h"
 
-#define KEY_VALUE_STORE_PULL_REQUEST 0x0
-#define KEY_VALUE_STORE_PUSH_REQUEST 0x1
+#define KEY_VALUE_STORE_OPERATION_NONE  0x0
+#define KEY_VALUE_STORE_OPERATION_PULL_REQUEST 0x1
+#define KEY_VALUE_STORE_OPERATION_PUSH_REQUEST 0x2
 
+KeyValueStoreRequest::KeyValueStoreRequest() {
+	m_type = KEY_VALUE_STORE_OPERATION_NONE;
+}
 
 void KeyValueStoreRequest::initialize(const string & key, const Rank & rank) {
 
@@ -33,12 +37,12 @@ void KeyValueStoreRequest::initialize(const string & key, const Rank & rank) {
 
 void KeyValueStoreRequest::setTypeToPullRequest() {
 
-	m_type = KEY_VALUE_STORE_PULL_REQUEST;
+	m_type = KEY_VALUE_STORE_OPERATION_PULL_REQUEST;
 }
 
 void KeyValueStoreRequest::setTypeToPushRequest() {
 
-	m_type = KEY_VALUE_STORE_PUSH_REQUEST;
+	m_type = KEY_VALUE_STORE_OPERATION_PUSH_REQUEST;
 }
 
 const Rank & KeyValueStoreRequest::getRank() const {
@@ -48,12 +52,12 @@ const Rank & KeyValueStoreRequest::getRank() const {
 
 bool KeyValueStoreRequest::isAPullRequest() const {
 
-	return m_type == KEY_VALUE_STORE_PULL_REQUEST;
+	return m_type == KEY_VALUE_STORE_OPERATION_PULL_REQUEST;
 }
 
 bool KeyValueStoreRequest::isAPushRequest() const {
 
-	return m_type == KEY_VALUE_STORE_PUSH_REQUEST;
+	return m_type == KEY_VALUE_STORE_OPERATION_PUSH_REQUEST;
 }
 
 const string & KeyValueStoreRequest::getKey() const {

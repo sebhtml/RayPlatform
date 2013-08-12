@@ -59,6 +59,9 @@ __DeclareMessageTagAdapter(KeyValueStore, RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJEC
  *
  * DONE ==========> the system does not support empty values
  *
+ * Key-value items can be manipulated locally or remotely.
+ *
+ *
  * \author Sébastien Boisvert
  */
 class KeyValueStore : public CorePlugin {
@@ -113,18 +116,23 @@ public:
 
 	/**
 	 * Insert a local key
+	 *
+	 * \param value is the value already allocated using allocateMemory()
 	 */
 	bool insertLocalKey(const string & key, char * value, int valueLength);
 
 	/**
-	 * Remove a loacl key
+	 * Remove a local key
 	 */
 	bool removeLocalKey(const string & key);
 
 	/**
 	 * Get a local key
+	 *
+	 * \param output parameter
+	 * \param valueLength output parameter
 	 */
-	bool getLocalKey(const string & key, char ** value, int * valueLength);
+	bool getLocalKey(const string & key, char * & value, int & valueLength);
 
 	// TODO: implement the update method.
 	// Also, implement

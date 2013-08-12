@@ -134,9 +134,9 @@ bool KeyValueStore::removeLocalKey(const string & key) {
 	return true;
 }
 
-bool KeyValueStore::getLocalKey(const string & key, char ** value, int * valueLength) {
+bool KeyValueStore::getLocalKey(const string & key, char * & value, int & valueLength) {
 
-	return getLocalKeyWithLength(key.c_str(), key.length(), value, valueLength);
+	return getLocalKeyWithLength(key.c_str(), key.length(), &value, &valueLength);
 }
 
 bool KeyValueStore::getLocalKeyWithLength(const char * key, int keyLength, char ** value, int * valueLength) {

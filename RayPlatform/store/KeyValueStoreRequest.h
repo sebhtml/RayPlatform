@@ -39,6 +39,9 @@ class KeyValueStoreRequest {
 	Rank m_rank;
 
 public:
+
+	KeyValueStoreRequest();
+
 	void initialize(const string & key, const Rank & rank);
 	void setTypeToPullRequest();
 	void setTypeToPushRequest();
