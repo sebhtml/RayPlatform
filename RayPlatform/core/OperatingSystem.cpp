@@ -28,6 +28,15 @@
 using namespace std;
 
 /*
+ * I am not sure that dirent.h is available on Microsoft(R) Windows(R).
+ * Anyway, at this point, you are better off installing Cygwin in Windows(R)
+ * to acquire a POSIX compatibility layer on this otherwise not-POSIX
+ * system
+ */
+#include <dirent.h> /* for opendir, readdir and closedir */
+
+
+/*
  * Use System Programming Interface on the IBM Blue Gene/Q to get memory usage.
  */
 #ifdef __bgq__
@@ -348,4 +357,19 @@ void printTheSeconds(int difference,ostream*stream){
 	}
 	(*stream)<<seconds<<" seconds";
 
+}
+
+void getDirectoryFiles(string & path, vector<string> & files) {
+	struct dirent *ent;
+	DIR*dir = opendir (path.c_str());
+
+	if(dir != NULL){
+
+		while((ent = readdir (dir)) != NULL){
+			string fileName=ent->d_name;
+
+			files.push_back(fileName);
+		}
+		closedir (dir);
+	}
 }

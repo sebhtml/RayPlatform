@@ -29,8 +29,10 @@
 
 /** only this file knows the operating system */
 #include <string>
-#include <stdint.h>
+#include <vector>
 using namespace std;
+
+#include <stdint.h>
 
 /** show memory usage */
 uint64_t getMemoryUsageInKiBytes();
@@ -59,6 +61,6 @@ bool fileExists(const char*file);
 
 void printTheSeconds(int seconds,ostream*stream);
 
-
+void getDirectoryFiles(string & file, vector<string> & files);
 
 #endif
