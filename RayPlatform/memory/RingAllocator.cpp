@@ -22,6 +22,8 @@
 #include "RingAllocator.h"
 #include "allocator.h"
 
+#include <RayPlatform/communication/mpi_tags.h>
+
 #include <string.h>
 #include <assert.h>
 #include <iostream>
@@ -398,11 +400,16 @@ void RingAllocator::cleanDirtyBuffers(){
 	}
 }
 
+#define CONFIG_DIRTY_MESSAGE_SUPPORT
+
 void RingAllocator::printDirtyBuffers(){
 
-	#if 0
+#ifdef CONFIG_DIRTY_MESSAGE_SUPPORT
+
 	cout<<"[MessagesHandler] Dirty buffers: "<<m_numberOfDirtyBuffers<<"/";
 	cout<<m_dirtyBufferSlots<<endl;
+
+	int rank = -1;
 
 	for(int i=0;i<m_dirtyBufferSlots;i++){
 		cout<<"DirtyBuffer # "<<i<<"    State: ";
@@ -413,7 +420,7 @@ void RingAllocator::printDirtyBuffers(){
 
 			MessageTag tag=m_dirtyBuffers[i].m_messageTag;
 			Rank destination=m_dirtyBuffers[i].m_destination;
-			Rank routingSource=m_rank;
+			Rank routingSource=rank;
 			Rank routingDestination=destination;
 
 			bool isRoutingTagValue=false;
@@ -432,11 +439,11 @@ void RingAllocator::printDirtyBuffers(){
 #endif
 
 			uint8_t index=tag;
-			cout<<" MessageTag: "<<MESSAGE_TAGS[index]<<" ("<<(int)index<<") ";
+			cout<<" MessageTag: "<< MESSAGE_TAGS[index]<<" ("<<(int)index<<") ";
 			if(index<tag){
 				cout<<"[this is a routing tag]"<<endl;
 			}
-			cout<<" Source: "<<m_rank<<endl;
+			cout<<" Source: "<<rank<<endl;
 			cout<<" Destination: "<<destination<<endl;
 
 			if(isRoutingTagValue){
@@ -446,7 +453,7 @@ void RingAllocator::printDirtyBuffers(){
 		}
 	}
 
-	#endif
+#endif
 }
 
 MPI_Request*RingAllocator::registerBuffer(void*buffer){
