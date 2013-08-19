@@ -73,6 +73,11 @@ void SplayTreeIterator<TREE_KEY_TYPE,TREE_VALUE_TYPE>::constructor(SplayTree<TRE
 	m_tree=tree;
 	m_processed=0;
 	m_treeSize=m_tree->size();
+
+	// TODO not implemented.
+	// This solves a compilation warning.
+	m_rank = -1;
+
 	if(m_tree!=NULL && m_tree->getRoot()!=NULL){
 		m_stack.push(tree->getRoot());
 	}
@@ -80,7 +85,8 @@ void SplayTreeIterator<TREE_KEY_TYPE,TREE_VALUE_TYPE>::constructor(SplayTree<TRE
 
 template<class TREE_KEY_TYPE,class TREE_VALUE_TYPE>
 bool SplayTreeIterator<TREE_KEY_TYPE,TREE_VALUE_TYPE>::hasNext()const{
-	#ifdef ASSERT
+
+	#ifdef CONFIG_ASSERT
 	if(m_stack.size()==0 && m_tree!=NULL){
 		if(m_processed!=(int)m_tree->size()){
 			cout<<"Rank="<<m_rank<<" id="<<m_id<<" Processed="<<m_processed<<" Tree="<<m_tree->size()<<" onRecord="<<m_treeSize<<endl;
@@ -88,6 +94,7 @@ bool SplayTreeIterator<TREE_KEY_TYPE,TREE_VALUE_TYPE>::hasNext()const{
 		assert(m_processed==(int)m_tree->size());
 	}
 	#endif
+
 	return m_stack.size()>0;
 }
 
