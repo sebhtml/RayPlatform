@@ -222,8 +222,12 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
  * Register the buffer as being dirty.
  */
 
-		if(!registeredAlready)
-			request=outboxBufferAllocator->registerBuffer(theBuffer);
+		if(!registeredAlready) {
+
+			request = this->registerMessageBuffer(buffer, m_rank, destination,
+					tag, outboxBufferAllocator);
+
+		}
 
 		#ifdef ASSERT
 		assert(request!=NULL);
@@ -959,6 +963,22 @@ void MessagesHandler::setConnections(vector<int>*connections){
 	m_peers=m_connections.size();
 }
 
+MPI_Request * MessagesHandler::registerMessageBuffer(void * buffer, Rank  &source,
+		Rank & destination, MessageTag & tag,
+		RingAllocator * outboxBufferAllocator) const {
+
+	MPI_Request * request = outboxBufferAllocator->registerBuffer(buffer);
+
+	outboxBufferAllocator->setRegisteredBufferAttributes(buffer, m_rank,
+		destination, tag);
+
+#ifdef CONFIG_ASSERT
+	assert(request != NULL);
+#endif // CONFIG_ASSERT
+
+	return request;
+}
+
 /*
  * send messages,
  *
@@ -1019,7 +1039,8 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 		/* register the buffer for processing */
 		if(mustRegister){
-			request=outboxBufferAllocator->registerBuffer(buffer);
+			request = this->registerMessageBuffer(buffer, m_rank, destination,
+					tag, outboxBufferAllocator);
 		}
 
 		#ifdef ASSERT

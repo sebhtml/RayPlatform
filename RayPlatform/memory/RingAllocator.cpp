@@ -300,7 +300,7 @@ void RingAllocator::initializeDirtyBuffers(){
 		"m_dirtyBuffers",false);
 
 	for(int i=0;i<m_dirtyBufferSlots;i++){
-		m_dirtyBuffers[i].m_buffer=NULL;
+		m_dirtyBuffers[i].setBuffer(NULL);
 	}
 
 	// configure the real-time sweeper.
@@ -316,7 +316,7 @@ void RingAllocator::initializeDirtyBuffers(){
  */
 bool RingAllocator::isRegistered(int handle){
 
-	return m_dirtyBuffers[handle].m_buffer!=NULL;
+	return m_dirtyBuffers[handle].getBuffer() != NULL;
 }
 
 DirtyBuffer*RingAllocator::getDirtyBuffers(){
@@ -334,12 +334,12 @@ void RingAllocator::checkDirtyBuffer(int index){
 	assert(m_numberOfDirtyBuffers>0);
 	#endif
 
-	if(m_dirtyBuffers[index].m_buffer==NULL)// this entry is empty...
+	if(m_dirtyBuffers[index].getBuffer() == NULL)// this entry is empty...
 		return;
 
 	// check the buffer and free it if it is finished.
 	MPI_Status status;
-	MPI_Request*request=&(m_dirtyBuffers[index].m_messageRequest);
+	MPI_Request*request = (m_dirtyBuffers[index].getRequest());
 
 	int flag=0;
 
@@ -352,7 +352,7 @@ void RingAllocator::checkDirtyBuffer(int index){
 	assert( flag );
 	#endif /* ASSERT */
 
-	void*buffer=m_dirtyBuffers[index].m_buffer;
+	void*buffer=m_dirtyBuffers[index].getBuffer();
 	salvageBuffer(buffer);
 	m_numberOfDirtyBuffers--;
 
@@ -364,7 +364,7 @@ void RingAllocator::checkDirtyBuffer(int index){
 	assert(*request == MPI_REQUEST_NULL);
 	#endif /* ASSERT */
 
-	m_dirtyBuffers[index].m_buffer=NULL;
+	m_dirtyBuffers[index].setBuffer(NULL);
 }
 
 void RingAllocator::cleanDirtyBuffers(){
@@ -413,19 +413,23 @@ void RingAllocator::printDirtyBuffers(){
 
 	for(int i=0;i<m_dirtyBufferSlots;i++){
 		cout<<"DirtyBuffer # "<<i<<"    State: ";
-		if(m_dirtyBuffers[i].m_buffer==NULL){
+		if(m_dirtyBuffers[i].getBuffer() == NULL){
 			cout<<"Available"<<endl;
 		}else{
 			cout<<"Dirty"<<endl;
 
-			MessageTag tag=m_dirtyBuffers[i].m_messageTag;
-			Rank destination=m_dirtyBuffers[i].m_destination;
+			MessageTag tag=m_dirtyBuffers[i].getTag();
+			Rank destination=m_dirtyBuffers[i].getDestination();
 			Rank routingSource=rank;
 			Rank routingDestination=destination;
 
 			bool isRoutingTagValue=false;
 
 /* TODO we don't have easy access to this information */
+/* in early version of RayPlatform, routing information
+ * was stored inside the tag. Now, it is stored in the
+ * buffer.
+ */
 #if 0
 			RoutingTag routingTag=tag;
 
@@ -456,7 +460,22 @@ void RingAllocator::printDirtyBuffers(){
 #endif
 }
 
-MPI_Request*RingAllocator::registerBuffer(void*buffer){
+void RingAllocator::setRegisteredBufferAttributes(void * buffer,
+		Rank source,
+		Rank destination, MessageTag tag) {
+
+	int handle=this->getBufferHandle(buffer);
+
+	DirtyBuffer & dirtyBuffer = m_dirtyBuffers[handle];
+
+	dirtyBuffer.setSource(source);
+	dirtyBuffer.setDestination(destination);
+	dirtyBuffer.setTag(tag);
+
+	m_rank = source;
+}
+
+MPI_Request * RingAllocator::registerBuffer(void*buffer){
 
 	int handle=this->getBufferHandle(buffer);
 	bool mustRegister=false;
@@ -464,31 +483,32 @@ MPI_Request*RingAllocator::registerBuffer(void*buffer){
 	MPI_Request*request=NULL;
 
 	// this buffer is not registered.
-	if(handle >=0 && m_dirtyBuffers[handle].m_buffer==NULL)
+	if(handle >=0 && m_dirtyBuffers[handle].getBuffer() == NULL)
 		mustRegister=true;
 
 	#ifdef ASSERT
-	assert(m_dirtyBuffers[handle].m_buffer==NULL);
+	assert(m_dirtyBuffers[handle].getBuffer() == NULL);
 	#endif
 
 	/* register the buffer for processing */
 	if(mustRegister){
 		#ifdef ASSERT
-		assert(m_dirtyBuffers[handle].m_buffer==NULL);
+		assert(m_dirtyBuffers[handle].getBuffer() == NULL);
 		#endif
 
-		m_dirtyBuffers[handle].m_buffer=buffer;
+		m_dirtyBuffers[handle].setBuffer(buffer);
 
-		#if 0
+		#if 0 // the attributes for dirty buffers are
+			// configured elsewhere by the caller
 		m_dirtyBuffers[handle].m_destination=destination;
 		m_dirtyBuffers[handle].m_messageTag=tag;
 		#endif
 
 		#ifdef ASSERT
-		assert(m_dirtyBuffers[handle].m_buffer!=NULL);
+		assert(m_dirtyBuffers[handle].getBuffer() != NULL);
 		#endif
 
-		request=&(m_dirtyBuffers[handle].m_messageRequest);
+		request = (m_dirtyBuffers[handle].getRequest());
 
 		/* this is O(1) */
 		this->markBufferAsDirty(buffer);

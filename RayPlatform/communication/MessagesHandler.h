@@ -236,6 +236,10 @@ class MessagesHandler{
  */
 	void receiveMessagesForMiniRanks(ComputeCore**cores,int miniRanksPerRank);
 
+	MPI_Request * registerMessageBuffer(void * buffer, Rank  &source,
+		Rank & destination, MessageTag & tag,
+		RingAllocator * outboxBufferAllocator) const;
+
 public:
 /** 
  * initialize the message handler

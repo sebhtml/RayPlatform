@@ -17,6 +17,7 @@ obj-y += RayPlatform/memory/allocator.o
 obj-y += RayPlatform/memory/DefragmentationGroup.o
 obj-y += RayPlatform/memory/ChunkAllocatorWithDefragmentation.o
 obj-y += RayPlatform/memory/DefragmentationLane.o
+obj-y += RayPlatform/memory/DirtyBuffer.o
 
 # routing stuff for option -route-messages
 obj-y += RayPlatform/routing/ConnectionGraph.o

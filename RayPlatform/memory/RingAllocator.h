@@ -22,23 +22,14 @@
 #ifndef _RingAllocator
 #define _RingAllocator
 
+#include "DirtyBuffer.h"
+
 #include <RayPlatform/core/types.h> 
 
 #include <set>
 #include <stdint.h>
 #include <mpi.h>
 using namespace std;
-
-/**
- * A data model for storing dirty buffers
- */
-class DirtyBuffer{
-public:
-	void*m_buffer;
-	MPI_Request m_messageRequest;
-	Rank m_destination;
-	MessageTag m_messageTag;
-};
 
 
 /**
@@ -56,8 +47,12 @@ class RingAllocator{
 /** prints dirty buffers **/
 	void printDirtyBuffers();
 
+	Rank m_rank;
 
-	DirtyBuffer*m_dirtyBuffers;
+	// this contain information about dirty buffers.
+	// the state are stored in m_bufferStates
+
+	DirtyBuffer * m_dirtyBuffers;
 
 	int m_numberOfDirtyBuffers;
 	int m_maximumDirtyBuffers;
@@ -91,8 +86,24 @@ class RingAllocator{
 	
 	uint8_t*m_bufferStates;
 
+/**
+ * marks a buffer as used
+ */
+	void markBufferAsDirty(void*buffer);
+
+/**
+ * marks a buffer as available
+ */
+
+	void salvageBuffer(void*buffer);
+
 
 public:
+
+	void setRegisteredBufferAttributes(void * buffer,
+		Rank source,
+		Rank destination, MessageTag tag);
+
 	RingAllocator();
 	void constructor(int chunks,int size,const char*type,bool show);
 
@@ -107,17 +118,6 @@ public:
 	void clear();
 	void resetCount();
 	int getCount();
-
-/**
- * marks a buffer as available
- */
-	void salvageBuffer(void*buffer);
-
-/**
- * marks a buffer as used
- */
-	void markBufferAsDirty(void*buffer);
-
 /**
  * returns the number of buffers in the ring
  */
