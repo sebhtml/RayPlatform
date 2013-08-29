@@ -373,3 +373,18 @@ void getDirectoryFiles(string & path, vector<string> & files) {
 		closedir (dir);
 	}
 }
+
+bool isDirectory(const string & file) {
+
+#ifdef OS_POSIX
+	const char * target = file.c_str();
+
+	struct stat statbuf;
+	stat(target, &statbuf);
+
+	return S_ISDIR(statbuf.st_mode);
+#else
+	// TODO: not implemented...
+	return false;
+#endif
+}

@@ -63,4 +63,6 @@ void printTheSeconds(int seconds,ostream*stream);
 
 void getDirectoryFiles(string & file, vector<string> & files);
 
+bool isDirectory(const string & file);
+
 #endif
