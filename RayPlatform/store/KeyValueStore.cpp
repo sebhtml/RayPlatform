@@ -25,6 +25,8 @@
 #include <RayPlatform/core/ComputeCore.h>
 #include <RayPlatform/cryptography/crypto.h>
 
+#include <string.h> /* for memcpy */
+
 //#define KeyValueStore_DEBUG_NOW "Yes"
 
 __CreatePlugin(KeyValueStore);
