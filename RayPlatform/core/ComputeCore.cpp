@@ -239,6 +239,8 @@ void ComputeCore::runWithProfiler(){
 	// define some variables that hold life statistics of this
 	// MPI rank
 	int ticks=0;
+	int globalTicks = 0;
+
 	int sentMessages=0;
 	int sentMessagesInProcessMessages=0;
 	int sentMessagesInProcessData=0;
@@ -273,6 +275,16 @@ void ComputeCore::runWithProfiler(){
 			int balance=sentMessages-receivedMessages;
 
 			if(profilerVerbose){
+
+				cout << "[/dev/actor/rank/" << getRank() << "] ";
+				cout << "[RayPlatform] epoch ends at ";
+				cout << seconds * 1000 << " ms ! (tick # " << globalTicks;
+				cout << "), length is ";
+				cout << resolution << " ms, VmData is ";
+
+				cout << getMemoryUsageInKiBytes() << " KiB";
+				cout << endl;
+
 				printf("Rank %i: %s Time= %.2f s Speed= %i Sent= %i (processMessages: %i, processData: %i) Received= %i Balance= %i\n",
 					m_rank,SLAVE_MODES[m_switchMan.getSlaveMode()],
 					seconds,ticks,sentMessages,sentMessagesInProcessMessages,sentMessagesInProcessData,
@@ -437,6 +449,7 @@ void ComputeCore::runWithProfiler(){
 
 		/* increment ticks */
 		ticks++;
+		globalTicks ++;
 	}
 
 	m_profiler.printAllGranularities();
