@@ -65,6 +65,7 @@ obj-y += RayPlatform/profiling/Profiler.o
 obj-y += RayPlatform/profiling/Derivative.o
 obj-y += RayPlatform/profiling/TickLogger.o
 obj-y += RayPlatform/profiling/TimePrinter.o
+obj-y += RayPlatform/profiling/ProcessStatus.o
 
 # handlers
 obj-y += RayPlatform/handlers/MasterModeExecutor.o

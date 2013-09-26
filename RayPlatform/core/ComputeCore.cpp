@@ -22,6 +22,7 @@
 #include "ComputeCore.h"
 #include "OperatingSystem.h"
 
+#include <RayPlatform/profiling/ProcessStatus.h>
 #include <RayPlatform/cryptography/crypto.h>
 #include <RayPlatform/communication/MessagesHandler.h>
 
@@ -266,8 +267,11 @@ void ComputeCore::runWithProfiler(){
 
 	bool profilerVerbose=m_profilerVerbose; 
 
+	ProcessStatus status;
+
 	while(m_alive  || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		uint64_t t=getMilliSeconds();
+
 		if(t>=(lastTime+resolution)/parts*parts){
 
 			double seconds=(t-startingTime)/1000.0;
@@ -280,9 +284,10 @@ void ComputeCore::runWithProfiler(){
 				cout << "[RayPlatform] epoch ends at ";
 				cout << seconds * 1000 << " ms ! (tick # " << globalTicks;
 				cout << "), length is ";
-				cout << resolution << " ms, VmData is ";
+				cout << resolution << " ms" << endl;
 
-				cout << getMemoryUsageInKiBytes() << " KiB";
+				status.getProcessStatus();
+				status.printMemoryMetrics();
 				cout << endl;
 
 				printf("Rank %i: %s Time= %.2f s Speed= %i Sent= %i (processMessages: %i, processData: %i) Received= %i Balance= %i\n",
