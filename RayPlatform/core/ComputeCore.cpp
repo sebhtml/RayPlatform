@@ -271,7 +271,10 @@ void ComputeCore::runWithProfiler(){
 	while(m_alive  || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		uint64_t t=getMilliSeconds();
 
-		if(t >= (lastTime+resolution)){
+		/*
+		 * Show debug window for first tick, then at each 1000 ms.
+		 */
+		if(globalTicks == 0 || t >= (lastTime+resolution)){
 
 			double seconds=(t-startingTime)/1000.0;
 
