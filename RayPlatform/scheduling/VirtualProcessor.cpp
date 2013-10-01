@@ -163,6 +163,7 @@ bool VirtualProcessor::run(){
 	}else{
 		updateStates();
 
+#if 0
 		//  add one worker to active workers
 		//  reason is that those already in the pool don't communicate anymore -- 
 		//  as for they need responses.
@@ -190,6 +191,12 @@ bool VirtualProcessor::run(){
 				m_virtualCommunicator->forceFlush();
 			}
 		}
+#endif
+
+		// always flush a message every time we looped over every actors
+		// if no message was flushed.
+		if(!m_virtualCommunicator->getGlobalPushedMessageStatus())
+			m_virtualCommunicator->forceFlush();
 
 		m_activeWorkerIterator=m_activeWorkers.begin();
 

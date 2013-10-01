@@ -250,8 +250,7 @@ void ComputeCore::runWithProfiler(){
 	map<int,int> sentTagsInProcessMessages;
 	map<int,int> sentTagsInProcessData;
 
-	int resolution=100;// milliseconds
-	int parts=1000/resolution;
+	int resolution=1000;// milliseconds
 
 	uint64_t startingTime=getMilliSeconds();
 
@@ -272,7 +271,7 @@ void ComputeCore::runWithProfiler(){
 	while(m_alive  || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 		uint64_t t=getMilliSeconds();
 
-		if(t>=(lastTime+resolution)/parts*parts){
+		if(t >= (lastTime+resolution)){
 
 			double seconds=(t-startingTime)/1000.0;
 
@@ -295,6 +294,14 @@ void ComputeCore::runWithProfiler(){
 					seconds,ticks,sentMessages,sentMessagesInProcessMessages,sentMessagesInProcessData,
 					receivedMessages,balance);
 				fflush(stdout);
+
+				if(receivedMessages == 0) {
+					cout << "Warning: no messages were received !" << endl;
+				}
+
+				if(sentMessagesInProcessData == 0) {
+					cout << "Warning: no message were sent !" <<endl;
+				}
 
 				m_profiler.printGranularities(m_rank);
 			}
