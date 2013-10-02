@@ -1,0 +1,18 @@
+The debug mode if RayPlatform can be enabled by calling
+ComputeCore::enableProfiler().
+
+For instance, Ray is a software that uses RayPlatform and its option
+-debug does just that.
+
+Furthermore, the RayPlatform debug mode can be activated in the middle
+of a computation by sending SIGUSR1 to processes that should activate
+debug mode. Sending SIGUSR1 again will disable the debug mode. Basically,
+Sending SIGUSR1 toggles the debug mode.
+
+In the future, sending SIGUSR1 to the RayPlatform core will cause it
+to read (or attempt to) a command file named Commands.txt in the
+current directory (PWD).
+
+See also Documentation/profiling.txt
+
+

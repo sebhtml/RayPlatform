@@ -58,6 +58,7 @@ using namespace std;
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
 
 /**
  * this class is a compute core
@@ -70,6 +71,8 @@ using namespace std;
  * \author Sébastien Boisvert
  */
 class ComputeCore{
+
+	time_t m_lastTerminalProbeOperation;
 
 	KeyValueStore m_keyValueStore;
 
@@ -401,6 +404,7 @@ Not all master modes have yet been ported to that list.
 	void closeSlaveModeLocally();
 
 	KeyValueStore & getKeyValueStore();
+	bool debugModeIsEnabled();
 };
 
 #endif

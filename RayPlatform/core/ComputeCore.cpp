@@ -38,6 +38,29 @@ using namespace std;
 #include <unistd.h>
 #endif
 
+#include <signal.h>
+
+/**
+ * Global variable are bad.
+ */
+bool globalDebugMode = false;
+
+/**
+ * \see http://stackoverflow.com/questions/6168636/how-to-trigger-sigusr1-and-sigusr2
+ * \see http://stackoverflow.com/questions/231912/what-is-the-difference-between-sigaction-and-signal
+ */
+void handleSignal(int signalNumber) {
+
+	cout << "DEBUG Received a signal !!" << endl;
+
+	if(signalNumber == SIGUSR1) {
+
+		globalDebugMode = !globalDebugMode;
+
+		cout << "DEBUG globalDebugMode <- " << globalDebugMode << endl;
+	}
+}
+
 //#define CONFIG_DEBUG_SLAVE_SYMBOLS
 //#define CONFIG_DEBUG_MASTER_SYMBOLS
 //#define CONFIG_DEBUG_TAG_SYMBOLS
@@ -152,15 +175,39 @@ void ComputeCore::run(){
 	if(m_routerIsEnabled)
 		m_router.getGraph()->start(m_rank);
 
+
+	/*
+	 * Set up signal handler
+	 * \see http://pubs.opengroup.org/onlinepubs/7908799/xsh/sigaction.html
+	 * \see http://beej.us/guide/bgipc/output/html/multipage/signals.html
+	 */
+
+	struct sigaction newAction;
+	newAction.sa_handler = handleSignal;
+	sigemptyset(&newAction.sa_mask);
+	newAction.sa_flags = 0;
+
+	sigaction(SIGUSR1, &newAction, NULL);
+
+	m_runProfiler = globalDebugMode;
+
+	runWithProfiler();
+
+#if 0
 	if(m_runProfiler){
 		runWithProfiler();
 	}else{
 		runVanilla();
 	}
+#endif
 
 	if(m_routerIsEnabled)
 		m_router.getGraph()->printStatus();
 
+}
+
+bool ComputeCore::debugModeIsEnabled() {
+	return m_runProfiler;
 }
 
 /**
@@ -169,6 +216,11 @@ void ComputeCore::run(){
  * it is similar to the main loop of a video game, actually, but without a display.
  */
 void ComputeCore::runVanilla(){
+
+	/*
+	 * This is not used anymore !
+	 */
+	return;
 
 	#ifdef CONFIG_DEBUG_CORE
 	cout<<"Locking inbox for the loop."<<endl;
@@ -239,8 +291,8 @@ void ComputeCore::runVanilla(){
 void ComputeCore::runWithProfiler(){
 	// define some variables that hold life statistics of this
 	// MPI rank
-	int ticks=0;
-	int globalTicks = 0;
+	uint64_t ticks=0;
+	uint64_t globalTicks = 0;
 
 	int sentMessages=0;
 	int sentMessagesInProcessMessages=0;
@@ -264,23 +316,43 @@ void ComputeCore::runWithProfiler(){
 	vector<int> distancesForProcessMessages;
 	vector<int> distancesForProcessData;
 
-	bool profilerVerbose=m_profilerVerbose; 
+	bool profilerVerbose = true;
 
 	ProcessStatus status;
 
+	uint64_t t=getMilliSeconds();
+
+	m_lastTerminalProbeOperation = time(NULL);
+	bool profileGranularity = false;
+
 	while(m_alive  || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
-		uint64_t t=getMilliSeconds();
+
+		// update the debug mode.
+		// this is cheap -- it only needs to copy a boolean (usually a char)
+		//
+		m_runProfiler = globalDebugMode;
+
+#if 0
+		if(debugModeIsEnabled())
+			cout << "DEBUG Online" << endl;
+#endif
+
+		//runRayPlatformTerminal();
+
+		if(debugModeIsEnabled())
+			t=getMilliSeconds();
+
 
 		/*
 		 * Show debug window for first tick, then at each 1000 ms.
 		 */
-		if(globalTicks == 0 || t >= (lastTime+resolution)){
+		if(debugModeIsEnabled() && (globalTicks == 0 || (t >= (lastTime+resolution)))){
 
 			double seconds=(t-startingTime)/1000.0;
 
 			int balance=sentMessages-receivedMessages;
 
-			if(profilerVerbose){
+			if(debugModeIsEnabled()){
 
 				cout << "[/dev/actor/rank/" << getRank() << "] ";
 				cout << "[RayPlatform] epoch ends at ";
@@ -306,12 +378,13 @@ void ComputeCore::runWithProfiler(){
 					cout << "Warning: no message were sent !" <<endl;
 				}
 
-				m_profiler.printGranularities(m_rank);
+				if(profileGranularity)
+					m_profiler.printGranularities(m_rank);
 			}
 
 			m_profiler.clearGranularities();
 
-			if(receivedTags.size() > 0 && profilerVerbose){
+			if(debugModeIsEnabled() && receivedTags.size() > 0 && profilerVerbose){
 				cout<<"Rank "<<m_rank<<" received in receiveMessages:"<<endl;
 				for(map<int,int>::iterator i=receivedTags.begin();i!=receivedTags.end();i++){
 					int tag=i->first;
@@ -320,7 +393,7 @@ void ComputeCore::runWithProfiler(){
 				}
 			}
 
-			if(sentTagsInProcessMessages.size() > 0 && profilerVerbose){
+			if(debugModeIsEnabled() && sentTagsInProcessMessages.size() > 0 && profilerVerbose){
 				cout<<"Rank "<<m_rank<<" sent in processMessages:"<<endl;
 				for(map<int,int>::iterator i=sentTagsInProcessMessages.begin();i!=sentTagsInProcessMessages.end();i++){
 					int tag=i->first;
@@ -351,7 +424,7 @@ void ComputeCore::runWithProfiler(){
 
 			distancesForProcessMessages.clear();
 
-			if(sentTagsInProcessData.size() > 0 && profilerVerbose){
+			if(debugModeIsEnabled () && sentTagsInProcessData.size() > 0 && profilerVerbose){
 				cout<<"Rank "<<m_rank<<" sent in processData:"<<endl;
 				for(map<int,int>::iterator i=sentTagsInProcessData.begin();i!=sentTagsInProcessData.end();i++){
 					int tag=i->first;
@@ -430,30 +503,36 @@ void ComputeCore::runWithProfiler(){
 
 		int difference = endingTime - startingTime;
 
-		m_profiler.addGranularity(currentSlaveMode,difference);
+		if(profileGranularity)
+			m_profiler.addGranularity(currentSlaveMode,difference);
 
 		/* threshold to say something is taking too long */
 		/* in microseconds */
 		int tooLong=m_profiler.getThreshold();
 
-		if(difference >= tooLong){
+		if(debugModeIsEnabled() && profileGranularity && difference >= tooLong){
 			cout<<"Warning, SlaveMode= "<<SLAVE_MODES[currentSlaveMode]<<" GranularityInMicroseconds= "<<difference<<""<<endl;
 			m_profiler.printStack();
 		}
 
-		m_profiler.resetStack();
+		if(profileGranularity)
+			m_profiler.resetStack();
 
 		int messagesSentInProcessData = m_outbox.size() - messagesSentInProcessMessages;
 		sentMessagesInProcessData += messagesSentInProcessData;
 		sentMessages += messagesSentInProcessData;
 
 		for(int i=0;i<messagesSentInProcessMessages;i++){
+			if(!debugModeIsEnabled())
+				break;
 			// stript routing information, if any
 			uint8_t tag=m_outbox[i]->getTag();
 			sentTagsInProcessMessages[tag]++;
 		}
 
 		for(int i=messagesSentInProcessMessages;i<(int)m_outbox.size();i++){
+			if(!debugModeIsEnabled())
+				break;
 			// stript routing information, if any
 			uint8_t tag=m_outbox[i]->getTag();
 			sentTagsInProcessData[tag]++;
@@ -467,7 +546,8 @@ void ComputeCore::runWithProfiler(){
 		globalTicks ++;
 	}
 
-	m_profiler.printAllGranularities();
+	if(debugModeIsEnabled() && profileGranularity)
+		m_profiler.printAllGranularities();
 }
 
 void ComputeCore::processMessages(){
@@ -1976,3 +2056,17 @@ KeyValueStore & ComputeCore::getKeyValueStore() {
 
 	return m_keyValueStore;
 }
+
+#if 0
+void ComputeCore::runRayPlatformTerminal() {
+
+	time_t seconds = time(NULL);
+
+	int delay = seconds - m_lastTerminalProbeOperation;
+	int minimumDelay = 60;
+
+	if(delay > minimumDelay) {
+
+	}
+}
+#endif
