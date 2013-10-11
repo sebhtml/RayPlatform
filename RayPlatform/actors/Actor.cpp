@@ -17,7 +17,9 @@ Actor::~Actor() {
 
 void Actor::send(int destination, Message * message) {
 
-	message->shipActorMessage(getName(), destination);
+	message->setSourceActor(getName());
+	message->setDestinationActor(destination);
+
 	m_core->sendActorMessage(message);
 }
 

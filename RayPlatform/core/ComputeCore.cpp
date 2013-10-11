@@ -286,6 +286,32 @@ void ComputeCore::runVanilla(){
 	}
 }
 
+void ComputeCore::bootActors() {
+
+	cout << "DEBUG ... bootActors" << endl;
+
+	for(int i = 0 ; i < (int) m_actors.size() ; ++i) {
+
+		Actor * actor = m_actors[i];
+		if(actor == NULL) {
+			continue;
+		}
+
+		int name = actor->getName();
+
+		Message message;
+		message.setTag(Actor::BOOT);
+		message.setSource(getRank());
+		message.setDestination(getRank());
+		message.setSourceActor(name);
+		message.setDestinationActor(name);
+
+		cout << "DEBUG booting actor # " << name << endl;
+
+		receiveActorMessage(&message);
+	}
+}
+
 /*
  * This is the main loop of the program.
  * One instance on each MPI rank.
@@ -293,7 +319,7 @@ void ComputeCore::runVanilla(){
 void ComputeCore::runWithProfiler(){
 	// define some variables that hold life statistics of this
 	// MPI rank
-	uint64_t ticks=0;
+	int ticks=0;
 	uint64_t globalTicks = 0;
 
 	int sentMessages=0;
@@ -326,6 +352,8 @@ void ComputeCore::runWithProfiler(){
 
 	m_lastTerminalProbeOperation = time(NULL);
 	bool profileGranularity = false;
+
+	bootActors();
 
 	while(m_alive  || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 
@@ -2017,11 +2045,11 @@ bool ComputeCore::hasFinished(){
 	return !alive;
 }
 
-int ComputeCore::getRank(){
+int ComputeCore::getRank() const{
 	return m_rank;
 }
 
-int ComputeCore::getSize(){
+int ComputeCore::getSize() const{
 	return m_size;
 }
 
@@ -2087,6 +2115,8 @@ void ComputeCore::spawnActor(Actor * actor) {
 	int identifier = getRank() + m_actorIterator * getSize();
 	actor->configureStuff(identifier, this);
 
+	cout << "DEBUG ... spawnActor name= " << identifier << endl;
+
 	m_actors.push_back(actor);
 
 	m_actorIterator++;
@@ -2094,8 +2124,45 @@ void ComputeCore::spawnActor(Actor * actor) {
 
 void ComputeCore::sendActorMessage(Message * message) {
 
+	int sourceActor = message->getSourceActor();
+	int destinationActor = message->getDestinationActor();
+
+	int sourceRank = getActorRank(sourceActor);
+	int destinationRank = getActorRank(destinationActor);
+
+	message->setSource(sourceRank);
+	message->setDestination(destinationRank);
+	send(message);
+}
+
+int ComputeCore::getActorRank(int name) const {
+
+	return name % getSize();
+}
+
+void ComputeCore::send(Message * message) {
+
+	m_outbox.push_back(message);
 }
 
 void ComputeCore::receiveActorMessage(Message * message) {
+
+	int actorName = message->getDestinationActor();
+
+	int index = actorName / getSize();
+
+	cout << "DEBUG .... Rank= " << getRank();
+	cout << " receiveActorMessage actorName= " << actorName;
+	cout << " index=> " << index << endl;
+
+	if(!(index < (int) m_actors.size()))
+		return;
+
+	Actor * actor = m_actors[index];
+
+	if(actor == NULL)
+		return;
+	
+	actor->receive(message);
 
 }

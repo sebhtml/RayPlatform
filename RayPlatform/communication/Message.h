@@ -59,8 +59,8 @@ class Message{
  * 	Must be >=0 and <= MPI_Comm_size()-1 */
 	Rank m_source;
 
-	int m_actorSource;
-	int m_actorDestination;
+	int m_sourceActor;
+	int m_destinationActor;
 
 public:
 	Message();
@@ -97,7 +97,11 @@ public:
 
 
 	bool isActorModelMessage() const;
-	void shipActorMessage(int sourceActor, int destinationActor);
+
+	int getDestinationActor() const;
+	int getSourceActor() const;
+	void setSourceActor(int sourceActor);
+	void setDestinationActor(int destinationActor);
 };
 
 #endif

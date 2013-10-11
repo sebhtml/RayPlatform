@@ -35,8 +35,8 @@ Message::Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source){
 	m_tag=tag;
 	m_source=source;
 
-	m_actorSource = ACTOR_MODEL_NOBODY;
-	m_actorDestination = ACTOR_MODEL_NOBODY;
+	m_sourceActor = ACTOR_MODEL_NOBODY;
+	m_destinationActor = ACTOR_MODEL_NOBODY;
 }
 
 MessageUnit*Message::getBuffer(){
@@ -93,19 +93,25 @@ void Message::setDestination(Rank destination){
 	m_destination=destination;
 }
 
-void Message::shipActorMessage(int sourceActor, int destinationActor) {
-
-#ifdef CONFIG_ASSERT
-	assert(m_actorSource == ACTOR_MODEL_NOBODY);
-	assert(m_actorDestination == ACTOR_MODEL_NOBODY);
-#endif
-
-	m_actorSource = sourceActor;
-	m_actorDestination = destinationActor;
-}
-
 bool Message::isActorModelMessage() const {
 
-	return m_actorSource != ACTOR_MODEL_NOBODY ||
-		m_actorDestination == ACTOR_MODEL_NOBODY;
+	return m_sourceActor != ACTOR_MODEL_NOBODY ||
+		m_destinationActor == ACTOR_MODEL_NOBODY;
+}
+
+
+int Message::getDestinationActor() const {
+	return m_destinationActor;
+}
+
+int Message::getSourceActor() const {
+	return m_sourceActor;
+}
+
+void Message::setSourceActor(int sourceActor) {
+	m_sourceActor = sourceActor;
+}
+
+void Message::setDestinationActor(int destinationActor) {
+	m_destinationActor = destinationActor;
 }

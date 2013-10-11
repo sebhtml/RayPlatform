@@ -397,8 +397,8 @@ Not all master modes have yet been ported to that list.
 	MessageQueue*getBufferedInbox();
 	MessageQueue*getBufferedOutbox();
 
-	int getRank();
-	int getSize();
+	int getRank() const;
+	int getSize() const;
 
 	int getMiniRanksPerRank();
 
@@ -429,7 +429,9 @@ Not all master modes have yet been ported to that list.
 	 * receive a message for an actor.
 	 */
 	void receiveActorMessage(Message * message);
-
+	void bootActors();
+	void send(Message * message);
+	int getActorRank(int name) const;
 };
 
 #endif
