@@ -68,6 +68,8 @@ void handleSignal(int signalNumber) {
 //#define CONFIG_DEBUG_CORE
 
 ComputeCore::ComputeCore(){
+
+	m_actorIterator = 0;
 }
 
 void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandlerReference object){
@@ -2070,3 +2072,30 @@ void ComputeCore::runRayPlatformTerminal() {
 	}
 }
 #endif
+
+
+void ComputeCore::spawnActor(Actor * actor) {
+
+	// actor 0 on rank 0 is the rank itself !
+	// actor i on rank i is the rank itself too.
+	if(m_actorIterator == 0) {
+		m_actorIterator++;
+		Actor * actor = NULL;
+		m_actors.push_back(actor);
+	}
+
+	int identifier = getRank() + m_actorIterator * getSize();
+	actor->configureStuff(identifier, this);
+
+	m_actors.push_back(actor);
+
+	m_actorIterator++;
+}
+
+void ComputeCore::sendActorMessage(Message * message) {
+
+}
+
+void ComputeCore::receiveActorMessage(Message * message) {
+
+}

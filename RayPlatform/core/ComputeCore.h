@@ -53,6 +53,8 @@
 
 #include <RayPlatform/store/KeyValueStore.h>
 
+#include <RayPlatform/actors/Actor.h>
+
 #include <iostream>
 using namespace std;
 
@@ -73,6 +75,9 @@ using namespace std;
 class ComputeCore{
 
 	time_t m_lastTerminalProbeOperation;
+
+	vector<Actor*> m_actors;
+	int m_actorIterator;
 
 	KeyValueStore m_keyValueStore;
 
@@ -405,6 +410,26 @@ Not all master modes have yet been ported to that list.
 
 	KeyValueStore & getKeyValueStore();
 	bool debugModeIsEnabled();
+
+
+	// actor stuff !!!
+	
+	/**
+	 * assign a unique identifier to the actor
+	 * and add it to the party team.
+	 */
+	void spawnActor(Actor * actor);
+
+	/**
+	 * send a message to an actor.
+	 */
+	void sendActorMessage(Message * message);
+
+	/**
+	 * receive a message for an actor.
+	 */
+	void receiveActorMessage(Message * message);
+
 };
 
 #endif

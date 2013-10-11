@@ -25,6 +25,8 @@
 #include <iostream>
 using namespace std;
 
+#define ACTOR_MODEL_NOBODY -1
+
 /** buffer must be allocated or else it will CORE DUMP. */
 Message::Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source){
 	m_buffer=b;
@@ -32,6 +34,9 @@ Message::Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source){
 	m_destination=dest;
 	m_tag=tag;
 	m_source=source;
+
+	m_actorSource = ACTOR_MODEL_NOBODY;
+	m_actorDestination = ACTOR_MODEL_NOBODY;
 }
 
 MessageUnit*Message::getBuffer(){
@@ -86,4 +91,21 @@ void Message::setSource(Rank source){
 
 void Message::setDestination(Rank destination){
 	m_destination=destination;
+}
+
+void Message::shipActorMessage(int sourceActor, int destinationActor) {
+
+#ifdef CONFIG_ASSERT
+	assert(m_actorSource == ACTOR_MODEL_NOBODY);
+	assert(m_actorDestination == ACTOR_MODEL_NOBODY);
+#endif
+
+	m_actorSource = sourceActor;
+	m_actorDestination = destinationActor;
+}
+
+bool Message::isActorModelMessage() const {
+
+	return m_actorSource != ACTOR_MODEL_NOBODY ||
+		m_actorDestination == ACTOR_MODEL_NOBODY;
 }

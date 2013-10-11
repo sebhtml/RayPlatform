@@ -79,3 +79,11 @@ obj-y += RayPlatform/cryptography/crypto.o
 obj-y += RayPlatform/store/KeyValueStore.o
 obj-y += RayPlatform/store/KeyValueStoreItem.o
 obj-y += RayPlatform/store/KeyValueStoreRequest.o
+
+# actor model for the win (FTW)
+# Gul Agha, Massachusetts Institute of Technology, Cambridge, MA
+# Actors: a model of concurrent computation in distributed systems
+# http://dl.acm.org/citation.cfm?id=7929
+
+obj-y += RayPlatform/actors/Actor.o
+

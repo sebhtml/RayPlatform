@@ -58,6 +58,10 @@ class Message{
 	/** the message-passing interface rank source 
  * 	Must be >=0 and <= MPI_Comm_size()-1 */
 	Rank m_source;
+
+	int m_actorSource;
+	int m_actorDestination;
+
 public:
 	Message();
 	Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source);
@@ -88,6 +92,12 @@ public:
 	void setDestination(Rank destination);
 
 	void setCount(int count);
+
+	// actor model endpoints
+
+
+	bool isActorModelMessage() const;
+	void shipActorMessage(int sourceActor, int destinationActor);
 };
 
 #endif
