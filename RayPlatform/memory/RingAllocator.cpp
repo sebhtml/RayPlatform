@@ -154,10 +154,12 @@ void*RingAllocator::allocate(int a){
 
 	assert(m_memory!=NULL);
 	
+	/*
 	if(a>m_max){
 		cout<<"Request "<<a<<" but maximum is "<<m_max<<endl;
 	}
 	assert(a<=m_max);
+	*/
 	#endif
 
 	int origin=m_current;

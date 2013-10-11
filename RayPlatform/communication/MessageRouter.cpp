@@ -14,12 +14,12 @@
     GNU Lesser General Public License for more details.
 
     You have received a copy of the GNU Lesser General Public License
-    along with this program (lgpl-3.0.txt).  
+    along with this program (lgpl-3.0.txt).
 	see <http://www.gnu.org/licenses/>
 
 */
 
-/* #define CONFIG_ROUTING_VERBOSITY */
+//#define CONFIG_ROUTING_VERBOSITY
 
 /**
  * \brief Message router implementation
@@ -38,9 +38,9 @@
 #include <assert.h>
 using namespace std;
 
-/* 
- * According to the MPI standard, MPI_TAG_UB is >= 32767 (2^15-1) 
- * Therefore, the tag must be >=0 and <= 32767 
+/*
+ * According to the MPI standard, MPI_TAG_UB is >= 32767 (2^15-1)
+ * Therefore, the tag must be >=0 and <= 32767
  * In most applications, there will be not that much tag
  * values.
  * 2^14 = 16384
@@ -50,7 +50,7 @@ using namespace std;
  * A routing tag is >= 16384 and the corresponding real tag is
  * tag - 16384.
  */
-#define __ROUTING_TAG_BASE 16384 
+#define __ROUTING_TAG_BASE 16384
 
 #define __ROUTING_SOURCE 0
 #define __ROUTING_DESTINATION 1
@@ -84,6 +84,7 @@ void MessageRouter::routeOutcomingMessages(){
 		if(isRoutingTag(communicationTag)){
 			#ifdef CONFIG_ROUTING_VERBOSITY
 			cout<<"["<<__func__<<"] Message has already a routing tag."<<endl;
+			aMessage->displayMetaData();
 			#endif
 			continue;
 		}
@@ -96,12 +97,13 @@ void MessageRouter::routeOutcomingMessages(){
 		if(m_graph.isConnected(trueSource,trueDestination)){
 
 			#ifdef CONFIG_ROUTING_VERBOSITY
-			cout<<"["<<__func__<<"] Rank "<<trueSource<<" can reach "<<trueDestination<<" without routing"<<endl;
+			cout<<"["<<__func__<<"] Rank "<<trueSource<<" can reach "<<trueDestination<<" without routing";
+			cout << " payload size: " << aMessage->getCount() << endl;
 			#endif
 
 			continue;
 		}
-	
+
 		// re-route the message by re-writing the tag
 		MessageTag routingTag=getRoutingTag(communicationTag);
 		aMessage->setTag(routingTag);
@@ -134,26 +136,45 @@ void MessageRouter::routeOutcomingMessages(){
 		}
 
 		// routing information is stored in 64 bits
-		int newCount=aMessage->getCount()+1;
+		int newCount=aMessage->getCount();
 		aMessage->setCount(newCount);
-		
+
 		#ifdef ASSERT
 		assert(buffer!=NULL);
 		#endif
 
+		aMessage->setRoutingSource(trueSource);
+		aMessage->setRoutingDestination(trueDestination);
+		aMessage->saveRoutingMetaData();
+
+		/*
 		setSourceInBuffer(buffer,newCount,trueSource);
 		setDestinationInBuffer(buffer,newCount,trueDestination);
+		*/
 
 		#ifdef ASSERT
-		assert(getSourceFromBuffer(aMessage->getBuffer(),aMessage->getCount())==trueSource);
-		assert(getDestinationFromBuffer(aMessage->getBuffer(),aMessage->getCount())==trueDestination);
+		assert(aMessage->getRoutingSource() ==trueSource);
+		assert(aMessage->getRoutingDestination() ==trueDestination);
+		assert(trueSource >= 0);
+		assert(trueDestination >= 0);
+		assert(trueSource < m_size);
+		assert(trueDestination < m_size);
 		#endif
 
 		Rank nextRank=m_graph.getNextRankInRoute(trueSource,trueDestination,m_rank);
 		aMessage->setDestination(nextRank);
 
+#ifdef CONFIG_ASSERT
+		assert(nextRank >= 0);
+		assert(nextRank < m_size);
+#endif
+
 		#ifdef CONFIG_ROUTING_VERBOSITY
-		cout<<"["<<__func__<<"] relayed message, trueSource="<<trueSource<<" trueDestination="<<trueDestination<<" to intermediateSource "<<nextRank<<endl;
+		cout<<"["<<__func__<<"] relayed message, trueSource="<<trueSource;
+		cout << "count= " << aMessage->getCount();
+		cout <<" trueDestination="<<trueDestination<<" to intermediateSource "<<nextRank;
+		aMessage->displayMetaData();
+		cout <<endl;
 		#endif
 	}
 
@@ -169,7 +190,7 @@ void MessageRouter::routeOutcomingMessages(){
 }
 
 /**
- * route incoming messages 
+ * route incoming messages
  * \returns true if rerouted something.
  */
 bool MessageRouter::routeIncomingMessages(){
@@ -184,16 +205,11 @@ bool MessageRouter::routeIncomingMessages(){
 		return false;
 
 	// otherwise, we have exactly one precious message.
-	
-	Message*aMessage=m_inbox->at(0);
-	MessageTag tag=aMessage->getTag();
-	MessageUnit*buffer=aMessage->getBuffer();
-	int count=aMessage->getCount();
 
-	#ifdef CONFIG_ROUTING_VERBOSITY
-	uint8_t printableTag=tag;
-	cout<<"[routeIncomingMessages] tag= "<<MESSAGE_TAGS[printableTag]<<" value="<<tag<<endl;
-	#endif
+	Message*aMessage=m_inbox->at(0);
+
+	MessageTag tag=aMessage->getTag();
+
 
 	// if the message has no routing tag, then we can safely receive it as is
 	if(!isRoutingTag(tag)){
@@ -205,8 +221,31 @@ bool MessageRouter::routeIncomingMessages(){
 		return false;
 	}
 
+	//cout << "DEBUG message was sent by " << aMessage->getSource();
+
+	//aMessage->displayMetaData();
+
+	// at this point, we know there is a routing activity to perform.
+	//MessageUnit*buffer=aMessage->getBuffer();
+	aMessage->loadRoutingMetaData();
+
+	#ifdef CONFIG_ROUTING_VERBOSITY
+	int count=aMessage->getCount();
+	uint8_t printableTag=tag;
+	cout<<"[routeIncomingMessages] tag= "<<MESSAGE_TAGS[printableTag]<<" value="<<tag;
+	cout << " count= " << count <<endl;
+	#endif
+
+	/*
 	Rank trueSource=getSourceFromBuffer(buffer,count);
 	Rank trueDestination=getDestinationFromBuffer(buffer,count);
+	*/
+
+	Rank trueSource = aMessage->getRoutingSource();
+	Rank trueDestination = aMessage->getRoutingDestination();
+
+	//cout << "DEBUG after loading metadata: trueDestination= ";
+	//cout << trueDestination << " trueSource " << trueSource << endl;
 
 	// this is the final destination
 	// we have received the message
@@ -218,7 +257,7 @@ bool MessageRouter::routeIncomingMessages(){
 
 		// we must update the original source and original tag
 		aMessage->setSource(trueSource);
-		
+
 		// the original destination is already OK
 		#ifdef ASSERT
 		assert(aMessage->getDestination()==m_rank);
@@ -232,7 +271,7 @@ bool MessageRouter::routeIncomingMessages(){
 		#endif
 
 		// remove the routing stuff
-		int newCount=aMessage->getCount()-1;
+		int newCount=aMessage->getCount();
 
 		#ifdef ASSERT
 		assert(newCount>=0);
@@ -251,6 +290,12 @@ bool MessageRouter::routeIncomingMessages(){
 	assert(m_rank!=trueDestination);
 	#endif
 
+#ifdef CONFIG_ASSERT
+	assert(trueDestination >= 0 && trueDestination < m_size);
+	assert(trueSource >= 0 && trueSource < m_size);
+	assert(m_rank >= 0 && m_rank < m_size);
+#endif
+
 	// at this point, we know that we need to forward
 	// the message to another peer
 	Rank nextRank=m_graph.getNextRankInRoute(trueSource,trueDestination,m_rank);
@@ -259,7 +304,16 @@ bool MessageRouter::routeIncomingMessages(){
 	cout<<"["<<__func__<<"] message has been sent to the next one, trueSource="<<trueSource<<" trueDestination= "<<trueDestination;
 	cout<<" Previous= "<<aMessage->getSource()<<" Current= "<<m_rank<<" Next= "<<nextRank<<endl;
 	#endif
-		
+
+#ifdef CONFIG_ASSERT
+	assert(trueSource >= 0);
+	assert(trueDestination >= 0);
+	assert(trueSource < m_size);
+	assert(trueDestination < m_size);
+	assert(nextRank >= 0);
+	assert(nextRank < m_size);
+#endif
+
 	// we forward the message
 	relayMessage(aMessage,nextRank);
 
@@ -271,7 +325,7 @@ bool MessageRouter::routeIncomingMessages(){
  * forward a message to follow a route
  */
 void MessageRouter::relayMessage(Message*message,Rank destination){
-	
+
 	int count=message->getCount();
 
 	// routed messages always have a payload
@@ -286,14 +340,17 @@ void MessageRouter::relayMessage(Message*message,Rank destination){
 	message->setBuffer(outgoingMessage);
 
 	#ifdef CONFIG_ROUTING_VERBOSITY
-	cout<<"[relayMessage] TrueSource="<<getSourceFromBuffer(message->getBuffer(),message->getCount());
-	cout<<" TrueDestination="<<getDestinationFromBuffer(message->getBuffer(),message->getCount());
+	cout<<"[relayMessage] TrueSource="<< message->getRoutingSource();
+	cout<<" TrueDestination="<< message->getRoutingDestination();
 	cout<<" RelaySource="<<m_rank<<" RelayDestination="<<destination<<endl;
 	#endif
 
 	// re-route the message
 	message->setSource(m_rank);
 	message->setDestination(destination);
+
+	// package routing metadata for the delivery onto the network !!!
+	message->saveRoutingMetaData();
 
 	#ifdef ASSERT
 	assert(m_graph.isConnected(m_rank,destination));
@@ -416,9 +473,23 @@ Rank MessageRouter::getDestinationFromBuffer(MessageUnit*buffer,int count){
 	assert(buffer!=NULL);
 	#endif
 
-	uint32_t*routingInformation=(uint32_t*)(buffer+__ROUTING_OFFSET(count));
+	int offset = __ROUTING_OFFSET(count);
+
+	int * bufferAsInteger = (int*)buffer;
+	uint32_t*routingInformation=(uint32_t*)(buffer+ offset);
 
 	Rank rank=routingInformation[__ROUTING_DESTINATION];
+
+	/*
+	cout << "DEBUG getDestinationFromBuffer count " << count;
+	cout << " offset " << offset ;
+	cout << " destination " << rank << endl;
+
+	for(int i = 0 ; i < 4 ; ++i) {
+		cout << "DEBUG buffer [ " << i << "] -> ";
+		cout << bufferAsInteger[i] << endl;
+	}
+	*/
 
 	#ifdef ASSERT
 	assert(rank>=0);

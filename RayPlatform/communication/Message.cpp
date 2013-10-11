@@ -27,7 +27,9 @@ using namespace std;
 
 #include <string.h>
 
-
+#ifdef CONFIG_ASSERT
+#include <assert.h>
+#endif
 
 #define ACTOR_MODEL_NOBODY -1
 
@@ -35,12 +37,14 @@ using namespace std;
  * We always pad the buffer with actor source and actor destination.
  * If routing is enabled, we also pad with the route source and the route destination.
  * Finally, the buffer may be padded with a checksum too !
+ *
+
  */
-#define MESSAGE_META_DATA_ACTOR_SOURCE		0x000
-#define MESSAGE_META_DATA_ACTOR_DESTINATION	0x004
-#define MESSAGE_META_DATA_ROUTE_SOURCE	 	0x008
-#define MESSAGE_META_DATA_ROUTE_DESTINATION	0x012
-#define MESSAGE_META_DATA_CHECKSUM	 	0x016
+#define MESSAGE_META_DATA_ACTOR_SOURCE		0
+#define MESSAGE_META_DATA_ACTOR_DESTINATION	4
+#define MESSAGE_META_DATA_ROUTE_SOURCE	 	8
+#define MESSAGE_META_DATA_ROUTE_DESTINATION	12
+#define MESSAGE_META_DATA_CHECKSUM	 	16
 
 
 Message::Message() {
@@ -158,7 +162,13 @@ void Message::setDestinationActor(int destinationActor) {
 
 void Message::saveActorMetaData() {
 
+	//cout << "DEBUG saveActorMetaData tag " << getTag() << endl;
+
 	int offset = getCount() * sizeof(MessageUnit);
+
+	// actor metadata must be the first to be saved.
+	offset -= 0;
+
 	char * memory = (char*) getBuffer();
 
 	memcpy(memory + offset + MESSAGE_META_DATA_ACTOR_SOURCE, &m_sourceActor, sizeof(int));
@@ -175,8 +185,8 @@ void Message::saveActorMetaData() {
 }
 
 void Message::printActorMetaData() {
-	cout << "DEBUG tag= " << getTag();
-	cout << " saveActorMetaData m_sourceActor = " << getSourceActor();
+	cout << "DEBUG printActorMetaData tag= " << getTag();
+	cout << " m_sourceActor = " << getSourceActor();
 	cout << " m_destinationActor = " << getDestinationActor() << " ";
 	cout << " bytes= " << m_count * sizeof(MessageUnit);
 
@@ -188,6 +198,7 @@ void Message::loadActorMetaData() {
 	printActorMetaData();
 	cout << endl;
 */
+	// m_count already contains the actor metadata.
 	int offset = getCount() * sizeof(MessageUnit);
 	offset -= 2 * sizeof(int);
 
@@ -213,4 +224,101 @@ void Message::loadActorMetaData() {
 
 int Message::getMetaDataSize() const {
 	return 4 * sizeof(int);
+}
+
+void Message::setRoutingSource(int source) {
+
+	m_routingSource = source;
+}
+
+void Message::setRoutingDestination(int destination) {
+
+	m_routingDestination = destination;
+}
+
+void Message::saveRoutingMetaData() {
+
+	/*
+	cout << "DEBUG saveRoutingMetaData m_routingSource " << m_routingSource;
+	cout << " m_routingDestination " << m_routingDestination << endl;
+*/
+	int offset = getCount() * sizeof(MessageUnit);
+	char * memory = (char*) getBuffer();
+
+	// the count already include the actor addresses
+	// this is stupid, but hey, nobody aside me is touching this code
+	// with a ten-foot stick
+	offset -= 2 * sizeof(int);
+
+	memcpy(memory + offset + MESSAGE_META_DATA_ROUTE_SOURCE, &m_routingSource, sizeof(int));
+	memcpy(memory + offset + MESSAGE_META_DATA_ROUTE_DESTINATION, &m_routingDestination, sizeof(int));
+	//printActorMetaData();
+
+
+	m_count += 1; // add 1 uint64_t
+
+	//cout << "DEBUG saved routing metadata at offset " << offset << " new count " << m_count << endl;
+	//displayMetaData();
+}
+
+
+int Message::getRoutingSource() const {
+
+	return m_routingSource;
+}
+
+int Message::getRoutingDestination() const {
+
+	return m_routingDestination;
+}
+
+void Message::loadRoutingMetaData() {
+	//cout << "DEBUG loadRoutingMetaData count " << getCount() << endl;
+
+	int offset = getCount() * sizeof(MessageUnit);
+
+	// m_count contains actor metadata *AND* routing metadata (if necessary)
+	offset -= 2 * sizeof(int);
+	offset -= 2 * sizeof(int);
+
+	char * memory = (char*) getBuffer();
+
+	memcpy(&m_routingSource, memory + offset + MESSAGE_META_DATA_ROUTE_SOURCE, sizeof(int));
+	memcpy(&m_routingDestination, memory + offset + MESSAGE_META_DATA_ROUTE_DESTINATION, sizeof(int));
+
+	m_count -= 1;
+
+	/*
+	cout << "DEBUG loadRoutingMetaData ";
+	cout << "loaded m_routingSource ";
+	cout << m_routingSource;
+	cout << " m_routingDestination " << m_routingDestination;
+	cout << " offset " << offset ;
+	printActorMetaData();
+	cout << endl;
+	*/
+
+	//displayMetaData();
+
+	// these can not be negative, otherwise
+	// this method would not have been called now.
+#ifdef CONFIG_ASSERT
+	assert(m_routingSource >= 0);
+	assert(m_routingDestination >= 0);
+#endif
+}
+
+void Message::displayMetaData() {
+	Message * aMessage = this;
+
+	cout << " DEBUG displayMetaData count " << aMessage->getCount();
+	cout << " tag " << getTag() << endl;
+
+	int offset = getCount() * sizeof(MessageUnit) - 2 * 2 * sizeof(int);
+
+	for(int i = 0 ; i < 4 ; ++i) {
+		cout << " [" << i << " -> " << ((int*)aMessage->getBuffer())[offset + i] << "]";
+	}
+	cout << endl;
+
 }

@@ -9,6 +9,10 @@
 #include <iostream>
 using namespace std;
 
+#ifdef CONFIG_ASSERT
+#include <assert.h>
+#endif
+
 KeyValueStoreItem::KeyValueStoreItem() {
 
 }

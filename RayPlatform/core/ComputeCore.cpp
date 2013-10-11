@@ -14,7 +14,7 @@
     GNU Lesser General Public License for more details.
 
     You have received a copy of the GNU Lesser General Public License
-    along with this program (lgpl-3.0.txt).  
+    along with this program (lgpl-3.0.txt).
 	see <http://www.gnu.org/licenses/>
 
 */
@@ -213,7 +213,7 @@ bool ComputeCore::debugModeIsEnabled() {
 }
 
 /**
- * the while loop is *the* main loop of Ray for each 
+ * the while loop is *the* main loop of Ray for each
  * processor.
  * it is similar to the main loop of a video game, actually, but without a display.
  */
@@ -254,7 +254,7 @@ void ComputeCore::runVanilla(){
 
 		// 1. receive the message (0 or 1 message is received)
 		// blazing fast, receives 0 or 1 message, never more, never less, other messages will wait for the next iteration !
-		receiveMessages(); 
+		receiveMessages();
 
 		// 2. process the received message, if any
 		// consume the one message received, if any, also very fast because it is done with an array mapping tags to function pointers
@@ -499,7 +499,7 @@ void ComputeCore::runWithProfiler(){
 		/* collect some statistics for the profiler */
 
 		// 1. receive the message (0 or 1 message is received)
-		receiveMessages(); 
+		receiveMessages();
 		receivedMessages+=m_inbox.size();
 
 		for(int i=0;i<(int)m_inbox.size();i++){
@@ -596,8 +596,8 @@ void ComputeCore::processMessages(){
 			// if the message has routing tag, we don't need to process it...
 
 /*
- * If a message is routed, the original message needs to be destroyed 
- * with fire. Otherwise, a slave mode or a master mode will pick it up, 
+ * If a message is routed, the original message needs to be destroyed
+ * with fire. Otherwise, a slave mode or a master mode will pick it up,
  * which will cause silly behaviors.
  */
 			m_inbox.clear();
@@ -606,10 +606,24 @@ void ComputeCore::processMessages(){
 		}
 	}
 
+	// the message is for us...
+	// load actor metadata
+	for(int i = 0 ; i < (int) m_inbox.size() ; ++i) {
+		Message * message = m_inbox.at(i);
+
+		// save actor metadata
+		message->loadActorMetaData();
+
+		// dispatch the message
+		if(message->isActorModelMessage()) {
+			receiveActorMessage(message);
+		}
+	}
+
 	Message*message=m_inbox[0];
 	MessageTag messageTag=message->getTag();
 
-	#ifdef ASSERT
+	#ifdef ASSERT2
 	assert(messageTag!=INVALID_HANDLE);
 	assert(m_allocatedMessageTags.count(messageTag)>0);
 	string symbol=MESSAGE_TAGS[messageTag];
@@ -626,7 +640,7 @@ void ComputeCore::processMessages(){
 void ComputeCore::sendMessages(){
 
 	// register actor meta-data
-	
+
 	for(int i = 0 ; i < (int) m_outbox.size() ; ++i) {
 		Message * message = m_outbox.at(i);
 
@@ -643,7 +657,9 @@ void ComputeCore::sendMessages(){
 		*/
 
 		// save actor metadata
-		message->saveActorMetaData();
+		// routed message already have this
+		if(!m_router.isRoutingTag(message->getTag()))
+			message->saveActorMetaData();
 
 		/*
 		cout << "DEBUG After saving ";
@@ -693,7 +709,7 @@ void ComputeCore::sendMessages(){
  * Don't do anything when there are no messages
  * at all.
  * This statement needs to be after the ifdef ASSERT above
- * otherwise the no resetCount call is performed on the 
+ * otherwise the no resetCount call is performed on the
  * allocator, which will produce a run-time error.
  */
 	if(m_outbox.size()==0)
@@ -706,7 +722,7 @@ void ComputeCore::sendMessages(){
 		m_router.routeOutcomingMessages();
 	}
 
-	// parameters.showCommunicationEvents() 
+	// parameters.showCommunicationEvents()
 	if( m_showCommunicationEvents && m_outbox.size() > 0){
 		uint64_t microseconds=getMicroseconds() - m_startingTimeMicroseconds;
 		for(int i=0;i<(int)m_outbox.size();i++){
@@ -830,7 +846,7 @@ void ComputeCore::verifyMessageChecksums(){
  */
 void ComputeCore::receiveMessages(){
 
-/* 
+/*
  * clear the inbox for the next iteration
  */
 	m_inbox.clear();
@@ -874,18 +890,6 @@ void ComputeCore::receiveMessages(){
 		}
 	}
 
-	// load actor metadata
-	for(int i = 0 ; i < (int) m_inbox.size() ; ++i) {
-		Message * message = m_inbox.at(i);
-
-		// save actor metadata
-		message->loadActorMetaData();
-
-		// dispatch the message
-		if(message->isActorModelMessage()) {
-			receiveActorMessage(message);
-		}
-	}
 }
 
 /** process data my calling current slave and master methods */
@@ -927,7 +931,7 @@ void ComputeCore::processData(){
 	m_slaveModeExecutor.callHandler(slave);
 	m_tickLogger.logSlaveTick(slave);
 
-/* 
+/*
  * Clear the inbox for the next iteration.
  * This is only useful if the RayPlatform runs with mini-ranks.
  */
@@ -1495,7 +1499,7 @@ MasterMode ComputeCore::allocateMasterModeHandle(PluginHandle plugin){
 	assert(m_plugins[plugin].hasMasterMode(handle));
 	#endif
 
-	return handle; 
+	return handle;
 }
 
 MessageTag ComputeCore::allocateMessageTagHandle(PluginHandle plugin){
@@ -2171,14 +2175,14 @@ void ComputeCore::sendActorMessage(Message * message) {
 	int sourceRank = getActorRank(sourceActor);
 	int destinationRank = getActorRank(destinationActor);
 
-	/*
+#if 0
 	cout << "DEBUG ... " << message << " sendActorMessage sourceActor= ";
 	cout << sourceActor << " destinationActor= ";
 	cout << destinationActor << " sourceRank= " << sourceRank;
 	cout << " tag= " << message->getTag();
+	cout << " count= " << message->getCount();
 	cout << " destinationRank= " << destinationRank << endl;
-	*/
-
+#endif
 	message->setSource(sourceRank);
 	message->setDestination(destinationRank);
 
@@ -2217,6 +2221,6 @@ void ComputeCore::receiveActorMessage(Message * message) {
 
 	if(actor == NULL)
 		return;
-	
+
 	actor->receive(*message);
 }

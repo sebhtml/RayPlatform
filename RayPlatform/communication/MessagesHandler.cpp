@@ -1047,6 +1047,12 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		assert(request!=NULL);
 		#endif
 
+#ifdef CONFIG_ASSERT
+		assert(destination >= 0);
+		assert(destination < m_size);
+		assert(count >= 0);
+#endif
+
 		//  MPI_Isend
 		//      Synchronous nonblocking. 
 		MPI_Isend(buffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);

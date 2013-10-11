@@ -86,8 +86,6 @@ class MessageRouter {
 
 	void relayMessage(Message*message,Rank destination);
 
-	bool isRoutingTag(MessageTag tag);
-
 	MessageTag getMessageTagFromRoutingTag(MessageTag tag);
 	Rank getSourceFromBuffer(MessageUnit*buffer,int count);
 	Rank getDestinationFromBuffer(MessageUnit*buffer,int count);
@@ -134,6 +132,8 @@ string prefix,int numberOfRanks,string type,int degree);
  * Write routing information files.
  */
 	void writeFiles();
+
+	bool isRoutingTag(MessageTag tag);
 
 };
 

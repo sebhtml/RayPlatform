@@ -27,6 +27,10 @@
 
 #include <string.h> /* for memcpy */
 
+#ifdef CONFIG_ASSERT
+#include <assert.h>
+#endif
+
 //#define KeyValueStore_DEBUG_NOW "Yes"
 
 __CreatePlugin(KeyValueStore);

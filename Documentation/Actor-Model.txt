@@ -1,0 +1,13 @@
+With N ranks, actors numbered from 0 to N - 1 are the ranks.
+Actors can send and receive messages from them using this.
+
+Implemented:
+
+- Actor::receive
+- Actor::send
+- Actor::spawn
+- routing works
+
+To implement
+
+- Actor::die
