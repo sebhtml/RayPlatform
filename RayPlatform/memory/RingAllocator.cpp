@@ -274,9 +274,8 @@ void RingAllocator::clear(){
 	cout<<"[RingAllocator::clear] "<<m_type<<" memory is "<<hex<<(void*)m_memory<<dec<<endl;
 	#endif
 
-	#ifdef ASSERT
-	assert(m_memory!=NULL);
-	#endif
+	if(m_memory == NULL)
+		return;
 
 	__Free(m_memory,m_type,m_show);
 	m_memory=NULL;
