@@ -36,6 +36,8 @@
  * \author Sébastien Boisvert
  */
 class Message{
+private:
+
 	/** the message body, contains data
  * 	if NULL, m_count must be 0 */
 	MessageUnit*m_buffer;
@@ -62,24 +64,26 @@ class Message{
 	int m_sourceActor;
 	int m_destinationActor;
 
+	void initialize();
 public:
 	Message();
+	~Message();
 	Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source);
 	MessageUnit*getBuffer();
-	int getCount();
+	int getCount() const;
 /**
  * Returns the destination MPI rank
  */
-	Rank getDestination();
+	Rank getDestination() const;
 
 /**
  * Returns the message tag (RAY_MPI_TAG_something)
  */
-	MessageTag getTag();
+	MessageTag getTag() const;
 /**
  * Gets the source MPI rank
  */
-	Rank getSource();
+	Rank getSource() const;
 
 	void print();
 
@@ -102,6 +106,11 @@ public:
 	int getSourceActor() const;
 	void setSourceActor(int sourceActor);
 	void setDestinationActor(int destinationActor);
+	void saveActorMetaData();
+	void loadActorMetaData();
+	int getMetaDataSize() const;
+	void printActorMetaData();
+
 };
 
 #endif

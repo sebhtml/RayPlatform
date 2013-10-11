@@ -23,6 +23,7 @@ private:
 	int m_name;
 	ComputeCore * m_core;
 
+	void send(int destination, Message * message);
 public:
 	
 	enum {
@@ -32,12 +33,15 @@ public:
 	Actor();
 	virtual ~Actor();
 
-	virtual void receive(Message * message) = 0;
-	void send(int destination, Message * message);
+	virtual void receive(Message & message) = 0;
+	void send(int destination, Message & message);
 	void spawn(Actor * actor);
 	void configureStuff(int name, ComputeCore * kernel);
 	int getName() const;
 	void printName() const;
+
+	int getRank() const;
+	int getSize() const;
 };
 
 #endif

@@ -51,13 +51,13 @@ bool globalDebugMode = false;
  */
 void handleSignal(int signalNumber) {
 
-	cout << "DEBUG Received a signal !!" << endl;
+	//cout << "DEBUG Received a signal !!" << endl;
 
 	if(signalNumber == SIGUSR1) {
 
 		globalDebugMode = !globalDebugMode;
 
-		cout << "DEBUG globalDebugMode <- " << globalDebugMode << endl;
+		//cout << "DEBUG globalDebugMode <- " << globalDebugMode << endl;
 	}
 }
 
@@ -288,7 +288,7 @@ void ComputeCore::runVanilla(){
 
 void ComputeCore::bootActors() {
 
-	cout << "DEBUG ... bootActors" << endl;
+	//cout << "DEBUG ... bootActors" << endl;
 
 	for(int i = 0 ; i < (int) m_actors.size() ; ++i) {
 
@@ -306,7 +306,7 @@ void ComputeCore::bootActors() {
 		message.setSourceActor(name);
 		message.setDestinationActor(name);
 
-		cout << "DEBUG booting actor # " << name << endl;
+		//cout << "DEBUG booting actor # " << name << endl;
 
 		receiveActorMessage(&message);
 	}
@@ -625,6 +625,33 @@ void ComputeCore::processMessages(){
 
 void ComputeCore::sendMessages(){
 
+	// register actor meta-data
+	
+	for(int i = 0 ; i < (int) m_outbox.size() ; ++i) {
+		Message * message = m_outbox.at(i);
+
+		// we need a buffer to store the actor metadata
+		if(message->getBuffer() == NULL) {
+			void * buffer = m_outboxAllocator.allocate(0);
+			message->setBuffer((MessageUnit*)buffer);
+		}
+
+		/*
+		cout << "DEBUG Before saving ";
+		message->printActorMetaData();
+		cout << endl;
+		*/
+
+		// save actor metadata
+		message->saveActorMetaData();
+
+		/*
+		cout << "DEBUG After saving ";
+		message->printActorMetaData();
+		cout << endl;
+		*/
+	}
+
 /*
  * What follows is all the crap for checking some assertions and
  * profiling events.
@@ -846,6 +873,19 @@ void ComputeCore::receiveMessages(){
 			cout<<endl;
 		}
 	}
+
+	// load actor metadata
+	for(int i = 0 ; i < (int) m_inbox.size() ; ++i) {
+		Message * message = m_inbox.at(i);
+
+		// save actor metadata
+		message->loadActorMetaData();
+
+		// dispatch the message
+		if(message->isActorModelMessage()) {
+			receiveActorMessage(message);
+		}
+	}
 }
 
 /** process data my calling current slave and master methods */
@@ -1052,13 +1092,14 @@ void ComputeCore::configureEngine() {
 
 	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
+	// also add 8 bytes for actor metadata
 	if(m_miniRanksAreEnabled || m_doChecksum || m_routerIsEnabled){
 		if(sizeof(MessageUnit)>=4){
-			maximumMessageSizeInByte+=2*sizeof(MessageUnit);
+			maximumMessageSizeInByte+=(2 + 2)*sizeof(MessageUnit);
 		}else if(sizeof(MessageUnit)>=2){
-			maximumMessageSizeInByte+=2*2*sizeof(MessageUnit);
+			maximumMessageSizeInByte+=(2 + 2) *2*sizeof(MessageUnit);
 		}else{
-			maximumMessageSizeInByte+=2*4*sizeof(MessageUnit);
+			maximumMessageSizeInByte+=(2 + 2) *4*sizeof(MessageUnit);
 		}
 	}
 
@@ -2115,7 +2156,7 @@ void ComputeCore::spawnActor(Actor * actor) {
 	int identifier = getRank() + m_actorIterator * getSize();
 	actor->configureStuff(identifier, this);
 
-	cout << "DEBUG ... spawnActor name= " << identifier << endl;
+	//cout << "DEBUG ... spawnActor name= " << identifier << endl;
 
 	m_actors.push_back(actor);
 
@@ -2130,8 +2171,17 @@ void ComputeCore::sendActorMessage(Message * message) {
 	int sourceRank = getActorRank(sourceActor);
 	int destinationRank = getActorRank(destinationActor);
 
+	/*
+	cout << "DEBUG ... " << message << " sendActorMessage sourceActor= ";
+	cout << sourceActor << " destinationActor= ";
+	cout << destinationActor << " sourceRank= " << sourceRank;
+	cout << " tag= " << message->getTag();
+	cout << " destinationRank= " << destinationRank << endl;
+	*/
+
 	message->setSource(sourceRank);
 	message->setDestination(destinationRank);
+
 	send(message);
 }
 
@@ -2151,9 +2201,14 @@ void ComputeCore::receiveActorMessage(Message * message) {
 
 	int index = actorName / getSize();
 
+	/*
 	cout << "DEBUG .... Rank= " << getRank();
+	cout << " tag= " << message->getTag();
 	cout << " receiveActorMessage actorName= " << actorName;
-	cout << " index=> " << index << endl;
+	cout << " index=> " << index;
+	message->printActorMetaData();
+	cout << endl;
+	*/
 
 	if(!(index < (int) m_actors.size()))
 		return;
@@ -2163,6 +2218,5 @@ void ComputeCore::receiveActorMessage(Message * message) {
 	if(actor == NULL)
 		return;
 	
-	actor->receive(message);
-
+	actor->receive(*message);
 }

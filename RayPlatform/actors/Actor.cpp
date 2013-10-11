@@ -23,6 +23,11 @@ void Actor::send(int destination, Message * message) {
 	m_core->sendActorMessage(message);
 }
 
+void Actor::send(int destination, Message & message) {
+
+	send(destination, &message);
+}
+
 void Actor::spawn(Actor * actor) {
 	
 	m_core->spawnActor(actor);
@@ -42,4 +47,12 @@ void Actor::printName() const {
 
 	cout << "/actors/" << getName();
 	cout << " -> ";
+}
+
+int Actor::getRank() const {
+	return m_core->getRank();
+}
+
+int Actor::getSize() const {
+	return m_core->getSize();
 }
