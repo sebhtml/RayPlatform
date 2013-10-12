@@ -22,6 +22,8 @@
 #include "Message.h"
 #include "mpi_tags.h"
 
+#include <RayPlatform/cryptography/crypto.h>
+
 #include <iostream>
 using namespace std;
 
@@ -162,6 +164,11 @@ void Message::setDestinationActor(int destinationActor) {
 
 void Message::saveActorMetaData() {
 
+
+#ifdef CONFIG_ASSERT
+	int bytes = getCount() * sizeof(MessageUnit);
+	uint32_t checksumBefore = computeCyclicRedundancyCode32((uint8_t*)getBuffer(), bytes);
+#endif
 	//cout << "DEBUG saveActorMetaData tag " << getTag() << endl;
 
 	int offset = getCount() * sizeof(MessageUnit);
@@ -182,6 +189,12 @@ void Message::saveActorMetaData() {
 	printActorMetaData();
 	cout << endl;
 	*/
+
+#ifdef CONFIG_ASSERT
+	uint32_t checksumAfter = computeCyclicRedundancyCode32((uint8_t*)getBuffer(), bytes);
+
+	assert(checksumBefore == checksumAfter);
+#endif
 }
 
 void Message::printActorMetaData() {

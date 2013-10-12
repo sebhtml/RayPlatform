@@ -1094,10 +1094,12 @@ void ComputeCore::configureEngine() {
 
 	int maximumMessageSizeInByte=MAXIMUM_MESSAGE_SIZE_IN_BYTES;
 
+	bool useActorModel = true;
+
 	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
 	// also add 8 bytes for actor metadata
-	if(m_miniRanksAreEnabled || m_doChecksum || m_routerIsEnabled){
+	if(m_miniRanksAreEnabled || m_doChecksum || m_routerIsEnabled || useActorModel){
 		if(sizeof(MessageUnit)>=4){
 			maximumMessageSizeInByte+=(2 + 2)*sizeof(MessageUnit);
 		}else if(sizeof(MessageUnit)>=2){
