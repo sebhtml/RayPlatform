@@ -522,7 +522,7 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY(Mess
 	int dummySize = item->getValueLength();
 
 	assert(value != NULL);
-	assert(dummySize == valueLength);
+	assert(dummySize == (int)valueLength);
 
 #ifdef KeyValueStore_DEBUG_NOW
 	cout << "DEBUG dummySize= " << dummySize << endl;
@@ -546,7 +546,7 @@ void KeyValueStore::call_RAYPLATFORM_MESSAGE_TAG_DOWNLOAD_OBJECT_PART_REPLY(Mess
 	memcpy(value + offset, buffer + inputPosition, bytesToCopy);
 
 #ifdef CONFIG_ASSERT
-	assert(offset + bytesToCopy <= item->getValueLength());
+	assert((int)(offset + bytesToCopy) <= (int)item->getValueLength());
 #endif
 
 	uint32_t newOffset = offset + bytesToCopy;

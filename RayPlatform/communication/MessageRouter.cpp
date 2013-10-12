@@ -475,12 +475,12 @@ Rank MessageRouter::getDestinationFromBuffer(MessageUnit*buffer,int count){
 
 	int offset = __ROUTING_OFFSET(count);
 
-	int * bufferAsInteger = (int*)buffer;
 	uint32_t*routingInformation=(uint32_t*)(buffer+ offset);
 
 	Rank rank=routingInformation[__ROUTING_DESTINATION];
 
 	/*
+	int * bufferAsInteger = (int*)buffer;
 	cout << "DEBUG getDestinationFromBuffer count " << count;
 	cout << " offset " << offset ;
 	cout << " destination " << rank << endl;
