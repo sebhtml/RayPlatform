@@ -20,6 +20,22 @@ void Actor::send(int destination, Message * message) {
 	message->setSourceActor(getName());
 	message->setDestinationActor(destination);
 
+	// if the buffer is not NULL, allocate a RayPlatform
+	// buffer and copy stuff in it.
+	if(message->getBuffer() != NULL) {
+
+		// this call return MAXIMUM_MESSAGE_SIZE_IN_BYTES + padding
+		char * newBuffer = (char*)m_core->getOutboxAllocator()->allocate(42);
+		int bytes = message->getNumberOfBytes();
+		char * oldBuffer = (char*)message->getBufferBytes();
+
+		memcpy(newBuffer, oldBuffer, bytes * sizeof(char));
+
+		message->setBuffer(newBuffer);
+	}
+
+	// deleguate the message to ComputeCore..
+
 	m_core->sendActorMessage(message);
 }
 
