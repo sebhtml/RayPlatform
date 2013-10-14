@@ -61,6 +61,17 @@ void Actor::configureStuff(int name, ComputeCore * kernel) {
 
 	m_name = name;
 	m_core = kernel;
+
+	m_dead = false;
+}
+
+void Actor::die() {
+	m_dead = true;
+}
+
+bool Actor::isDead() const {
+
+	return m_dead;
 }
 
 int Actor::getName() const {

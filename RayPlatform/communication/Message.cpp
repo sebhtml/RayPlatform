@@ -116,7 +116,14 @@ int Message::getSource() const{
 void Message::print(){
 	uint8_t shortTag=getTag();
 
-	cout<<"Source: "<<getSource()<<" Destination: "<<getDestination()<<" Tag: "<<MESSAGE_TAGS[shortTag];
+	cout<<"Source: "<<getSource()<<" Destination: "<<getDestination();
+
+	if(isActorModelMessage()) {
+		cout << " ActorModel: Yes.";
+	} else {
+		cout <<" Tag: "<<MESSAGE_TAGS[shortTag];
+	}
+
 	cout<<" RealTag: "<<getTag();
 	cout<<" Count: "<<getCount();
 

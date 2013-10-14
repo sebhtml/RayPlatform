@@ -7,7 +7,7 @@ Implemented:
 - Actor::send
 - Actor::spawn
 - routing works
+- Actor::die
 
 To implement
 
-- Actor::die

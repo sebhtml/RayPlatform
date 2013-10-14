@@ -22,6 +22,7 @@ class Actor {
 private:
 	int m_name;
 	ComputeCore * m_core;
+	bool m_dead;
 
 	void send(int destination, Message * message);
 public:
@@ -42,6 +43,9 @@ public:
 
 	int getRank() const;
 	int getSize() const;
+
+	void die();
+	bool isDead() const;
 };
 
 #endif

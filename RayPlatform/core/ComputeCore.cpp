@@ -70,6 +70,7 @@ void handleSignal(int signalNumber) {
 ComputeCore::ComputeCore(){
 
 	m_actorIterator = 0;
+	m_aliveActors = 0;
 }
 
 void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandlerReference object){
@@ -308,7 +309,7 @@ void ComputeCore::bootActors() {
 		message.setSourceActor(name);
 		message.setDestinationActor(name);
 
-		cout << "DEBUG booting actor # " << name << endl;
+		//cout << "DEBUG booting actor # " << name << endl;
 
 		receiveActorMessage(&message);
 	}
@@ -357,7 +358,8 @@ void ComputeCore::runWithProfiler(){
 
 	bootActors();
 
-	while(m_alive  || (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
+	while(isRankAlive()
+			|| (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
 
 		// update the debug mode.
 		// this is cheap -- it only needs to copy a boolean (usually a char)
@@ -622,6 +624,18 @@ void ComputeCore::processMessages(){
 		}
 	}
 
+	if(m_inbox.size() > 0 && m_showCommunicationEvents){
+		uint64_t theTime=getMicroseconds();
+		uint64_t microseconds=theTime - m_startingTimeMicroseconds;
+		for(int i=0;i<(int)m_inbox.size();i++){
+			cout<<"[Communication] "<<microseconds<<" microseconds, RECEIVE ";
+			m_inbox[i]->print();
+			cout<<endl;
+		}
+	}
+
+
+
 	Message*message=m_inbox[0];
 	MessageTag messageTag=message->getTag();
 
@@ -881,16 +895,6 @@ void ComputeCore::receiveMessages(){
 
 	assert(receivedMessages<=m_maximumNumberOfInboxMessages);
 	#endif
-
-	if(m_inbox.size() > 0 && m_showCommunicationEvents){
-		uint64_t theTime=getMicroseconds();
-		uint64_t microseconds=theTime - m_startingTimeMicroseconds;
-		for(int i=0;i<(int)m_inbox.size();i++){
-			cout<<"[Communication] "<<microseconds<<" microseconds, RECEIVE ";
-			m_inbox[i]->print();
-			cout<<endl;
-		}
-	}
 
 }
 
@@ -2169,6 +2173,8 @@ void ComputeCore::spawnActor(Actor * actor) {
 	m_actors.push_back(actor);
 
 	m_actorIterator++;
+
+	m_aliveActors ++;
 }
 
 void ComputeCore::sendActorMessage(Message * message) {
@@ -2228,4 +2234,31 @@ void ComputeCore::receiveActorMessage(Message * message) {
 		return;
 
 	actor->receive(*message);
+
+	if(actor->isDead()) {
+
+		m_aliveActors --;
+
+		/*
+		cout << "DEBUG ComputeCore actor " << actor->getName() << " died, remaining: ";
+		cout << m_aliveActors << endl;
+		*/
+
+		delete actor;
+		actor = NULL;
+		m_actors[index] = NULL;
+	}
+}
+
+bool ComputeCore::isRankAlive() const {
+
+	if(hasAliveActors())
+		return true;
+
+	return m_alive;
+}
+
+bool ComputeCore::hasAliveActors() const {
+
+	return m_aliveActors > 0;
 }

@@ -78,6 +78,7 @@ class ComputeCore{
 
 	vector<Actor*> m_actors;
 	int m_actorIterator;
+	int m_aliveActors;
 
 	KeyValueStore m_keyValueStore;
 
@@ -247,6 +248,10 @@ class ComputeCore{
 	void registerDummyPlugin();
 	bool isPublicMasterMode(PluginHandle plugin,MasterMode mode);
 	void configureEngine();
+
+	bool isRankAlive() const;
+	bool hasAliveActors() const;
+
 public:
 	/** this is the main method */
 	void run();
