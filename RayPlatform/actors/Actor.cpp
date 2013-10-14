@@ -5,6 +5,7 @@
 
 #include <RayPlatform/communication/Message.h>
 #include <RayPlatform/core/ComputeCore.h>
+#include <RayPlatform/cryptography/crypto.h>
 
 #include <iostream>
 using namespace std;
@@ -33,6 +34,13 @@ void Actor::send(int destination, Message * message) {
 
 		message->setBuffer(newBuffer);
 	}
+
+#if 0
+	cout << "DEBUG Actor::send CRC32: ";
+	cout << computeCyclicRedundancyCode32((uint8_t*) message->getBufferBytes(),
+			message->getNumberOfBytes());
+	cout << endl;
+#endif
 
 	// deleguate the message to ComputeCore..
 

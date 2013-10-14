@@ -2179,7 +2179,7 @@ void ComputeCore::sendActorMessage(Message * message) {
 	int sourceRank = getActorRank(sourceActor);
 	int destinationRank = getActorRank(destinationActor);
 
-#if 1
+#if 0
 	cout << "DEBUG ... " << message << " sendActorMessage sourceActor= ";
 	cout << sourceActor << " destinationActor= ";
 	cout << destinationActor << " sourceRank= " << sourceRank;

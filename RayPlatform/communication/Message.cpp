@@ -173,12 +173,12 @@ void Message::saveActorMetaData() {
 
 
 #ifdef CONFIG_ASSERT
-	int bytes = getCount() * sizeof(MessageUnit);
+	int bytes = getNumberOfBytes();
 	uint32_t checksumBefore = computeCyclicRedundancyCode32((uint8_t*)getBuffer(), bytes);
 #endif
 	//cout << "DEBUG saveActorMetaData tag " << getTag() << endl;
 
-	int offset = getCount() * sizeof(MessageUnit);
+	int offset = getNumberOfBytes();
 
 	// actor metadata must be the first to be saved.
 	offset -= 0;
@@ -210,7 +210,7 @@ void Message::printActorMetaData() {
 	cout << "DEBUG printActorMetaData tag= " << getTag();
 	cout << " m_sourceActor = " << getSourceActor();
 	cout << " m_destinationActor = " << getDestinationActor() << " ";
-	cout << " bytes= " << getCount() * sizeof(MessageUnit);
+	cout << " bytes= " << getNumberOfBytes();
 
 }
 
@@ -221,7 +221,7 @@ void Message::loadActorMetaData() {
 	cout << endl;
 */
 	// m_count already contains the actor metadata.
-	int offset = getCount() * sizeof(MessageUnit);
+	int offset = getNumberOfBytes();
 	offset -= 2 * sizeof(int);
 
 	char * memory = (char*) getBuffer();
@@ -266,10 +266,10 @@ void Message::saveRoutingMetaData() {
 	cout << "DEBUG saveRoutingMetaData m_routingSource " << m_routingSource;
 	cout << " m_routingDestination " << m_routingDestination << endl;
 */
-	int offset = getCount() * sizeof(MessageUnit);
+	int offset = getNumberOfBytes();
 	char * memory = (char*) getBuffer();
 
-	// the count already include the actor addresses
+	// the count already includes the actor addresses
 	// this is stupid, but hey, nobody aside me is touching this code
 	// with a ten-foot stick
 	offset -= 2 * sizeof(int);
@@ -297,9 +297,9 @@ int Message::getRoutingDestination() const {
 }
 
 void Message::loadRoutingMetaData() {
-	//cout << "DEBUG loadRoutingMetaData count " << getCount() << endl;
+	//cout << "DEBUG loadRoutingMetaData count " << getNumberOfBytes() << endl;
 
-	int offset = getCount() * sizeof(MessageUnit);
+	int offset = getNumberOfBytes();
 
 	// m_count contains actor metadata *AND* routing metadata (if necessary)
 	offset -= 2 * sizeof(int);
@@ -336,10 +336,10 @@ void Message::loadRoutingMetaData() {
 void Message::displayMetaData() {
 	Message * aMessage = this;
 
-	cout << " DEBUG displayMetaData count " << aMessage->getCount();
+	cout << " DEBUG displayMetaData count " << aMessage->getNumberOfBytes();
 	cout << " tag " << getTag() << endl;
 
-	int offset = getCount() * sizeof(MessageUnit) - 2 * 2 * sizeof(int);
+	int offset = getNumberOfBytes() - 2 * 2 * sizeof(int);
 
 	for(int i = 0 ; i < 4 ; ++i) {
 		cout << " [" << i << " -> " << ((int*)aMessage->getBuffer())[offset + i] << "]";
