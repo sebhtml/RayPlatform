@@ -149,6 +149,8 @@ void MessagesHandler::sendAndReceiveMessagesForRankProcess(ComputeCore**cores,in
  * For very large jobs, this might need to be increased
  * in order to avoid the situation in which
  * all the buffer for the outbox are dirty/used.
+ *
+ * TODO: fix mini-rank code.
  */
 void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*outboxBufferAllocator,
 	int miniRanksPerRank){
@@ -684,10 +686,12 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	if(count > 0){
 		incoming=(MessageUnit*)core->getInboxAllocator()->allocate(count*sizeof(MessageUnit));
 
-		memcpy(incoming,staticBuffer,count*sizeof(MessageUnit));
+		memcpy(incoming,staticBuffer,count);
 	}
 
 	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
+	aMessage.setNumberOfBytes(count);
+
 	core->getInbox()->push_back(&aMessage);
 
 	#ifdef ASSERT
@@ -750,7 +754,8 @@ void MessagesHandler::constructor(int*argc,char***argv){
 
 	m_sentMessages=0;
 	m_receivedMessages=0;
-	m_datatype=MPI_UNSIGNED_LONG_LONG;
+	//m_datatype=MPI_UNSIGNED_LONG_LONG;
+	m_datatype=MPI_BYTE;
 
 	#ifdef CONFIG_MINI_RANKS_disabled
 	
@@ -1006,7 +1011,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		Message*aMessage=((*outbox)[i]);
 		Rank destination=aMessage->getDestination();
 		void*buffer=aMessage->getBuffer();
-		int count=aMessage->getCount();
+		int count=aMessage->getNumberOfBytes();
 		MessageTag tag=aMessage->getTag();
 
 		#ifdef ASSERT
@@ -1127,6 +1132,8 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 	MPI_Recv(incoming,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
 
 	Message aMessage(incoming,count,m_rank,actualTag,actualSource);
+	aMessage.setNumberOfBytes(count);
+
 	inbox->push_back(&aMessage);
 
 	#ifdef ASSERT
