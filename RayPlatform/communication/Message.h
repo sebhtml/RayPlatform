@@ -84,7 +84,7 @@ private:
 
 	/** the message body, contains data
  * 	if NULL, m_count must be 0 */
-	MessageUnit*m_buffer;
+	void * m_buffer;
 
 	/** the number of uint64_t that the m_buffer contains
  * 	can be 0 regardless of m_buffer value
@@ -116,8 +116,9 @@ private:
 public:
 	Message();
 	~Message();
-	Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source);
-	MessageUnit*getBuffer();
+	Message(MessageUnit * b,int c,Rank dest,MessageTag tag,Rank source);
+	MessageUnit *getBuffer();
+	void *getBufferBytes();
 	int getCount() const;
 /**
  * Returns the destination MPI rank
@@ -135,7 +136,7 @@ public:
 
 	void print();
 
-	void setBuffer(MessageUnit*buffer);
+	void setBuffer(void*buffer);
 
 	void setTag(MessageTag tag);
 

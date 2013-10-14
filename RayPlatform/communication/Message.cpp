@@ -88,6 +88,10 @@ Message::Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source){
 }
 
 MessageUnit*Message::getBuffer(){
+	return (MessageUnit*)m_buffer;
+}
+
+void * Message::getBufferBytes() {
 	return m_buffer;
 }
 
@@ -117,11 +121,11 @@ void Message::print(){
 	cout<<" Count: "<<getCount();
 
 	if(getCount() > 0){
-		cout<<" Overlay: "<<m_buffer[0];
+		cout<<" Overlay: "<<getBuffer()[0];
 	}
 }
 
-void Message::setBuffer(MessageUnit*buffer){
+void Message::setBuffer(void *buffer){
 	m_buffer = buffer;
 }
 

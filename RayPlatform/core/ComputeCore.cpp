@@ -290,7 +290,9 @@ void ComputeCore::bootActors() {
 
 	//cout << "DEBUG ... bootActors" << endl;
 
-	for(int i = 0 ; i < (int) m_actors.size() ; ++i) {
+	int toBoot = m_actors.size();
+
+	for(int i = 0 ; i < toBoot ; ++i) {
 
 		Actor * actor = m_actors[i];
 		if(actor == NULL) {
@@ -306,7 +308,7 @@ void ComputeCore::bootActors() {
 		message.setSourceActor(name);
 		message.setDestinationActor(name);
 
-		//cout << "DEBUG booting actor # " << name << endl;
+		cout << "DEBUG booting actor # " << name << endl;
 
 		receiveActorMessage(&message);
 	}
@@ -2177,14 +2179,15 @@ void ComputeCore::sendActorMessage(Message * message) {
 	int sourceRank = getActorRank(sourceActor);
 	int destinationRank = getActorRank(destinationActor);
 
-#if 0
+#if 1
 	cout << "DEBUG ... " << message << " sendActorMessage sourceActor= ";
 	cout << sourceActor << " destinationActor= ";
 	cout << destinationActor << " sourceRank= " << sourceRank;
 	cout << " tag= " << message->getTag();
-	cout << " count= " << message->getCount();
+	cout << " bytes= " << message->getNumberOfBytes();
 	cout << " destinationRank= " << destinationRank << endl;
 #endif
+
 	message->setSource(sourceRank);
 	message->setDestination(destinationRank);
 

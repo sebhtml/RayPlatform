@@ -348,7 +348,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
  * The code below reads at most one message.
  */
 
-	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
+	MPI_Datatype datatype= m_datatype;
 	int actualTag=status.MPI_TAG;
 	Rank actualSource=status.MPI_SOURCE;
 	int count=-1;
@@ -538,7 +538,7 @@ void MessagesHandler::receiveMessages_irecv_testany(StaticVector*inbox,RingAlloc
 	if(hasCompleted==0)
 		return;
 
-	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
+	MPI_Datatype datatype= m_datatype;
 	MessageTag actualTag=status.MPI_TAG;
 	Rank actualSource=status.MPI_SOURCE;
 	int count=-1;
@@ -644,7 +644,7 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 		return;
 
 	/* read at most one message */
-	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
+	MPI_Datatype datatype= m_datatype;
 	int actualTag=status.MPI_TAG;
 	Rank actualSource=status.MPI_SOURCE;
 	int count=-1;
@@ -1109,7 +1109,7 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 		return;
 
 	/* read at most one message */
-	MPI_Datatype datatype=MPI_UNSIGNED_LONG_LONG;
+	MPI_Datatype datatype= m_datatype;
 	int actualTag=status.MPI_TAG;
 	Rank actualSource=status.MPI_SOURCE;
 	int count=-1;
