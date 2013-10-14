@@ -89,7 +89,8 @@ private:
 	/** the number of uint64_t that the m_buffer contains
  * 	can be 0 regardless of m_buffer value
  * 	*/
-	int m_count;
+	//int m_count;
+	int m_bytes;
 
 	/** the Message-passing interface rank destination
  * 	Must be >=0 and <= MPI_Comm_size()-1 */
@@ -143,6 +144,8 @@ public:
 	void setDestination(Rank destination);
 
 	void setCount(int count);
+	void setNumberOfBytes(int bytes);
+	int getNumberOfBytes() const;
 
 	// actor model endpoints
 

@@ -56,7 +56,8 @@ Message::Message() {
 
 void Message::initialize() {
 	m_buffer = NULL;
-	m_count = 0;
+	//m_count = 0;
+	m_bytes = 0;
 	m_tag = 0;
 	m_source = 0;
 	m_destination = 0;
@@ -73,7 +74,8 @@ Message::Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source){
 	initialize();
 
 	m_buffer=b;
-	m_count=c;
+	//m_count=c;
+	m_bytes = c * sizeof(MessageUnit);
 	m_destination=dest;
 	m_tag=tag;
 	m_source=source;
@@ -90,7 +92,7 @@ MessageUnit*Message::getBuffer(){
 }
 
 int Message::getCount() const{
-	return m_count;
+	return m_bytes / sizeof(MessageUnit);
 }
 
 Rank Message::getDestination() const{
@@ -114,7 +116,7 @@ void Message::print(){
 	cout<<" RealTag: "<<getTag();
 	cout<<" Count: "<<getCount();
 
-	if(m_count > 0){
+	if(getCount() > 0){
 		cout<<" Overlay: "<<m_buffer[0];
 	}
 }
@@ -128,7 +130,8 @@ void Message::setTag(MessageTag tag){
 }
 
 void Message::setCount(int count){
-	m_count=count;
+	//m_count=count;
+	m_bytes = count * sizeof(MessageUnit);
 }
 
 void Message::setSource(Rank source){
@@ -182,7 +185,9 @@ void Message::saveActorMetaData() {
 	memcpy(memory + offset + MESSAGE_META_DATA_ACTOR_DESTINATION, &m_destinationActor, sizeof(int));
 	//printActorMetaData();
 
-	m_count += 1; // add 1 uint64_t
+	setNumberOfBytes(getNumberOfBytes() + 2 * sizeof(int));
+	//setCount(m_count + 1);
+	//m_count += 1; // add 1 uint64_t
 
 	/*
 	cout << "DEBUG after saveActorMetaData ";
@@ -201,7 +206,7 @@ void Message::printActorMetaData() {
 	cout << "DEBUG printActorMetaData tag= " << getTag();
 	cout << " m_sourceActor = " << getSourceActor();
 	cout << " m_destinationActor = " << getDestinationActor() << " ";
-	cout << " bytes= " << m_count * sizeof(MessageUnit);
+	cout << " bytes= " << getCount() * sizeof(MessageUnit);
 
 }
 
@@ -227,7 +232,9 @@ void Message::loadActorMetaData() {
 */
 	// remove 1 uint64_t
 	
-	m_count -= 1;
+	setNumberOfBytes(getNumberOfBytes() - 2 * sizeof(int));
+	//setCount(m_count - 1);
+	//m_count -= 1;
 /*
 	cout << "DEBUG after loadActorMetaData -> ";
 	printActorMetaData();
@@ -267,8 +274,8 @@ void Message::saveRoutingMetaData() {
 	memcpy(memory + offset + MESSAGE_META_DATA_ROUTE_DESTINATION, &m_routingDestination, sizeof(int));
 	//printActorMetaData();
 
-
-	m_count += 1; // add 1 uint64_t
+	setNumberOfBytes(getNumberOfBytes() + 2 * sizeof(int));
+	//m_count += 1; // add 1 uint64_t
 
 	//cout << "DEBUG saved routing metadata at offset " << offset << " new count " << m_count << endl;
 	//displayMetaData();
@@ -299,7 +306,8 @@ void Message::loadRoutingMetaData() {
 	memcpy(&m_routingSource, memory + offset + MESSAGE_META_DATA_ROUTE_SOURCE, sizeof(int));
 	memcpy(&m_routingDestination, memory + offset + MESSAGE_META_DATA_ROUTE_DESTINATION, sizeof(int));
 
-	m_count -= 1;
+	setNumberOfBytes(getNumberOfBytes() - 2 * sizeof(int));
+	//m_count -= 1;
 
 	/*
 	cout << "DEBUG loadRoutingMetaData ";
@@ -334,4 +342,13 @@ void Message::displayMetaData() {
 	}
 	cout << endl;
 
+}
+
+void Message::setNumberOfBytes(int bytes) {
+
+	m_bytes = bytes;
+}
+
+int Message::getNumberOfBytes() const {
+	return m_bytes;
 }
