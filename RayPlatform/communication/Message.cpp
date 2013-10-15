@@ -178,10 +178,23 @@ void Message::setDestinationActor(int destinationActor) {
 
 void Message::saveActorMetaData() {
 
+	// write rank numbers for these.
+	// MPI ranks actually have actor names too !
+	if(m_sourceActor < 0 && m_destinationActor < 0) {
+		m_sourceActor = m_source;
+		m_destinationActor = m_destination;
+	}
 
 #ifdef CONFIG_ASSERT
 	int bytes = getNumberOfBytes();
 	uint32_t checksumBefore = computeCyclicRedundancyCode32((uint8_t*)getBuffer(), bytes);
+
+	if(m_sourceActor < 0) {
+		cout << "Error m_sourceActor " << m_sourceActor;
+		printActorMetaData();
+	}
+	assert(m_sourceActor >= 0);
+	assert(m_destinationActor >= 0);
 #endif
 	//cout << "DEBUG saveActorMetaData tag " << getTag() << endl;
 
@@ -251,6 +264,12 @@ void Message::loadActorMetaData() {
 	printActorMetaData();
 	cout << endl;
 	*/
+
+#ifdef CONFIG_ASSERT
+	assert(m_sourceActor >= 0);
+	assert(m_destinationActor >= 0);
+#endif
+
 }
 
 int Message::getMetaDataSize() const {
@@ -268,6 +287,11 @@ void Message::setRoutingDestination(int destination) {
 }
 
 void Message::saveRoutingMetaData() {
+
+#ifdef CONFIG_ASSERT
+	assert(m_routingSource >= 0);
+	assert(m_routingDestination >= 0);
+#endif
 
 	/*
 	cout << "DEBUG saveRoutingMetaData m_routingSource " << m_routingSource;

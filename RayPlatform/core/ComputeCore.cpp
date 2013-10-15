@@ -2185,6 +2185,15 @@ void ComputeCore::sendActorMessage(Message * message) {
 	int sourceRank = getActorRank(sourceActor);
 	int destinationRank = getActorRank(destinationActor);
 
+#ifdef CONFIG_ASSERT
+	assert(sourceActor >= 0);
+	assert(destinationActor >= 0);
+	assert(sourceRank >= 0);
+	assert(destinationRank >= 0);
+	assert(sourceRank < getSize());
+	assert(destinationRank < getSize());
+#endif
+
 #if 0
 	cout << "DEBUG ... " << message << " sendActorMessage sourceActor= ";
 	cout << sourceActor << " destinationActor= ";
@@ -2216,14 +2225,26 @@ void ComputeCore::receiveActorMessage(Message * message) {
 
 	int index = actorName / getSize();
 
-	/*
+#ifdef CONFIG_ASSERT
+	if(index < 0) {
+		cout << "Error: negative actor name.";
+		cout << " actorName " << actorName;
+		cout << " getSize " << getSize();
+		cout << " index " << index;
+		message->printActorMetaData();
+		cout << endl;
+	}
+	assert(index >= 0);
+#endif
+
+#if 0
 	cout << "DEBUG .... Rank= " << getRank();
 	cout << " tag= " << message->getTag();
 	cout << " receiveActorMessage actorName= " << actorName;
 	cout << " index=> " << index;
 	message->printActorMetaData();
 	cout << endl;
-	*/
+#endif
 
 	if(!(index < (int) m_actors.size()))
 		return;
@@ -2232,6 +2253,10 @@ void ComputeCore::receiveActorMessage(Message * message) {
 
 	if(actor == NULL)
 		return;
+
+#ifdef CONFIG_ASSERT
+	assert( message != NULL );
+#endif
 
 	actor->receive(*message);
 
