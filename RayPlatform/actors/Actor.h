@@ -1,3 +1,22 @@
+/*
+    Copyright 2013 Sébastien Boisvert
+    Copyright 2013 Université Laval
+    Copyright 2013 Centre Hospitalier Universitaire de Québec
+
+    This file is part of the actor model implementation in RayPlatform.
+
+    RayPlatform is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License.
+
+    RayPlatform is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with RayPlatform.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 // author: Sébastien Boisvert
 // Université Laval 2013-10-10
