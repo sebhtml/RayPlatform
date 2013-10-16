@@ -84,6 +84,7 @@ obj-y += RayPlatform/store/KeyValueStoreRequest.o
 # Gul Agha, Massachusetts Institute of Technology, Cambridge, MA
 # Actors: a model of concurrent computation in distributed systems
 # http://dl.acm.org/citation.cfm?id=7929
-
 obj-y += RayPlatform/actors/Actor.o
 
+# file operations
+obj-y += RayPlatform/files/FileReader.o
