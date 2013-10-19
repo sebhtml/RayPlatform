@@ -27,6 +27,7 @@
 
 class ComputeCore;
 class Message;
+class Playground;
 
 #include <RayPlatform/communication/Message.h>
 
@@ -40,7 +41,7 @@ class Actor {
 
 private:
 	int m_name;
-	ComputeCore * m_core;
+	Playground * m_core;
 	bool m_dead;
 
 	void send(int destination, Message * message);
@@ -56,7 +57,7 @@ public:
 	virtual void receive(Message & message) = 0;
 	void send(int destination, Message & message);
 	void spawn(Actor * actor);
-	void configureStuff(int name, ComputeCore * kernel);
+	void configureStuff(int name, Playground * kernel);
 	int getName() const;
 	void printName() const;
 

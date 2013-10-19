@@ -53,7 +53,7 @@
 
 #include <RayPlatform/store/KeyValueStore.h>
 
-#include <RayPlatform/actors/Actor.h>
+#include <RayPlatform/actors/Playground.h>
 
 #include <iostream>
 using namespace std;
@@ -74,11 +74,9 @@ using namespace std;
  */
 class ComputeCore{
 
-	time_t m_lastTerminalProbeOperation;
+	//time_t m_lastTerminalProbeOperation;
 
-	vector<Actor*> m_actors;
-	int m_actorIterator;
-	int m_aliveActors;
+	Playground m_playground;
 
 	KeyValueStore m_keyValueStore;
 
@@ -250,7 +248,6 @@ class ComputeCore{
 	void configureEngine();
 
 	bool isRankAlive() const;
-	bool hasAliveActors() const;
 
 public:
 	/** this is the main method */
@@ -416,27 +413,9 @@ Not all master modes have yet been ported to that list.
 	KeyValueStore & getKeyValueStore();
 	bool debugModeIsEnabled();
 
-
-	// actor stuff !!!
-	
-	/**
-	 * assign a unique identifier to the actor
-	 * and add it to the party team.
-	 */
+	Playground * getPlayground();
 	void spawnActor(Actor * actor);
-
-	/**
-	 * send a message to an actor.
-	 */
-	void sendActorMessage(Message * message);
-
-	/**
-	 * receive a message for an actor.
-	 */
-	void receiveActorMessage(Message * message);
-	void bootActors();
 	void send(Message * message);
-	int getActorRank(int name) const;
 };
 
 #endif

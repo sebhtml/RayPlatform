@@ -78,7 +78,7 @@ void Actor::spawn(Actor * actor) {
 	m_core->spawnActor(actor);
 }
 
-void Actor::configureStuff(int name, ComputeCore * kernel) {
+void Actor::configureStuff(int name, Playground * kernel) {
 
 	m_name = name;
 	m_core = kernel;

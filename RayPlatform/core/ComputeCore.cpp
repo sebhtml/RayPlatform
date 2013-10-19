@@ -1,19 +1,19 @@
 /*
- 	RayPlatform: a message-passing development framework
-    Copyright (C) 2010, 2011, 2012, 2013 Sébastien Boisvert
+ 	rayplatform: a message-passing development framework
+    copyright (c) 2010, 2011, 2012, 2013 sébastien boisvert
 
-	http://github.com/sebhtml/RayPlatform
+	http://github.com/sebhtml/rayplatform
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as published by
-    the Free Software Foundation, version 3 of the License.
+    this program is free software: you can redistribute it and/or modify
+    it under the terms of the gnu lesser general public license as published by
+    the free software foundation, version 3 of the license.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
+    this program is distributed in the hope that it will be useful,
+    but without any warranty; without even the implied warranty of
+    merchantability or fitness for a particular purpose.  see the
+    gnu lesser general public license for more details.
 
-    You have received a copy of the GNU Lesser General Public License
+    you have received a copy of the gnu lesser general public license
     along with this program (lgpl-3.0.txt).
 	see <http://www.gnu.org/licenses/>
 
@@ -69,8 +69,8 @@ void handleSignal(int signalNumber) {
 
 ComputeCore::ComputeCore(){
 
-	m_actorIterator = 0;
-	m_aliveActors = 0;
+	m_playground.initialize(this);
+
 }
 
 void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,SlaveModeHandlerReference object){
@@ -287,34 +287,6 @@ void ComputeCore::runVanilla(){
 	}
 }
 
-void ComputeCore::bootActors() {
-
-	//cout << "DEBUG ... bootActors" << endl;
-
-	int toBoot = m_actors.size();
-
-	for(int i = 0 ; i < toBoot ; ++i) {
-
-		Actor * actor = m_actors[i];
-		if(actor == NULL) {
-			continue;
-		}
-
-		int name = actor->getName();
-
-		Message message;
-		message.setTag(Actor::BOOT);
-		message.setSource(getRank());
-		message.setDestination(getRank());
-		message.setSourceActor(name);
-		message.setDestinationActor(name);
-
-		//cout << "DEBUG booting actor # " << name << endl;
-
-		receiveActorMessage(&message);
-	}
-}
-
 /*
  * This is the main loop of the program.
  * One instance on each MPI rank.
@@ -353,10 +325,10 @@ void ComputeCore::runWithProfiler(){
 
 	uint64_t t=getMilliSeconds();
 
-	m_lastTerminalProbeOperation = time(NULL);
+	//m_lastTerminalProbeOperation = time(NULL);
 	bool profileGranularity = false;
 
-	bootActors();
+	m_playground.bootActors();
 
 	while(isRankAlive()
 			|| (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
@@ -620,7 +592,7 @@ void ComputeCore::processMessages(){
 
 		// dispatch the message
 		if(message->isActorModelMessage()) {
-			receiveActorMessage(message);
+			m_playground.receiveActorMessage(message);
 		}
 	}
 
@@ -2154,64 +2126,14 @@ void ComputeCore::runRayPlatformTerminal() {
 }
 #endif
 
+Playground * ComputeCore::getPlayground() {
+
+	return & m_playground;
+}
 
 void ComputeCore::spawnActor(Actor * actor) {
 
-	// actor 0 on rank 0 is the rank itself !
-	// actor i on rank i is the rank itself too.
-	if(m_actorIterator == 0) {
-		m_actorIterator++;
-		Actor * actor = NULL;
-		m_actors.push_back(actor);
-	}
-
-	int identifier = getRank() + m_actorIterator * getSize();
-	actor->configureStuff(identifier, this);
-
-	//cout << "DEBUG ... spawnActor name= " << identifier << endl;
-
-	m_actors.push_back(actor);
-
-	m_actorIterator++;
-
-	m_aliveActors ++;
-}
-
-void ComputeCore::sendActorMessage(Message * message) {
-
-	int sourceActor = message->getSourceActor();
-	int destinationActor = message->getDestinationActor();
-
-	int sourceRank = getActorRank(sourceActor);
-	int destinationRank = getActorRank(destinationActor);
-
-#ifdef CONFIG_ASSERT
-	assert(sourceActor >= 0);
-	assert(destinationActor >= 0);
-	assert(sourceRank >= 0);
-	assert(destinationRank >= 0);
-	assert(sourceRank < getSize());
-	assert(destinationRank < getSize());
-#endif
-
-#if 0
-	cout << "DEBUG ... " << message << " sendActorMessage sourceActor= ";
-	cout << sourceActor << " destinationActor= ";
-	cout << destinationActor << " sourceRank= " << sourceRank;
-	cout << " tag= " << message->getTag();
-	cout << " bytes= " << message->getNumberOfBytes();
-	cout << " destinationRank= " << destinationRank << endl;
-#endif
-
-	message->setSource(sourceRank);
-	message->setDestination(destinationRank);
-
-	send(message);
-}
-
-int ComputeCore::getActorRank(int name) const {
-
-	return name % getSize();
+	getPlayground()->spawnActor(actor);
 }
 
 void ComputeCore::send(Message * message) {
@@ -2219,71 +2141,12 @@ void ComputeCore::send(Message * message) {
 	m_outbox.push_back(message);
 }
 
-void ComputeCore::receiveActorMessage(Message * message) {
-
-	int actorName = message->getDestinationActor();
-
-	int index = actorName / getSize();
-
-#ifdef CONFIG_ASSERT
-	if(index < 0) {
-		cout << "Error: negative actor name.";
-		cout << " actorName " << actorName;
-		cout << " getSize " << getSize();
-		cout << " index " << index;
-		message->printActorMetaData();
-		cout << endl;
-	}
-	assert(index >= 0);
-#endif
-
-#if 0
-	cout << "DEBUG .... Rank= " << getRank();
-	cout << " tag= " << message->getTag();
-	cout << " receiveActorMessage actorName= " << actorName;
-	cout << " index=> " << index;
-	message->printActorMetaData();
-	cout << endl;
-#endif
-
-	if(!(index < (int) m_actors.size()))
-		return;
-
-	Actor * actor = m_actors[index];
-
-	if(actor == NULL)
-		return;
-
-#ifdef CONFIG_ASSERT
-	assert( message != NULL );
-#endif
-
-	actor->receive(*message);
-
-	if(actor->isDead()) {
-
-		m_aliveActors --;
-
-		/*
-		cout << "DEBUG ComputeCore actor " << actor->getName() << " died, remaining: ";
-		cout << m_aliveActors << endl;
-		*/
-
-		delete actor;
-		actor = NULL;
-		m_actors[index] = NULL;
-	}
-}
-
 bool ComputeCore::isRankAlive() const {
 
-	if(hasAliveActors())
+	if(m_playground.hasAliveActors())
 		return true;
 
 	return m_alive;
 }
 
-bool ComputeCore::hasAliveActors() const {
 
-	return m_aliveActors > 0;
-}
