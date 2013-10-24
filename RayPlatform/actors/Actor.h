@@ -48,7 +48,8 @@ private:
 public:
 	
 	enum {
-		BOOT = 10000
+		FIRST_TAG = 10000,
+		BOOT
 	};
 
 	Actor();
