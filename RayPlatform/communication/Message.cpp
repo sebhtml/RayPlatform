@@ -91,8 +91,8 @@ MessageUnit*Message::getBuffer(){
 	return (MessageUnit*)m_buffer;
 }
 
-void * Message::getBufferBytes() {
-	return m_buffer;
+char * Message::getBufferBytes() {
+	return (char*) m_buffer;
 }
 
 int Message::getCount() const{

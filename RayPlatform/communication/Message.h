@@ -118,7 +118,7 @@ public:
 	~Message();
 	Message(MessageUnit * b,int c,Rank dest,MessageTag tag,Rank source);
 	MessageUnit *getBuffer();
-	void *getBufferBytes();
+	char * getBufferBytes();
 	int getCount() const;
 /**
  * Returns the destination MPI rank
