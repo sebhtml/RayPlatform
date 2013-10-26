@@ -30,6 +30,10 @@ using namespace std;
 class ComputeCore;
 class RingAllocator;
 
+/**
+ * This is part of the
+ * RayPlatform Actor Playground API
+ */
 class Playground {
 
 private:

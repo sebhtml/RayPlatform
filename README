@@ -12,7 +12,15 @@ programming model where MPI ranks and mini-ranks exist. Mini-ranks run in separa
 threads inside a MPI rank process. This eases the usage of a superior hybrid
 model with MPI and threads (pthread).
 
-## Illustration 
+## Models
+
+Mainly two models are available:
+
+- Rank model (with RayPlatform Plugin API)
+- Actor Model (with the RayPlatform Actor Playground API)
+
+
+## Illustration of the RayPlatform Plugin API
 
 +--------------------------------------------------------------------------+
 |                                                                          |
@@ -38,7 +46,7 @@ model with MPI and threads (pthread).
 
 ## Projects using RayPlatform 
 
-- The Ray genome assembler
+- The Ray genome assembler (and also Ray Meta, Ray Communities, Ray Surveyor)
 	http://github.com/sebhtml/ray
 - RayPlatform example
 	http://github.com/sebhtml/RayPlatform-example

@@ -34,6 +34,9 @@ class Playground;
 /**
  * actor model.
  *
+ * This is part of the
+ * RayPlatform Actor Playground API
+ *
  * \author Sébastien Boisvert
  * \see https://github.com/sebhtml/BioActors
  */

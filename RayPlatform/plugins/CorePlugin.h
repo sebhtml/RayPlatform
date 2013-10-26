@@ -91,6 +91,10 @@ class corePlugin;
 class ComputeCore;
 
 /** 
+ * This is part of the
+ *
+ * RayPlatform Plugin API
+ *
  * In the Ray Platform, plugins are registered onto the
  * core (ComputeCore).
  * The only method of this interface is to register the plugin.
