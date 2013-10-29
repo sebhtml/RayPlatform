@@ -7,10 +7,6 @@ added on the RayPlatform compute engine.
 It uses the message-passing interface for interprocess communication, but this is
 transparent to the developer.
 
-*** RayPlatform now implements the mini-ranks programming model. It is a hybrid
-programming model where MPI ranks and mini-ranks exist. Mini-ranks run in separate
-threads inside a MPI rank process. This eases the usage of a superior hybrid
-model with MPI and threads (pthread).
 
 ## Models
 
@@ -19,9 +15,15 @@ Mainly two models are available:
 - Rank model (with RayPlatform Plugin API)
 - Actor Model (with the RayPlatform Actor Playground API)
 
+Also: RayPlatform implements a "mini-ranks" programming model. It is a hybrid
+programming model where MPI ranks and mini-ranks exist. Mini-ranks run in separate
+threads inside a MPI rank process. This eases the usage of a superior hybrid
+model with MPI and threads (pthread). But the actor model is superior in every aspect.
+
 
 ## Illustration of the RayPlatform Plugin API
 
+```
 +--------------------------------------------------------------------------+
 |                                                                          |
 |                                Application                               |
@@ -43,6 +45,7 @@ Mainly two models are available:
 |                        Message Passing Interface                         |
 |                                                                          |
 +--------------------------------------------------------------------------+
+```
 
 ## Projects using RayPlatform 
 
