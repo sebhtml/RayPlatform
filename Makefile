@@ -3,11 +3,11 @@
 # based on http://www.ravnborg.org/kbuild/makefiles.html
 #
 
-VERSION = 1
-PATCHLEVEL = 1
-SUBLEVEL = 2
-EXTRAVERSION = -devel
-NAME = Nested Droids of Luck
+VERSION = 2
+PATCHLEVEL = 0
+SUBLEVEL = 0
+EXTRAVERSION =
+NAME =  Actor Nest
 
 RAYPLATFORM_VERSION = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 
