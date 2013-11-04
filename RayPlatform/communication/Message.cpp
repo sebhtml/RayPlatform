@@ -34,6 +34,7 @@ using namespace std;
 #endif
 
 #define ACTOR_MODEL_NOBODY -1
+#define ROUTING_NO_VALUE -1
 
 /**
  * We always pad the buffer with actor source and actor destination.
@@ -42,11 +43,11 @@ using namespace std;
  *
 
  */
-#define MESSAGE_META_DATA_ACTOR_SOURCE		0
-#define MESSAGE_META_DATA_ACTOR_DESTINATION	4
-#define MESSAGE_META_DATA_ROUTE_SOURCE	 	8
-#define MESSAGE_META_DATA_ROUTE_DESTINATION	12
-#define MESSAGE_META_DATA_CHECKSUM	 	16
+#define MESSAGE_META_DATA_ACTOR_SOURCE		(0 * sizeof(int) )
+#define MESSAGE_META_DATA_ACTOR_DESTINATION	(1 * sizeof(int) )
+#define MESSAGE_META_DATA_ROUTE_SOURCE	 	(2 * sizeof(int) )
+#define MESSAGE_META_DATA_ROUTE_DESTINATION	(3 * sizeof(int) )
+#define MESSAGE_META_DATA_CHECKSUM	 	(4 * sizeof(int) )
 
 
 Message::Message() {
@@ -63,6 +64,9 @@ void Message::initialize() {
 	m_destination = 0;
 	m_sourceActor = ACTOR_MODEL_NOBODY;
 	m_destinationActor = ACTOR_MODEL_NOBODY;
+
+	m_routingSource = ROUTING_NO_VALUE;
+	m_routingDestination = ROUTING_NO_VALUE;
 }
 
 Message::~Message() {
@@ -118,7 +122,7 @@ void Message::print(){
 
 	cout<<"Source: "<<getSource()<<" Destination: "<<getDestination();
 
-	if(isActorModelMessage()) {
+	if(isActorModelMessage(0)) {
 		cout << " ActorModel: Yes.";
 	} else {
 		cout <<" Tag: "<<MESSAGE_TAGS[shortTag];
@@ -130,6 +134,14 @@ void Message::print(){
 	if(getCount() > 0){
 		cout<<" Overlay: "<<getBuffer()[0];
 	}
+
+	cout << " Bytes: " << m_bytes;
+	cout << " SourceActor: " << m_sourceActor;
+	cout << " DestinationActor: " << m_destinationActor;
+	cout << " RoutingSource: " << m_routingSource;
+	cout << " RoutingDestination: " << m_routingDestination;
+
+	cout << endl;
 }
 
 void Message::setBuffer(void *buffer){
@@ -153,10 +165,20 @@ void Message::setDestination(Rank destination){
 	m_destination=destination;
 }
 
-bool Message::isActorModelMessage() const {
+bool Message::isActorModelMessage(int size) const {
 
-	return ( m_sourceActor != ACTOR_MODEL_NOBODY
-		       	&& m_destinationActor != ACTOR_MODEL_NOBODY );
+	// source actor is actually a MPI rank !
+	// this method is only important to the destination actor.
+	if(false && m_sourceActor < size)
+		return false;
+
+	// destination actor is actually a MPI rank
+	if(m_destinationActor < size)
+		return false;
+
+	// otherwise, it is an actor message !
+
+	return true;
 }
 
 
@@ -178,6 +200,9 @@ void Message::setDestinationActor(int destinationActor) {
 
 void Message::saveActorMetaData() {
 
+	// actor model metadata is the first to be saved.
+	// So we don't have anything to remove from offset.
+
 	// write rank numbers for these.
 	// MPI ranks actually have actor names too !
 	if(m_sourceActor < 0 && m_destinationActor < 0) {
@@ -195,7 +220,12 @@ void Message::saveActorMetaData() {
 	}
 	assert(m_sourceActor >= 0);
 	assert(m_destinationActor >= 0);
+
+	// check that the overwrite worked.
+	assert(m_sourceActor != ACTOR_MODEL_NOBODY);
+	assert(m_destinationActor != ACTOR_MODEL_NOBODY);
 #endif
+
 	//cout << "DEBUG saveActorMetaData tag " << getTag() << endl;
 
 	int offset = getNumberOfBytes();
@@ -240,9 +270,10 @@ void Message::loadActorMetaData() {
 	printActorMetaData();
 	cout << endl;
 */
-	// m_count already contains the actor metadata.
+	// the buffer contains the actor metadata. and routing metadata.
 	int offset = getNumberOfBytes();
 	offset -= 2 * sizeof(int);
+	//offset -= 2 * sizeof(int);
 
 	char * memory = (char*) getBuffer();
 
@@ -255,7 +286,7 @@ void Message::loadActorMetaData() {
 	cout << " m_destinationActor= " << m_destinationActor << endl;
 */
 	// remove 1 uint64_t
-	
+
 	setNumberOfBytes(getNumberOfBytes() - 2 * sizeof(int));
 	//setCount(m_count - 1);
 	//m_count -= 1;
@@ -266,8 +297,13 @@ void Message::loadActorMetaData() {
 	*/
 
 #ifdef CONFIG_ASSERT
-	assert(m_sourceActor >= 0);
-	assert(m_destinationActor >= 0);
+	if(!(m_sourceActor >= 0 || m_sourceActor == ACTOR_MODEL_NOBODY)) {
+		cout << "Error: m_sourceActor " << m_sourceActor << endl;
+		print();
+	}
+
+	assert(m_sourceActor >= 0 || m_sourceActor == ACTOR_MODEL_NOBODY);
+	assert(m_destinationActor >= 0 || m_destinationActor == ACTOR_MODEL_NOBODY);
 #endif
 
 }
@@ -289,8 +325,8 @@ void Message::setRoutingDestination(int destination) {
 void Message::saveRoutingMetaData() {
 
 #ifdef CONFIG_ASSERT
-	assert(m_routingSource >= 0);
-	assert(m_routingDestination >= 0);
+	assert(m_routingSource >= 0 || m_routingSource == ROUTING_NO_VALUE);
+	assert(m_routingDestination >= 0 || m_routingDestination == ROUTING_NO_VALUE);
 #endif
 
 	/*
@@ -314,6 +350,11 @@ void Message::saveRoutingMetaData() {
 
 	//cout << "DEBUG saved routing metadata at offset " << offset << " new count " << m_count << endl;
 	//displayMetaData();
+
+#ifdef CONFIG_ASSERT
+	assert(getNumberOfBytes() <= (int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES + 4 * sizeof(int)));
+#endif
+
 }
 
 
@@ -336,6 +377,8 @@ void Message::loadRoutingMetaData() {
 	offset -= 2 * sizeof(int);
 	offset -= 2 * sizeof(int);
 
+	//cout << "Bytes before: " << m_bytes << endl;
+
 	char * memory = (char*) getBuffer();
 
 	memcpy(&m_routingSource, memory + offset + MESSAGE_META_DATA_ROUTE_SOURCE, sizeof(int));
@@ -344,7 +387,7 @@ void Message::loadRoutingMetaData() {
 	setNumberOfBytes(getNumberOfBytes() - 2 * sizeof(int));
 	//m_count -= 1;
 
-	/*
+#if 0
 	cout << "DEBUG loadRoutingMetaData ";
 	cout << "loaded m_routingSource ";
 	cout << m_routingSource;
@@ -352,15 +395,19 @@ void Message::loadRoutingMetaData() {
 	cout << " offset " << offset ;
 	printActorMetaData();
 	cout << endl;
-	*/
+#endif
 
 	//displayMetaData();
 
 	// these can not be negative, otherwise
 	// this method would not have been called now.
 #ifdef CONFIG_ASSERT
-	assert(m_routingSource >= 0);
-	assert(m_routingDestination >= 0);
+	if(!((m_routingSource >= 0 || m_routingSource == ROUTING_NO_VALUE))) {
+		print();
+	}
+
+	assert(m_routingSource >= 0 || m_routingSource == ROUTING_NO_VALUE);
+	assert(m_routingDestination >= 0 || m_routingDestination == ROUTING_NO_VALUE);
 #endif
 }
 
@@ -386,4 +433,18 @@ void Message::setNumberOfBytes(int bytes) {
 
 int Message::getNumberOfBytes() const {
 	return m_bytes;
+}
+
+void Message::runAssertions() {
+
+#ifdef CONFIG_ASSERT
+
+	assert(m_source >= 0);
+	assert(m_destination >= 0);
+	assert(m_sourceActor >= 0);
+	assert(m_destinationActor >= 0);
+	assert(m_routingSource >= 0 || m_routingSource == ROUTING_NO_VALUE);
+	assert(m_routingDestination >= 0 || m_routingDestination == ROUTING_NO_VALUE);
+#endif
+
 }

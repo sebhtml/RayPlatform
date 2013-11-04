@@ -110,34 +110,19 @@ void MessageRouter::routeOutcomingMessages(){
 
 		MessageUnit*buffer=aMessage->getBuffer();
 
-		// we need space for routing information
-		// also, if this is a control message sent to all, we need
-		// to allocate new buffers.
-		// There is no problem at rewritting buffers that have non-null buffers,
-		// but it is useless if the buffer is used once.
-		// So numberOfMessages==m_size is just an optimization.
-		if(aMessage->getBuffer()==NULL||numberOfMessages==m_size){
-
-			#ifdef ASSERT
-			assert(aMessage->getCount()==0||numberOfMessages==m_size);
-			#endif
-
-			buffer=(MessageUnit*)m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
-
-			#ifdef ASSERT
-			assert(buffer!=NULL);
-			#endif
-
-			// copy the old stuff too
-			if(aMessage->getBuffer()!=NULL)
-				memcpy(buffer,aMessage->getBuffer(),aMessage->getCount()*sizeof(MessageUnit));
-
-			aMessage->setBuffer(buffer);
-		}
-
 		// routing information is stored in 64 bits
-		int newCount=aMessage->getCount();
+		// avoid touching this because getCount return the number of MessageUnit whereas
+		// getNumberOfBytes returns bytes. If there are 4 bytes, getCount returns 0 and
+		// setCount will obviously erase the 4 bytes in the count.
+		//
+		// MessageUnit is there fore backward compatibility with old Ray code.
+		//
+		// New code that uses the actor model should use  setNumberOfBytes,
+		// setBuffer, and setTag.
+		// source and destination are set by the send command (plugin method)
+		/* int newCount=aMessage->getCount();
 		aMessage->setCount(newCount);
+		*/
 
 		#ifdef ASSERT
 		assert(buffer!=NULL);
@@ -145,7 +130,6 @@ void MessageRouter::routeOutcomingMessages(){
 
 		aMessage->setRoutingSource(trueSource);
 		aMessage->setRoutingDestination(trueDestination);
-		aMessage->saveRoutingMetaData();
 
 		/*
 		setSourceInBuffer(buffer,newCount,trueSource);
@@ -194,6 +178,7 @@ void MessageRouter::routeOutcomingMessages(){
  * \returns true if rerouted something.
  */
 bool MessageRouter::routeIncomingMessages(){
+
 	int numberOfMessages=m_inbox->size();
 
 	#ifdef CONFIG_ROUTING_VERBOSITY
@@ -227,7 +212,6 @@ bool MessageRouter::routeIncomingMessages(){
 
 	// at this point, we know there is a routing activity to perform.
 	//MessageUnit*buffer=aMessage->getBuffer();
-	aMessage->loadRoutingMetaData();
 
 	#ifdef CONFIG_ROUTING_VERBOSITY
 	int count=aMessage->getCount();
@@ -243,6 +227,11 @@ bool MessageRouter::routeIncomingMessages(){
 
 	Rank trueSource = aMessage->getRoutingSource();
 	Rank trueDestination = aMessage->getRoutingDestination();
+
+#ifdef CONFIG_ASSERT
+	assert(trueSource >= 0);
+	assert(trueDestination >= 0);
+#endif
 
 	//cout << "DEBUG after loading metadata: trueDestination= ";
 	//cout << trueDestination << " trueSource " << trueSource << endl;
@@ -271,17 +260,17 @@ bool MessageRouter::routeIncomingMessages(){
 		#endif
 
 		// remove the routing stuff
-		int newCount=aMessage->getCount();
+		//int newCount=aMessage->getCount();
 
 		#ifdef ASSERT
-		assert(newCount>=0);
+		//assert(newCount>=0);
 		#endif
 
-		aMessage->setCount(newCount);
+		//aMessage->setCount(newCount);
 
 		// set the buffer to NULL if there is no data
-		if(newCount==0)
-			aMessage->setBuffer(NULL);
+		//if(newCount==0)
+			//aMessage->setBuffer(NULL);
 
 		return false;
 	}
@@ -291,6 +280,10 @@ bool MessageRouter::routeIncomingMessages(){
 	#endif
 
 #ifdef CONFIG_ASSERT
+	if(!((trueDestination >= 0 && trueDestination < m_size))) {
+		cout << "Error trueDestination " << trueDestination << endl;
+	}
+
 	assert(trueDestination >= 0 && trueDestination < m_size);
 	assert(trueSource >= 0 && trueSource < m_size);
 	assert(m_rank >= 0 && m_rank < m_size);
@@ -326,17 +319,18 @@ bool MessageRouter::routeIncomingMessages(){
  */
 void MessageRouter::relayMessage(Message*message,Rank destination){
 
-	int count=message->getCount();
+	int count=message->getNumberOfBytes();
 
 	// routed messages always have a payload
+	// but the metadata is saved later.
 	#ifdef ASSERT
-	assert(count>=1);
+	assert(count>=0);
 	#endif
 
 	MessageUnit*outgoingMessage=(MessageUnit*)m_outboxAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 
 	// copy the data into the new buffer
-	memcpy(outgoingMessage,message->getBuffer(),count*sizeof(MessageUnit));
+	memcpy(outgoingMessage, message->getBuffer(), count*sizeof(char));
 	message->setBuffer(outgoingMessage);
 
 	#ifdef CONFIG_ROUTING_VERBOSITY
@@ -349,13 +343,12 @@ void MessageRouter::relayMessage(Message*message,Rank destination){
 	message->setSource(m_rank);
 	message->setDestination(destination);
 
-	// package routing metadata for the delivery onto the network !!!
-	message->saveRoutingMetaData();
-
 	#ifdef ASSERT
 	assert(m_graph.isConnected(m_rank,destination));
 	#endif
 
+	// since we used the old message to create this new one,
+	// all the metadata should still be there.
 	m_outbox->push_back(message);
 }
 

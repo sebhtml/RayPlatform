@@ -151,7 +151,7 @@ public:
 	// actor model endpoints
 
 
-	bool isActorModelMessage() const;
+	bool isActorModelMessage(int ranks) const;
 
 	int getDestinationActor() const;
 	int getSourceActor() const;
@@ -171,6 +171,7 @@ public:
 	void loadRoutingMetaData();
 	void displayMetaData();
 
+	void runAssertions();
 };
 
 #endif

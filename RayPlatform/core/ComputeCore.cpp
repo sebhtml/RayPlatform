@@ -547,6 +547,8 @@ void ComputeCore::runWithProfiler(){
 		// 4. send messages
 		sendMessages();
 
+		m_outboxAllocator.resetCount();
+
 		/* increment ticks */
 		ticks++;
 		globalTicks ++;
@@ -564,6 +566,15 @@ void ComputeCore::processMessages(){
 	if(m_inbox.size()==0)
 		return;
 
+	int i = 0;
+
+	Message * importantMessage = m_inbox.at(i);
+
+	// TODO: don't transport routing metadata if routing is disabled !
+	// save actor metadata
+	//
+	// load routing and acting metadata in the reverse order
+	// in which they were saved !!!
 
 	// if routing is enabled, we want to strip the routing tags if it
 	// is required
@@ -582,18 +593,12 @@ void ComputeCore::processMessages(){
 		}
 	}
 
-	// the message is for us...
-	// load actor metadata
-	for(int i = 0 ; i < (int) m_inbox.size() ; ++i) {
-		Message * message = m_inbox.at(i);
+	// dispatch the message
+	if(importantMessage->isActorModelMessage(m_size)) {
 
-		// save actor metadata
-		message->loadActorMetaData();
+		// cout << "DEBUG actor message detected ! m_size = " << m_size << endl;
 
-		// dispatch the message
-		if(message->isActorModelMessage()) {
-			m_playground.receiveActorMessage(message);
-		}
+		m_playground.receiveActorMessage(importantMessage);
 	}
 
 	if(m_inbox.size() > 0 && m_showCommunicationEvents){
@@ -608,7 +613,7 @@ void ComputeCore::processMessages(){
 
 
 
-	Message*message=m_inbox[0];
+	Message*message= importantMessage;
 	MessageTag messageTag=message->getTag();
 
 	#ifdef ASSERT2
@@ -627,34 +632,56 @@ void ComputeCore::processMessages(){
 
 void ComputeCore::sendMessages(){
 
-	// register actor meta-data
+/*
+ * Don't do anything when there are no messages
+ * at all.
+ * This statement needs to be after the ifdef ASSERT above
+ * otherwise the no resetCount call is performed on the
+ * allocator, which will produce a run-time error.
+ */
+	if(m_outbox.size()==0)
+		return;
+
+	int numberOfMessages = m_outbox.size();
+
+// first, allocate new a new buffer for each message.
+
+	bool forceMemoryReallocation = true;
 
 	for(int i = 0 ; i < (int) m_outbox.size() ; ++i) {
-		Message * message = m_outbox.at(i);
+		Message * aMessage = m_outbox.at(i);
 
-		// we need a buffer to store the actor metadata
-		if(message->getBuffer() == NULL) {
-			void * buffer = m_outboxAllocator.allocate(0);
-			message->setBuffer((MessageUnit*)buffer);
+		// we need space for routing information
+		// also, if this is a control message sent to all, we need
+		// to allocate new buffers.
+		// There is no problem at rewritting buffers that have non-null buffers,
+		// but it is useless if the buffer is used once.
+		// So numberOfMessages==m_size is just an optimization.
+		if(forceMemoryReallocation
+				|| ( aMessage->getBuffer()==NULL||numberOfMessages==m_size)) {
+
+			#ifdef ASSERT
+			assert(forceMemoryReallocation || aMessage->getCount()==0||numberOfMessages==m_size);
+			#endif
+
+			char * buffer=(char*)(MessageUnit*)m_outboxAllocator.allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+
+			#ifdef ASSERT
+			assert(buffer!=NULL);
+			#endif
+
+			// copy the old stuff too
+			if(aMessage->getBuffer()!=NULL) {
+
+				memcpy(buffer, aMessage->getBuffer(), aMessage->getNumberOfBytes() * sizeof(char));
+			}
+
+			aMessage->setBuffer(buffer);
 		}
-
-		/*
-		cout << "DEBUG Before saving ";
-		message->printActorMetaData();
-		cout << endl;
-		*/
-
-		// save actor metadata
-		// routed message already have this
-		if(!m_router.isRoutingTag(message->getTag()))
-			message->saveActorMetaData();
-
-		/*
-		cout << "DEBUG After saving ";
-		message->printActorMetaData();
-		cout << endl;
-		*/
 	}
+
+
+// run some assertions.
 
 /*
  * What follows is all the crap for checking some assertions and
@@ -673,7 +700,6 @@ void ComputeCore::sendMessages(){
 
 	assert(m_outboxAllocator.getCount()<=m_maximumAllocatedOutboxBuffers);
 
-	m_outboxAllocator.resetCount();
 	int messagesToSend=m_outbox.size();
 	if(messagesToSend>m_maximumNumberOfOutboxMessages){
 		cout<<"Fatal: "<<messagesToSend<<" messages to send, but max is "<<m_maximumNumberOfOutboxMessages<<endl;
@@ -693,15 +719,44 @@ void ComputeCore::sendMessages(){
 
 	#endif
 
-/*
- * Don't do anything when there are no messages
- * at all.
- * This statement needs to be after the ifdef ASSERT above
- * otherwise the no resetCount call is performed on the
- * allocator, which will produce a run-time error.
- */
-	if(m_outbox.size()==0)
-		return;
+///////////////////////----------------
+
+
+	// old useless code
+#ifdef OLD_ACTOR_META_CODE
+	// register actor meta-data
+
+	for(int i = 0 ; i < (int) m_outbox.size() ; ++i) {
+		Message * message = m_outbox.at(i);
+
+		// we need a buffer to store the actor metadata
+		if(message->getBuffer() == NULL) {
+			void * buffer = m_outboxAllocator.allocate(0);
+			message->setBuffer((MessageUnit*)buffer);
+		}
+
+		/*
+		cout << "DEBUG Before saving ";
+		message->printActorMetaData();
+		cout << endl;
+		*/
+
+		// save actor metadata
+		// routed message already have this
+		/*if(!m_router.isRoutingTag(message->getTag()))
+			message->saveActorMetaData();
+			*/
+
+		/*
+		cout << "DEBUG After saving ";
+		message->printActorMetaData();
+		cout << endl;
+		*/
+
+
+	}
+#endif
+
 
 	// route messages if the router is enabled
 	if(m_routerIsEnabled){
@@ -709,6 +764,23 @@ void ComputeCore::sendMessages(){
 		// generate routing tags.
 		m_router.routeOutcomingMessages();
 	}
+
+	// save metadata
+	for(int i=0;i<(int)m_outbox.size();i++){
+
+		Message * message = m_outbox.at(i);
+
+		// TODO: only save routing metadata if routing is activated !
+		// this will save 8 bytes per transport operation
+		message->saveActorMetaData();
+		message->saveRoutingMetaData();
+	}
+
+	// add checksums if necessary
+	if(m_doChecksum){
+		addMessageChecksums();
+	}
+
 
 	// parameters.showCommunicationEvents()
 	if( m_showCommunicationEvents && m_outbox.size() > 0){
@@ -724,10 +796,29 @@ void ComputeCore::sendMessages(){
 		m_tickLogger.logSendMessage(INVALID_HANDLE);
 	}
 
-	// add checksums if necessary
-	if(m_doChecksum){
-		addMessageChecksums();
+
+#ifdef CONFIG_ASSERT
+
+	for(int i=0;i<(int)m_outbox.size();i++){
+
+		Message * message = m_outbox.at(i);
+
+		message->runAssertions();
+
+//#define INVESTIGATION_2013_11_04
+#ifdef INVESTIGATION_2013_11_04
+		if(message->getTag() == 17) {
+
+			cout << "DEBUG INVESTIGATION_2013_11_04 ";
+			cout << (void*) message->getBufferBytes();
+			cout << endl;
+		}
+#endif
+
+
 	}
+
+#endif
 
 	// finally, send the messages
 
@@ -849,6 +940,18 @@ void ComputeCore::receiveMessages(){
 		m_messagesHandler->receiveMessagesForComputeCore(&m_inbox,&m_inboxAllocator,&m_bufferedInbox);
 
 	}
+
+	if(m_inbox.size() == 0)
+		return;
+
+	// load metadata.
+
+	//cout << "DEBUG loading message metadata." << endl;
+
+	Message * importantMessage = m_inbox.at(0);
+	importantMessage->loadRoutingMetaData();
+	importantMessage->loadActorMetaData();
+
 
 	// verify checksums and remove them
 	if(m_doChecksum){

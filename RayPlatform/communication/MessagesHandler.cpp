@@ -1126,7 +1126,7 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 
 	MessageUnit*incoming=NULL;
 	if(count > 0){
-		incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
+		incoming=(MessageUnit*)inboxAllocator->allocate(count * sizeof(char));
 	}
 
 	MPI_Recv(incoming,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
