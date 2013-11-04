@@ -77,6 +77,7 @@ class ComputeCore{
 	//time_t m_lastTerminalProbeOperation;
 
 	Playground m_playground;
+	bool m_useActorModelOnly;
 
 	KeyValueStore m_keyValueStore;
 
@@ -416,6 +417,9 @@ Not all master modes have yet been ported to that list.
 	Playground * getPlayground();
 	void spawnActor(Actor * actor);
 	void send(Message * message);
+
+	void setActorModelOnly();
+	bool useActorModelOnly() const ;
 };
 
 #endif

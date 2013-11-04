@@ -69,6 +69,7 @@ void handleSignal(int signalNumber) {
 
 ComputeCore::ComputeCore(){
 
+	m_useActorModelOnly = false;
 	m_playground.initialize(this);
 
 }
@@ -504,7 +505,11 @@ void ComputeCore::runWithProfiler(){
 		int currentSlaveMode=m_switchMan.getSlaveMode();
 
 		uint64_t startingTime = getThreadMicroseconds();
-		processData();
+
+		if(!useActorModelOnly()) {
+			processData();
+		}
+
 		uint64_t endingTime = getThreadMicroseconds();
 
 		int difference = endingTime - startingTime;
@@ -2249,7 +2254,22 @@ bool ComputeCore::isRankAlive() const {
 	if(m_playground.hasAliveActors())
 		return true;
 
+	// if only the actor model is used, the rank is basically
+	// dead if all its actors are dead !
+	if(useActorModelOnly())
+		return false;
+
+	// otherwise, we use the life indicator for the rank
+
 	return m_alive;
 }
 
+bool ComputeCore::useActorModelOnly() const {
 
+	return m_useActorModelOnly;
+}
+
+void ComputeCore::setActorModelOnly() {
+
+	m_useActorModelOnly = true;
+}
