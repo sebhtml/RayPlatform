@@ -250,6 +250,7 @@ class ComputeCore{
 
 	bool isRankAlive() const;
 
+	void spawnActor(Actor * actor);
 public:
 	/** this is the main method */
 	void run();
@@ -415,8 +416,8 @@ Not all master modes have yet been ported to that list.
 	bool debugModeIsEnabled();
 
 	Playground * getPlayground();
-	void spawnActor(Actor * actor);
 	void send(Message * message);
+	void spawn(Actor * actor);
 
 	void setActorModelOnly();
 	bool useActorModelOnly() const ;

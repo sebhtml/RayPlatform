@@ -2275,3 +2275,8 @@ void ComputeCore::setActorModelOnly() {
 
 	m_useActorModelOnly = true;
 }
+
+void ComputeCore::spawn(Actor * actor) {
+
+	spawnActor( actor );
+}
