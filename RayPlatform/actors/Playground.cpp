@@ -34,6 +34,10 @@ Playground::Playground() {
 
 	m_actorIterator = 0;
 	m_aliveActors = 0;
+
+	m_zombieActors = 0;
+	m_deadActors = 0;
+	m_bornActors = 0;
 }
 
 Playground::~Playground() {
@@ -60,6 +64,8 @@ void Playground::spawnActor(Actor * actor) {
 	m_actorIterator++;
 
 	m_aliveActors ++;
+
+	m_bornActors ++;
 }
 
 void Playground::sendActorMessage(Message * message) {
@@ -153,6 +159,9 @@ void Playground::receiveActorMessage(Message * message) {
 
 		m_aliveActors --;
 
+		m_deadActors ++;
+		m_zombieActors += 0;
+
 		/*
 		cout << "DEBUG Playground actor " << actor->getName() << " died, remaining: ";
 		cout << m_aliveActors << endl;
@@ -208,4 +217,21 @@ ComputeCore * Playground::getComputeCore() {
 RingAllocator * Playground::getOutboxAllocator() {
 
 	return getComputeCore()->getOutboxAllocator();
+}
+
+int Playground::getNumberOfAliveActors() const {
+
+	return m_aliveActors;
+}
+
+void Playground::printStatus() const {
+
+	cout << "[Playground] Actors: ";
+	cout << "| Born " << m_bornActors;
+	cout << "| Dead " << m_deadActors;
+	cout << "| Defunct " << m_zombieActors;
+	cout << "| Alive " << m_aliveActors;
+
+	cout << endl;
+
 }

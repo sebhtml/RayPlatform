@@ -41,6 +41,9 @@ private:
 	vector<Actor*> m_actors;
 	int m_actorIterator;
 	int m_aliveActors;
+	int m_deadActors;
+	int m_zombieActors;
+	int m_bornActors;
 	ComputeCore * m_computeCore;
 
 public:
@@ -76,6 +79,10 @@ public:
 
 	int getRank() const;
 	int getSize() const;
+
+	int getNumberOfAliveActors() const;
+
+	void printStatus() const;
 };
 
 #endif

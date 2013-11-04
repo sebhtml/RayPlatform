@@ -366,6 +366,7 @@ void ComputeCore::runWithProfiler(){
 				cout << seconds * 1000 << " ms ! (tick # " << globalTicks;
 				cout << "), length is ";
 				cout << resolution << " ms" << endl;
+				m_playground.printStatus();
 
 				status.getProcessStatus();
 				status.printMemoryMetrics();
