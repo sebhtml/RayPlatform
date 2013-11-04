@@ -137,6 +137,7 @@ public:
 	void printStatus();
 
 	bool isRegistered(int handle);
+	void printBufferStatus() const;
 };
 
 

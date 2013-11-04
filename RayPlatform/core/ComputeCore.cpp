@@ -367,6 +367,7 @@ void ComputeCore::runWithProfiler(){
 				cout << "), length is ";
 				cout << resolution << " ms" << endl;
 				m_playground.printStatus();
+				m_outboxAllocator.printBufferStatus();
 
 				status.getProcessStatus();
 				status.printMemoryMetrics();

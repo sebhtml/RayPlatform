@@ -532,5 +532,14 @@ void RingAllocator::printStatus(){
 	cout<<"Rank "<<m_rank<<": "<<m_linearSweeps<<" linear sweep operations (threshold: ";
 	cout<<m_minimumNumberOfDirtyBuffersForSweep<<" dirty buffers)"<<endl;
 	#endif
+}
 
+void RingAllocator::printBufferStatus() const {
+
+	cout << "[RingAllocator] circular buffer recycling system -> ";
+	cout << "| All " << m_chunks << "";
+	cout << "| BUFFER_STATE_AVAILABLE " << m_availableBuffers<< "";
+	cout << "| BUFFER_STATE_DIRTY " << m_numberOfDirtyBuffers << "";
+	cout << "| SweepCount " << m_linearSweeps;
+	cout << endl;
 }
