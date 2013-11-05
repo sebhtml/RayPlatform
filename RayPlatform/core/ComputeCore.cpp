@@ -671,7 +671,7 @@ void ComputeCore::sendMessages(){
 			assert(forceMemoryReallocation || aMessage->getCount()==0||numberOfMessages==m_size);
 			#endif
 
-			char * buffer=(char*)(MessageUnit*)m_outboxAllocator.allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+			char * buffer=(char*)m_outboxAllocator.allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 
 			#ifdef ASSERT
 			assert(buffer!=NULL);
@@ -739,7 +739,7 @@ void ComputeCore::sendMessages(){
 		// we need a buffer to store the actor metadata
 		if(message->getBuffer() == NULL) {
 			void * buffer = m_outboxAllocator.allocate(0);
-			message->setBuffer((MessageUnit*)buffer);
+			message->setBuffer(buffer);
 		}
 
 		/*
@@ -889,8 +889,8 @@ void ComputeCore::verifyMessageChecksums(){
 		assert(message->getNumberOfBytes() >= 0);
 #endif
 
-		// the last MessageUnit contains the crc32.
-		// note that the CRC32 feature only works for MessageUnit at least
+		// the last Message Unit contains the crc32.
+		// note that the CRC32 feature only works for Message Unit at least
 		// 32 bits.
 		int numberOfBytes = m_inbox.at(i)->getNumberOfBytes();
 
@@ -1056,7 +1056,7 @@ void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberO
 	#endif
 
 	// checksum calculation is only tested
-	// for cases with sizeof(MessageUnit)>=4 bytes
+	// for cases with sizeof(Message Unit)>=4 bytes
 
 	m_routerIsEnabled=false;
 
@@ -1183,33 +1183,75 @@ void ComputeCore::configureEngine() {
 	cout<<"[ComputeCore] the outbox capacity is "<<m_maximumNumberOfOutboxMessages<<" message"<<endl;
 	#endif
 
-	int maximumMessageSizeInByte=MAXIMUM_MESSAGE_SIZE_IN_BYTES;
+	int maximumMessageSizeInBytes = MAXIMUM_MESSAGE_SIZE_IN_BYTES;
 
 	bool useActorModel = true;
 
 	// add a message unit to store the checksum or the routing information
-	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
+	// with 64-bit integers as Message Unit, this is 4008 bytes or 501 Message Unit maximum
 	// also add 8 bytes for actor metadata
 	// finally, add 4 bytes for the checksum, if necessary.
 
 	if(m_miniRanksAreEnabled || m_doChecksum || m_routerIsEnabled || useActorModel){
 
+		int headerSize = 0;
+
+		headerSize = MESSAGE_META_DATA_SIZE;
+
+		/*
 		// actor model
-		maximumMessageSizeInByte += 2 * sizeof(int) * sizeof(char);
+		headerSize += ( 2 * sizeof(int) * sizeof(char) );
 
 		// routing
-		maximumMessageSizeInByte += 2 * sizeof(int) * sizeof(char);
+		headerSize += ( 2 * sizeof(int) * sizeof(char));
 
 		// checksum
-		maximumMessageSizeInByte += 1 * sizeof(uint32_t) * sizeof(char);
+		headerSize += ( 1 * sizeof(uint32_t) * sizeof(char) );
+*/
+
+		cout << "DEBUG MAXIMUM_MESSAGE_SIZE_IN_BYTES " << MAXIMUM_MESSAGE_SIZE_IN_BYTES;
+		cout << " headerSize " << headerSize << endl;
+
+		// align this on 8 bytes because there is still something in the code
+		// that is incorrect apparently.
+		//
+		// TODO: find why this needs to be aligned on 8 bytes. This is related to 
+		// sizeof(MessageUnit) being 8 bytes.
+		//
+		// => it is likely because of the underlying system that evolved to
+		// use 64 bits per message unit.
+
+		bool align = true;
+		//align = false;
+
+		int base = 8;
+		int remainder = headerSize % base;
+
+		if(align && remainder != 0) {
+	
+			int toAdd = base - remainder;
+
+			headerSize += toAdd;
+		}
+
+		cout << " headerSize (with padding) " << headerSize << endl;
+
+		maximumMessageSizeInBytes += headerSize;
 	}
 
+	cout << "DEBUG maximumMessageSizeInBytes " << maximumMessageSizeInBytes << endl;
+
+#ifdef CONFIG_ASSERT
+	assert(maximumMessageSizeInBytes >= MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+	assert(maximumMessageSizeInBytes >= MAXIMUM_MESSAGE_SIZE_IN_BYTES + 20);// we need 20 bytes for storing message header
+#endif
+
 	m_inboxAllocator.constructor(m_maximumAllocatedInboxBuffers,
-		maximumMessageSizeInByte,
+		maximumMessageSizeInBytes,
 		"RAY_MALLOC_TYPE_INBOX_ALLOCATOR",false);
 
 	m_outboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
-		maximumMessageSizeInByte,
+		maximumMessageSizeInBytes,
 		"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR",false);
 
 	if(m_miniRanksAreEnabled){
@@ -1219,18 +1261,18 @@ void ComputeCore::configureEngine() {
 		#endif
 
 		m_bufferedInboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
-			maximumMessageSizeInByte,
+			maximumMessageSizeInBytes,
 			"RAY_MALLOC_TYPE_INBOX_ALLOCATOR/Buffered",false);
 
 		m_bufferedOutboxAllocator.constructor(m_maximumAllocatedOutboxBuffers,
-			maximumMessageSizeInByte,
+			maximumMessageSizeInBytes,
 			"RAY_MALLOC_TYPE_OUTBOX_ALLOCATOR/Buffered",false);
 
 	}
 
 	#ifdef CONFIG_DEBUG_CORE
-	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for inbox messages"<<endl;
-	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedOutboxBuffers<<" buffers of size "<<maximumMessageSizeInByte<<" for outbox messages"<<endl;
+	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedInboxBuffers<<" buffers of size "<<maximumMessageSizeInBytes<<" for inbox messages"<<endl;
+	cout<<"[ComputeCore] allocated "<<m_maximumAllocatedOutboxBuffers<<" buffers of size "<<maximumMessageSizeInBytes<<" for outbox messages"<<endl;
 	#endif
 
 }

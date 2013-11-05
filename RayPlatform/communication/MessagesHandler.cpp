@@ -656,7 +656,7 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	assert(count >= 0);
 	#endif
 
-	MessageUnit staticBuffer[MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)+2];
+	char staticBuffer[MAXIMUM_MESSAGE_SIZE_IN_BYTES + MESSAGE_META_DATA_SIZE];
 
 	MPI_Recv(staticBuffer,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
 
@@ -1124,9 +1124,9 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 	assert(count >= 0);
 	#endif
 
-	MessageUnit*incoming=NULL;
+	char * incoming=NULL;
 	if(count > 0){
-		incoming=(MessageUnit*)inboxAllocator->allocate(count * sizeof(char));
+		incoming=(char*)inboxAllocator->allocate(count * sizeof(char));
 	}
 
 	MPI_Recv(incoming,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);

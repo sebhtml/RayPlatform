@@ -43,12 +43,6 @@ using namespace std;
  *
 
  */
-#define MESSAGE_META_DATA_ACTOR_SOURCE		(0 * sizeof(int) )
-#define MESSAGE_META_DATA_ACTOR_DESTINATION	(1 * sizeof(int) )
-#define MESSAGE_META_DATA_ROUTE_SOURCE	 	(2 * sizeof(int) )
-#define MESSAGE_META_DATA_ROUTE_DESTINATION	(3 * sizeof(int) )
-#define MESSAGE_META_DATA_CHECKSUM	 	(4 * sizeof(int) )
-
 
 Message::Message() {
 
@@ -72,8 +66,10 @@ void Message::initialize() {
 Message::~Message() {
 }
 
-/** buffer must be allocated or else it will CORE DUMP. */
-Message::Message(MessageUnit*b,int c,Rank dest,MessageTag tag,Rank source){
+/**
+ * buffer must be allocated or else it will CORE DUMP.
+ */
+Message::Message(void*b,int c,Rank dest,MessageTag tag,Rank source){
 
 	initialize();
 
