@@ -845,24 +845,26 @@ void ComputeCore::sendMessages(){
 void ComputeCore::addMessageChecksums(){
 
 	int count=m_outbox.size();
-	for(int i=0;i<count;i++){
-		MessageUnit*data=m_outbox.at(i)->getBuffer();
-		int numberOfUnits=m_outbox.at(i)->getCount();
 
+	for(int i=0;i<count;i++){
+
+		char * data=m_outbox.at(i)->getBufferBytes();
+		int numberOfBytes = m_outbox.at(i)->getNumberOfBytes();
+
+		/*
 		// don't compute checksum for empty messages
-		if(numberOfUnits==0){
+		if(bytes == 0){
 			continue;
 		}
-
-		int numberOfBytes=sizeof(MessageUnit)*numberOfUnits;
+		*/
 
 		uint8_t*bytes=(uint8_t*)data;
 
 		uint32_t crc32=computeCyclicRedundancyCode32(bytes,numberOfBytes);
 
-		data[numberOfUnits]=crc32;
+		memcpy(bytes + numberOfBytes, &crc32, sizeof(crc32));
 
-		m_outbox.at(i)->setCount(numberOfUnits+1);
+		m_outbox.at(i)->setNumberOfBytes(numberOfBytes + sizeof(crc32));
 	}
 
 }
@@ -871,28 +873,37 @@ void ComputeCore::verifyMessageChecksums(){
 
 	int count=m_inbox.size();
 	for(int i=0;i<count;i++){
-		MessageUnit*data=m_inbox.at(i)->getBuffer();
 
-		// this contains the checksum unit too.
-		int numberOfUnits=m_inbox.at(i)->getCount();
+		Message * message = m_inbox.at(i);
 
-		// don't compute checksum for empty messages
-		if(numberOfUnits==0){
-			continue;
-		}
+		uint32_t crc32 = 0;
+		char * data = message->getBufferBytes();
+
+#ifdef CONFIG_ASSERT
+		assert(message->getNumberOfBytes() >= (int) sizeof(crc32));
+#endif
+
+		message->setNumberOfBytes(message->getNumberOfBytes() - sizeof(crc32));
+
+#ifdef CONFIG_ASSERT
+		assert(message->getNumberOfBytes() >= 0);
+#endif
 
 		// the last MessageUnit contains the crc32.
 		// note that the CRC32 feature only works for MessageUnit at least
 		// 32 bits.
-		int numberOfBytes=sizeof(MessageUnit)*(numberOfUnits-1);
+		int numberOfBytes = m_inbox.at(i)->getNumberOfBytes();
 
 		uint8_t*bytes=(uint8_t*)data;
 
 		// compute the checksum, excluding the reference checksum
 		// from the data
-		uint32_t crc32=computeCyclicRedundancyCode32(bytes,numberOfBytes);
+		crc32 = computeCyclicRedundancyCode32((uint8_t*)bytes, numberOfBytes);
 
-		uint32_t expectedChecksum=data[numberOfUnits-1];
+		uint32_t expectedChecksum = 0;
+
+		memcpy(&expectedChecksum, data + numberOfBytes,
+			sizeof(expectedChecksum));
 
 		#ifdef CONFIG_SHOW_CHECKSUM
 		cout<<" Expected checksum (CRC32): "<<hex<<expectedChecksum<<endl;
@@ -902,25 +913,14 @@ void ComputeCore::verifyMessageChecksums(){
 		if(crc32 != expectedChecksum){
 			Message*message=m_inbox.at(i);
 			cout<<"Error: RayPlatform detected a message corruption !"<<endl;
-			cout<<" Tag: "<<MESSAGE_TAGS[message->getTag()]<<endl;
+			cout<<" Tag: " << message->getTag() << endl;
 			cout<<" Source: "<<message->getSource()<<endl;
 			cout<<" Destination: "<<message->getDestination()<<endl;
-			cout<<" sizeof(MessageUnit): "<<sizeof(MessageUnit)<<endl;
-			cout<<" Count (excluding checksum): "<<numberOfUnits-1<<endl;
+			cout<<" Bytes (excluding checksum): "<< numberOfBytes << endl;
 			cout<<" Expected checksum (CRC32): "<<hex<<expectedChecksum<<endl;
 			cout<<" Actual checksum (CRC32): "<<hex<<crc32<<dec<<endl;
 		}
 
-		#ifdef ASSERT
-		assert(numberOfUnits>=2);
-		#endif
-
-		// remove the checksum
-		m_inbox.at(i)->setCount(numberOfUnits-1);
-
-		#ifdef ASSERT
-		assert(numberOfUnits>=1);
-		#endif
 	}
 
 }
@@ -956,14 +956,17 @@ void ComputeCore::receiveMessages(){
 	//cout << "DEBUG loading message metadata." << endl;
 
 	Message * importantMessage = m_inbox.at(0);
-	importantMessage->loadRoutingMetaData();
-	importantMessage->loadActorMetaData();
-
 
 	// verify checksums and remove them
+	// messages are line onions, you have to peel them from the outside to the inside
 	if(m_doChecksum){
 		verifyMessageChecksums();
 	}
+
+
+	importantMessage->loadRoutingMetaData();
+	importantMessage->loadActorMetaData();
+
 
 	for(int i=0;i<(int)m_inbox.size();i++){
 		m_tickLogger.logReceivedMessage(INVALID_HANDLE);
@@ -1187,14 +1190,18 @@ void ComputeCore::configureEngine() {
 	// add a message unit to store the checksum or the routing information
 	// with 64-bit integers as MessageUnit, this is 4008 bytes or 501 MessageUnit maximum
 	// also add 8 bytes for actor metadata
+	// finally, add 4 bytes for the checksum, if necessary.
+
 	if(m_miniRanksAreEnabled || m_doChecksum || m_routerIsEnabled || useActorModel){
-		if(sizeof(MessageUnit)>=4){
-			maximumMessageSizeInByte+=(2 + 2)*sizeof(MessageUnit);
-		}else if(sizeof(MessageUnit)>=2){
-			maximumMessageSizeInByte+=(2 + 2) *2*sizeof(MessageUnit);
-		}else{
-			maximumMessageSizeInByte+=(2 + 2) *4*sizeof(MessageUnit);
-		}
+
+		// actor model
+		maximumMessageSizeInByte += 2 * sizeof(int) * sizeof(char);
+
+		// routing
+		maximumMessageSizeInByte += 2 * sizeof(int) * sizeof(char);
+
+		// checksum
+		maximumMessageSizeInByte += 1 * sizeof(uint32_t) * sizeof(char);
 	}
 
 	m_inboxAllocator.constructor(m_maximumAllocatedInboxBuffers,
