@@ -27,6 +27,7 @@
 #include <RayPlatform/communication/Message.h>
 #include <RayPlatform/core/ComputeCore.h>
 #include <RayPlatform/cryptography/crypto.h>
+#include <string.h>
 
 #include <iostream>
 using namespace std;
