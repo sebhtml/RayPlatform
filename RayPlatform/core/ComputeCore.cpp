@@ -1209,8 +1209,10 @@ void ComputeCore::configureEngine() {
 		headerSize += ( 1 * sizeof(uint32_t) * sizeof(char) );
 */
 
+/*
 		cout << "DEBUG MAXIMUM_MESSAGE_SIZE_IN_BYTES " << MAXIMUM_MESSAGE_SIZE_IN_BYTES;
 		cout << " headerSize " << headerSize << endl;
+		*/
 
 		// align this on 8 bytes because there is still something in the code
 		// that is incorrect apparently.
@@ -1234,12 +1236,12 @@ void ComputeCore::configureEngine() {
 			headerSize += toAdd;
 		}
 
-		cout << " headerSize (with padding) " << headerSize << endl;
+		//cout << " headerSize (with padding) " << headerSize << endl;
 
 		maximumMessageSizeInBytes += headerSize;
 	}
 
-	cout << "DEBUG maximumMessageSizeInBytes " << maximumMessageSizeInBytes << endl;
+	//cout << "DEBUG maximumMessageSizeInBytes " << maximumMessageSizeInBytes << endl;
 
 #ifdef CONFIG_ASSERT
 	assert(maximumMessageSizeInBytes >= MAXIMUM_MESSAGE_SIZE_IN_BYTES);

@@ -55,6 +55,7 @@ public:
 	void getline(char * buffer, int size);
 	void close();
 	bool eof();
+	bool isValid();
 };
 
 #endif

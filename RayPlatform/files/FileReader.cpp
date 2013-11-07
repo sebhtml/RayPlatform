@@ -177,3 +177,7 @@ bool FileReader::eof() {
 	//return m_reader.eof();
 }
 
+bool FileReader::isValid() {
+
+	return m_reader.good();
+}
