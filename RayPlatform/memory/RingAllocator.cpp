@@ -257,6 +257,14 @@ int RingAllocator::getBufferHandle(void*buffer){
 	uint64_t originValue=(uint64_t)origin;
 	uint64_t bufferValue=(uint64_t)buffer;
 
+#ifdef CONFIG_ASSERT
+	if(!(bufferValue >= originValue)) {
+		cout << "Error: buffer is too low: " << buffer;
+		cout << " but base is " << (void*)m_memory << endl;
+	}
+	assert(bufferValue >= originValue);
+#endif
+
 	uint64_t difference=bufferValue-originValue;
 
 	int index=difference/(m_max*sizeof(uint8_t));
@@ -484,10 +492,12 @@ MPI_Request * RingAllocator::registerBuffer(void*buffer){
 	MPI_Request*request=NULL;
 
 	// this buffer is not registered.
-	if(handle >=0 && m_dirtyBuffers[handle].getBuffer() == NULL)
+	if(handle >=0 && m_dirtyBuffers[handle].getBuffer() == NULL) {
 		mustRegister=true;
+	}
 
 	#ifdef ASSERT
+	assert(handle >= 0 && handle < m_dirtyBufferSlots);
 	assert(m_dirtyBuffers[handle].getBuffer() == NULL);
 	#endif
 
@@ -507,6 +517,7 @@ MPI_Request * RingAllocator::registerBuffer(void*buffer){
 
 		#ifdef ASSERT
 		assert(m_dirtyBuffers[handle].getBuffer() != NULL);
+		assert(m_dirtyBuffers[handle].getBuffer() == buffer);
 		#endif
 
 		request = (m_dirtyBuffers[handle].getRequest());

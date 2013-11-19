@@ -128,7 +128,7 @@ class MessagesHandler{
  * We need a temporary buffer because we don't know yet 
  * for which mini-rank the message is for.
  */
-	MessageUnit m_staticBuffer[MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)+2];
+	char * m_staticBuffer;
 #endif
 
 	bool m_hasReceivedMessage;
@@ -241,6 +241,10 @@ class MessagesHandler{
 		RingAllocator * outboxBufferAllocator) const;
 
 public:
+
+	MessagesHandler();
+	~MessagesHandler();
+
 /** 
  * initialize the message handler
 */

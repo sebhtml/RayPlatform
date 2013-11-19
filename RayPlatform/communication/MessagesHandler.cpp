@@ -42,6 +42,19 @@ using namespace std;
 
 #ifdef CONFIG_MINI_RANKS
 
+MessagesHandler::MessagesHandler() {
+
+	m_staticBuffer = NULL;
+}
+
+MessagesHandler::~MessagesHandler() {
+
+	if(m_staticBuffer != NULL) {
+		free(m_staticBuffer);
+		m_staticBuffer = NULL;
+	}
+}
+
 /**
  *
  */
@@ -169,7 +182,7 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 		outbox->pop(aMessage);
 
 		int miniRankDestination=aMessage->getDestination();
-		int miniRankSource=aMessage->getSource();
+		//int miniRankSource=aMessage->getSource();
 
 		Rank destination=miniRankDestination/miniRanksPerRank;
 
@@ -178,7 +191,7 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 		#endif
 
 		void*buffer=aMessage->getBuffer();
-		int count=aMessage->getCount();
+		int bytes = aMessage->getNumberOfBytes();
 		MessageTag tag=aMessage->getTag();
 
 		#ifdef ASSERT
@@ -187,7 +200,7 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 			cout<<"Tag="<<tag<<" Destination="<<destination<<endl;
 		}
 		assert(destination<m_size);
-		assert(!(buffer==NULL && count>0));
+		assert(!(buffer==NULL && bytes >0));
 
 		// this assertion is invalid when using checksum calculation.
 		//assert(count<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
@@ -198,15 +211,12 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
  * by using the original buffer directly.
  * But it is not possible because it is not thread-safe to do so.
  */
-		MessageUnit*theBuffer=(MessageUnit*)outboxBufferAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
-		memcpy(theBuffer,buffer,count*sizeof(MessageUnit));
+		char * copiedBuffer=(char*)outboxBufferAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
+		memcpy(copiedBuffer,buffer, bytes);
 
 /*
  * Store minirank information too at the end.
  */
-		theBuffer[count++]=miniRankSource;
-		theBuffer[count++]=miniRankDestination;
-
 		#ifdef CONFIG_DEBUG_MINI_RANK_COMMUNICATION
 		cout<<"SEND Source= "<<miniRankSource<<" Destination= "<<miniRankDestination<<" Tag= "<<tag<<endl;
 		#endif /* CONFIG_DEBUG_MINI_RANK_COMMUNICATION */
@@ -218,27 +228,38 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 /*
  * Check if the buffer is already registered.
  */
-		int bufferHandle=outboxBufferAllocator->getBufferHandle(theBuffer);
+		int bufferHandle=outboxBufferAllocator->getBufferHandle(copiedBuffer);
 		bool registeredAlready=outboxBufferAllocator->isRegistered(bufferHandle);
+
 /*
  * Register the buffer as being dirty.
  */
 
 		if(!registeredAlready) {
 
-			request = this->registerMessageBuffer(buffer, m_rank, destination,
+#ifdef CONFIG_ASSERT
+			int handle = outboxBufferAllocator->getBufferHandle(copiedBuffer);
+			assert(handle >= 0);
+#endif
+
+			request = this->registerMessageBuffer(copiedBuffer, m_rank, destination,
 					tag, outboxBufferAllocator);
+
+			registeredAlready = true;
 
 		}
 
 		#ifdef ASSERT
 		assert(request!=NULL);
-		assert(count>=2);
+		assert(bytes >=2);
 		#endif
 
 		//  MPI_Isend
 		//      Synchronous nonblocking. 
-		MPI_Isend(theBuffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
+
+		int count = bytes;
+
+		MPI_Isend(copiedBuffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
 
 		#if 0
 		// if the message was re-routed, we don't care
@@ -361,20 +382,37 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	assert(count >= 2);// we need mini-rank numbers !
 	#endif
 
+	if(m_staticBuffer == NULL) {
+
+		int requiredBytes = MAXIMUM_MESSAGE_SIZE_IN_BYTES + MESSAGE_META_DATA_SIZE;
+		m_staticBuffer = (char*) malloc(requiredBytes);
+
+#ifdef CONFIG_ASSERT
+		assert(m_staticBuffer != NULL);
+#endif
+	}
 
 	MPI_Recv(m_staticBuffer,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
 
+	//cout << "DEBUG preloading metadata count= " << count << endl;
+
+	Message newMessage(m_staticBuffer, count, -1, actualTag, -1); // here the count is the number of MessageUnit
+	newMessage.setNumberOfBytes(count);
+
+	newMessage.loadMetaData();
+	newMessage.saveMetaData(); // ComputeCore will re-load it anyway
+
 /*
  * Get the mini-rank source and mini-rank destination.
+ * using a temporary message
  */
-	int miniRankSource=m_staticBuffer[count-2];
-	int miniRankDestination=m_staticBuffer[count-1];
+	int miniRankSource = newMessage.getSourceMiniRank();
+	int miniRankDestination = newMessage.getDestinationMiniRank();
 
 	#ifdef CONFIG_DEBUG_MINI_RANK_COMMUNICATION
 	cout<<"RECEIVE Source= "<<miniRankSource<<" Destination= "<<miniRankDestination<<" Tag= "<<actualTag<<endl;
 	#endif /* CONFIG_DEBUG_MINI_RANK_COMMUNICATION */
 
-	count-=2;
 
 	int miniRankIndex=miniRankDestination%miniRanksPerRank;
 
@@ -383,7 +421,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	cout<<" tag is "<<actualTag<<endl;
 	#endif
 
-	MessageUnit*incoming=NULL;
+	char * incoming=NULL;
 
 	ComputeCore*core=cores[miniRankIndex];
 
@@ -409,16 +447,17 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 #endif /* CONFIG_USE_LOCKING */
 
 	if(count > 0){
-		incoming=(MessageUnit*)core->getBufferedInboxAllocator()->allocate(count*sizeof(MessageUnit));
+		incoming=(char*)core->getBufferedInboxAllocator()->allocate(count*sizeof(char));
 
 		#ifdef ASSERT
 		assert(incoming!=NULL);
 		#endif
 
-		memcpy(incoming,m_staticBuffer,count*sizeof(MessageUnit));
+		memcpy(incoming, m_staticBuffer,count*sizeof(char));
 	}
 
-	Message aMessage(incoming,count,miniRankDestination,actualTag,miniRankSource);
+	Message aMessage(incoming,count,miniRankDestination, actualTag,miniRankSource);
+	aMessage.setNumberOfBytes(count);
 
 /*
  * Try to push the message. If it does not work, just try again.
@@ -1197,12 +1236,12 @@ void MessagesHandler::receiveMessagesForComputeCore(StaticVector*inbox,RingAlloc
 		bufferedInbox->pop(&message);
 
 		int count=message.getCount();
-		MessageUnit*incoming=(MessageUnit*)inboxAllocator->allocate(count*sizeof(MessageUnit));
+		char *incoming=(char*)inboxAllocator->allocate(count*sizeof(char));
 
 /*
  * Copy the data, this is slow. 
  */
-		memcpy(incoming,message.getBuffer(),count*sizeof(MessageUnit));
+		memcpy(incoming,message.getBuffer(),count*sizeof(char));
 
 /*
  * Update the buffer so that the code is thread-safe.

@@ -779,8 +779,18 @@ void ComputeCore::sendMessages(){
 
 		// TODO: only save routing metadata if routing is activated !
 		// this will save 8 bytes per transport operation
-		message->saveActorMetaData();
-		message->saveRoutingMetaData();
+
+		// save the minirank number because the mini-rank subsystem needs that
+
+		if(m_miniRanksAreEnabled) {
+			message->setMiniRanks(message->getSource(), message->getDestination());
+		}
+
+		message->saveMetaData();
+
+#ifdef CONFIG_ASSERT
+		message->runAssertions(getSize());
+#endif
 	}
 
 	// add checksums if necessary
@@ -804,13 +814,15 @@ void ComputeCore::sendMessages(){
 	}
 
 
-#ifdef CONFIG_ASSERT
+	#ifdef CONFIG_ASSERT
 
 	for(int i=0;i<(int)m_outbox.size();i++){
 
 		Message * message = m_outbox.at(i);
 
-		message->runAssertions();
+#ifdef CONFIG_ASSERT
+		message->runAssertions(getSize());
+#endif
 
 //#define INVESTIGATION_2013_11_04
 #ifdef INVESTIGATION_2013_11_04
@@ -963,10 +975,11 @@ void ComputeCore::receiveMessages(){
 		verifyMessageChecksums();
 	}
 
+	importantMessage->loadMetaData();
 
-	importantMessage->loadRoutingMetaData();
-	importantMessage->loadActorMetaData();
-
+#ifdef CONFIG_ASSERT
+	importantMessage->runAssertions(getSize());
+#endif
 
 	for(int i=0;i<(int)m_inbox.size();i++){
 		m_tickLogger.logReceivedMessage(INVALID_HANDLE);
@@ -1230,7 +1243,7 @@ void ComputeCore::configureEngine() {
 		int remainder = headerSize % base;
 
 		if(align && remainder != 0) {
-	
+
 			int toAdd = base - remainder;
 
 			headerSize += toAdd;

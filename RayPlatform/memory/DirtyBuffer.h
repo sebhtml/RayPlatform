@@ -33,6 +33,9 @@
  */
 class DirtyBuffer{
 
+	/**
+	 * This entry is occupied if the buffer is not NULL.
+	 */
 	void * m_buffer;
 	MPI_Request m_messageRequest;
 	Rank m_destination;

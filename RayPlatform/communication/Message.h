@@ -26,7 +26,9 @@ see <http://www.gnu.org/licenses/>
 #define MESSAGE_META_DATA_ACTOR_DESTINATION	( MESSAGE_META_DATA_ACTOR_SOURCE + sizeof(int) )
 #define MESSAGE_META_DATA_ROUTE_SOURCE	 	( MESSAGE_META_DATA_ACTOR_DESTINATION + sizeof(int) )
 #define MESSAGE_META_DATA_ROUTE_DESTINATION	( MESSAGE_META_DATA_ROUTE_SOURCE + sizeof(int))
-#define MESSAGE_META_DATA_CHECKSUM	 	( MESSAGE_META_DATA_ROUTE_DESTINATION + sizeof(int))
+#define MESSAGE_META_DATA_MINIRANK_SOURCE       ( MESSAGE_META_DATA_ROUTE_DESTINATION + sizeof(int) )
+#define MESSAGE_META_DATA_MINIRANK_DESTINATION  ( MESSAGE_META_DATA_MINIRANK_SOURCE + sizeof(int) )
+#define MESSAGE_META_DATA_CHECKSUM	 	( MESSAGE_META_DATA_MINIRANK_DESTINATION + sizeof(int))
 #define MESSAGE_META_DATA_SIZE                  ( MESSAGE_META_DATA_CHECKSUM + sizeof(uint32_t) )
 
 
@@ -115,6 +117,9 @@ private:
  * 	Must be >=0 and <= MPI_Comm_size()-1 */
 	Rank m_source;
 
+	int m_miniRankSource;
+	int m_miniRankDestination;
+
 	int m_sourceActor;
 	int m_destinationActor;
 
@@ -122,6 +127,14 @@ private:
 	int m_routingDestination;
 
 	void initialize();
+
+	void loadActorMetaData();
+	void saveActorMetaData();
+	void loadMiniRankMetaData();
+	void saveMiniRankMetaData();
+	void loadRoutingMetaData();
+	void saveRoutingMetaData();
+
 public:
 	Message();
 	~Message();
@@ -173,21 +186,25 @@ public:
 	int getSourceActor() const;
 	void setSourceActor(int sourceActor);
 	void setDestinationActor(int destinationActor);
-	void saveActorMetaData();
-	void loadActorMetaData();
+
 	int getMetaDataSize() const;
 	void printActorMetaData();
 
 	void setRoutingSource(int source);
 	void setRoutingDestination(int destination);
-	void saveRoutingMetaData();
 
 	int getRoutingSource() const;
 	int getRoutingDestination() const;
-	void loadRoutingMetaData();
 	void displayMetaData();
 
-	void runAssertions();
+	void runAssertions(int size);
+
+	void saveMetaData();
+	void loadMetaData();
+
+	void setMiniRanks(int source, int destination);
+	int getDestinationMiniRank();
+	int getSourceMiniRank();
 };
 
 #endif
