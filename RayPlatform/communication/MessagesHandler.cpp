@@ -19,6 +19,8 @@
 
 */
 
+//#define GITHUB_ISSUE_220
+
 #include "MessagesHandler.h"
 #include "MessageRouter.h"
 
@@ -58,7 +60,7 @@ MessagesHandler::~MessagesHandler() {
 /**
  *
  */
-void MessagesHandler::sendAndReceiveMessagesForRankProcess(ComputeCore**cores,int miniRanksPerRank,bool*communicate){
+void MessagesHandler::sendAndReceiveMessagesForRankProcess(ComputeCore**cores,int miniRanksPerRank,bool*communicate) {
 
 	int deadMiniRanks=0;
 
@@ -144,8 +146,15 @@ void MessagesHandler::sendAndReceiveMessagesForRankProcess(ComputeCore**cores,in
  * Since all mini-ranks died, it is no longer necessasry to do
  * the communication.
  */
-	if(deadMiniRanks==miniRanksPerRank)
+	if(deadMiniRanks==miniRanksPerRank) {
+
+		/*
+		cout << "DEBUG deadMiniRanks " << deadMiniRanks;
+		cout << " miniRanksPerRank " << miniRanksPerRank << endl;
+		*/
+
 		(*communicate)=false;
+	}
 }
 
 #endif
@@ -190,9 +199,18 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 		Rank source=miniRankSource/miniRanksPerRank;
 		#endif
 
-		void*buffer=aMessage->getBuffer();
+		char * buffer=aMessage->getBufferBytes();
 		int bytes = aMessage->getNumberOfBytes();
 		MessageTag tag=aMessage->getTag();
+
+#ifdef GITHUB_ISSUE_220
+		if(tag == 17) {
+
+			cout << "DEBUG buffer for message in buffered outbox" << endl;
+			Message dummy2;
+			dummy2.printBuffer(buffer, bytes);
+		}
+#endif
 
 		#ifdef ASSERT
 		assert(destination>=0);
@@ -212,7 +230,15 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
  * But it is not possible because it is not thread-safe to do so.
  */
 		char * copiedBuffer=(char*)outboxBufferAllocator->allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
-		memcpy(copiedBuffer,buffer, bytes);
+		memcpy(copiedBuffer, buffer, bytes);
+
+#ifdef GITHUB_ISSUE_220
+		if(tag == 17) {
+			cout << "DEBUG Copying " << bytes << " bytes for tag=17" << endl;
+			Message dummy;
+			dummy.printBuffer(copiedBuffer, bytes);
+		}
+#endif
 
 /*
  * Store minirank information too at the end.
@@ -259,6 +285,14 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 
 		int count = bytes;
 
+#ifdef GITHUB_ISSUE_220
+		if(tag == 17) {
+			cout << "DEBUG MPI_Isend " << count << " bytes to " << destination << endl;
+			Message dummy;
+			dummy.printBuffer(copiedBuffer, count);
+		}
+#endif
+
 		MPI_Isend(copiedBuffer,count,m_datatype,destination,tag,MPI_COMM_WORLD,request);
 
 		#if 0
@@ -283,7 +317,7 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 
 #ifdef CONFIG_COMM_PERSISTENT
 
-/*	
+/*
  * receiveMessages is implemented as recommanded by Mr. George Bosilca from
 the University of Tennessee (via the Open-MPI mailing list)
 
@@ -328,7 +362,7 @@ void MessagesHandler::pumpMessageFromPersistentRing(StaticVector*inbox,RingAlloc
 
 		// the request can start again
 		MPI_Start(m_ring+m_head);
-	
+
 		// add the message in the internal inbox
 		// this inbox is not the real inbox
 		Message aMessage(incoming,count,m_rank,tag,source);
@@ -394,6 +428,17 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 
 	MPI_Recv(m_staticBuffer,count,datatype,actualSource,actualTag,MPI_COMM_WORLD,&status);
 
+#ifdef GITHUB_ISSUE_220
+	if(actualTag == 17) {
+		cout << "DEBUG MPI_Recv from " << actualSource << " with " << count;
+		cout << " bytes." << endl;
+
+		Message dummy;
+		dummy.printBuffer(m_staticBuffer, count);
+	}
+#endif
+
+
 	//cout << "DEBUG preloading metadata count= " << count << endl;
 
 	Message newMessage(m_staticBuffer, count, -1, actualTag, -1); // here the count is the number of MessageUnit
@@ -454,9 +499,21 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 		#endif
 
 		memcpy(incoming, m_staticBuffer,count*sizeof(char));
+
+#ifdef GITHUB_ISSUE_220
+		if(actualTag == 17) {
+			cout << "DEBUG copying " << count << " bytes to incoming buffer";
+			cout << endl;
+
+			Message dummy;
+			dummy.printBuffer(incoming, count);
+		}
+#endif
+
+
 	}
 
-	Message aMessage(incoming,count,miniRankDestination, actualTag,miniRankSource);
+	Message aMessage(incoming, count, miniRankDestination, actualTag, miniRankSource);
 	aMessage.setNumberOfBytes(count);
 
 /*
@@ -483,7 +540,6 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	#endif
 
 	m_receivedMessages++;
-
 }
 
 #endif
@@ -502,7 +558,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
  * Starts a non-blocking reception
  */
 void MessagesHandler::startNonBlockingReception(int handle){
-	
+
 	#ifdef ASSERT
 	assert(handle<m_numberOfNonBlockingReceives);
 	assert(handle>=0);
@@ -530,7 +586,7 @@ void MessagesHandler::init_irecv_testany(RingAllocator*inboxAllocator){
 		"CONFIG_COMM_IRECV_TESTANY",false);
 	m_receptionBuffers=(uint8_t*)__Malloc(m_bufferSize*m_numberOfNonBlockingReceives,
 		"CONFIG_COMM_IRECV_TESTANY",false);
-	
+
 	#ifdef ASSERT
 	assert(m_requests!=NULL);
 	#endif
@@ -797,7 +853,7 @@ void MessagesHandler::constructor(int*argc,char***argv){
 	m_datatype=MPI_BYTE;
 
 	#ifdef CONFIG_MINI_RANKS_disabled
-	
+
 	int provided;
 	MPI_Init_thread(argc,argv, MPI_THREAD_FUNNELED, &provided);
 	bool threads_ok = provided >= MPI_THREAD_FUNNELED;
@@ -1140,7 +1196,7 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 	#ifdef COMMUNICATION_IS_VERBOSE
 	cout<<"call to probeAndRead source="<<source<<""<<endl;
 	#endif /* COMMUNICATION_IS_VERBOSE */
-	
+
 	int source=MPI_ANY_SOURCE;
 	int tag=MPI_ANY_TAG;
 
@@ -1235,13 +1291,13 @@ void MessagesHandler::receiveMessagesForComputeCore(StaticVector*inbox,RingAlloc
 		Message message;
 		bufferedInbox->pop(&message);
 
-		int count=message.getCount();
+		int count=message.getNumberOfBytes();
 		char *incoming=(char*)inboxAllocator->allocate(count*sizeof(char));
 
 /*
- * Copy the data, this is slow. 
+ * Copy the data, this is slow but required I think.
  */
-		memcpy(incoming,message.getBuffer(),count*sizeof(char));
+		memcpy(incoming,message.getBuffer(), count*sizeof(char));
 
 /*
  * Update the buffer so that the code is thread-safe.

@@ -332,7 +332,7 @@ void ComputeCore::runWithProfiler(){
 	m_playground.bootActors();
 
 	while(isRankAlive()
-			|| (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())){
+			|| (m_routerIsEnabled && !m_router.hasCompletedRelayEvents())) {
 
 		// update the debug mode.
 		// this is cheap -- it only needs to copy a boolean (usually a char)
@@ -560,6 +560,21 @@ void ComputeCore::runWithProfiler(){
 		ticks++;
 		globalTicks ++;
 	}
+
+	//cout << "DEBUG exiting ComputeCore loop" << endl;
+
+	if(m_miniRanksAreEnabled){
+#ifdef CONFIG_USE_LOCKING
+		m_bufferedOutbox.lock();
+#endif /* CONFIG_USE_LOCKING */
+
+		m_bufferedOutbox.sendKillSignal();
+
+#ifdef CONFIG_USE_LOCKING
+		m_bufferedOutbox.unlock();
+#endif /* CONFIG_USE_LOCKING */
+	}
+
 
 	if(debugModeIsEnabled() && profileGranularity)
 		m_profiler.printAllGranularities();
@@ -789,7 +804,7 @@ void ComputeCore::sendMessages(){
 		message->saveMetaData();
 
 #ifdef CONFIG_ASSERT
-		message->runAssertions(getSize());
+		testMessage(message);
 #endif
 	}
 
@@ -811,6 +826,16 @@ void ComputeCore::sendMessages(){
 
 	for(int i=0;i<(int)m_outbox.size();i++){
 		m_tickLogger.logSendMessage(INVALID_HANDLE);
+
+#ifdef GITHUB_ISSUE_220
+		Message * message = m_outbox.at(i);
+
+		if(message->getTag() == 17 && message->getDestination() == 2) {
+
+			cout << "DEBUG before sending inside mini-rank" << endl;
+			message->print();
+		}
+#endif
 	}
 
 
@@ -821,7 +846,7 @@ void ComputeCore::sendMessages(){
 		Message * message = m_outbox.at(i);
 
 #ifdef CONFIG_ASSERT
-		message->runAssertions(getSize());
+		testMessage(message);
 #endif
 
 //#define INVESTIGATION_2013_11_04
@@ -976,9 +1001,19 @@ void ComputeCore::receiveMessages(){
 	}
 
 	importantMessage->loadMetaData();
+	importantMessage->saveMetaData();
+
+#ifdef GITHUB_ISSUE_220
+	if(importantMessage->getTag() == 17 && getRank() == 2) {
+		cout << "DEBUG ComputeCore receives message!" << endl;
+		importantMessage->print();
+	}
+#endif
 
 #ifdef CONFIG_ASSERT
-	importantMessage->runAssertions(getSize());
+	testMessage(importantMessage);
+
+	//testMessage(importantMessage);
 #endif
 
 	for(int i=0;i<(int)m_inbox.size();i++){
@@ -994,6 +1029,8 @@ void ComputeCore::receiveMessages(){
 	assert(receivedMessages<=m_maximumNumberOfInboxMessages);
 	#endif
 
+	// remove the header now !
+	importantMessage->loadMetaData();
 }
 
 /** process data my calling current slave and master methods */
@@ -2344,3 +2381,11 @@ void ComputeCore::spawn(Actor * actor) {
 
 	spawnActor( actor );
 }
+
+#ifdef CONFIG_ASSERT
+void ComputeCore::testMessage(Message * message) {
+
+	message->runAssertions(getSize(), m_routerIsEnabled,
+			m_miniRanksAreEnabled);
+}
+#endif

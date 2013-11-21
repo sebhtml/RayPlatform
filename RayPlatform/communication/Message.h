@@ -197,7 +197,7 @@ public:
 	int getRoutingDestination() const;
 	void displayMetaData();
 
-	void runAssertions(int size);
+	void runAssertions(int size, bool routing, bool miniRanks);
 
 	void saveMetaData();
 	void loadMetaData();
@@ -205,6 +205,7 @@ public:
 	void setMiniRanks(int source, int destination);
 	int getDestinationMiniRank();
 	int getSourceMiniRank();
+	void printBuffer(const char * buffer, int bytes) const;
 };
 
 #endif

@@ -251,6 +251,12 @@ class ComputeCore{
 	bool isRankAlive() const;
 
 	void spawnActor(Actor * actor);
+
+#ifdef CONFIG_ASSERT
+
+	void testMessage(Message * message);
+#endif
+
 public:
 	/** this is the main method */
 	void run();

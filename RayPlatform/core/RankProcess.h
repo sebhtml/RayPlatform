@@ -221,7 +221,7 @@ void RankProcess<Application>::run(){
 	assert(m_numberOfMiniRanksPerRank==m_numberOfInstalledMiniRanks);
 	#endif
 
-	bool useMiniRanks=m_numberOfMiniRanksPerRank>1;
+	bool useMiniRanks=m_numberOfMiniRanksPerRank > 1;
 
 #ifndef CONFIG_MINI_RANKS
 	useMiniRanks = false;

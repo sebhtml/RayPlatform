@@ -14,7 +14,7 @@
     GNU Lesser General Public License for more details.
 
     You have received a copy of the GNU Lesser General Public License
-    along with this program (lgpl-3.0.txt).  
+    along with this program (lgpl-3.0.txt).
 	see <http://www.gnu.org/licenses/>
 
 */
@@ -25,6 +25,7 @@
 #include <RayPlatform/cryptography/crypto.h>
 
 #include <iostream>
+#include <iomanip>
 using namespace std;
 
 #include <string.h>
@@ -32,6 +33,8 @@ using namespace std;
 #ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
+
+#include <stdio.h>
 
 #define NO_VALUE -1
 #define ACTOR_MODEL_NOBODY NO_VALUE
@@ -133,9 +136,11 @@ void Message::print(){
 	cout<<" RealTag: "<<getTag();
 	cout<<" Count: "<<getCount();
 
+	/*
 	if(getCount() > 0){
 		cout<<" Overlay: "<<getBuffer()[0];
 	}
+	*/
 
 	cout << " Bytes: " << m_bytes;
 	cout << " SourceActor: " << m_sourceActor;
@@ -145,6 +150,34 @@ void Message::print(){
 	cout << " MiniRankSource: " << m_miniRankSource;
 	cout << " MiniRankDestination: " << m_miniRankDestination;
 
+	printBuffer(getBufferBytes(), getNumberOfBytes());
+
+	cout << endl;
+}
+
+void Message::printBuffer(const char * buffer, int bytes) const {
+
+	cout << " Buffer: " << (void*) buffer;
+	cout << " with " << bytes << " bytes : ";
+
+	for(int i = 0 ; i < bytes ; ++i) {
+
+		char byte = buffer[i];
+		/*
+		 * this does not work
+		cout << " 0x" << hex << setfill('0') << setw(2);
+		cout << byte;
+		cout << dec;
+		*/
+
+		/*
+		 * C solution
+		 * \see http://stackoverflow.com/questions/8060170/printing-hexadecimal-characters-in-c
+		 * \see http://stackoverflow.com/questions/10599068/how-do-i-print-bytes-as-hexadecimal
+		 */
+		printf(" 0x%02x", byte & 0xff);
+		cout << dec;
+	}
 	cout << endl;
 }
 
@@ -455,7 +488,7 @@ int Message::getNumberOfBytes() const {
 	return m_bytes;
 }
 
-void Message::runAssertions(int size) {
+void Message::runAssertions(int size, bool routing, bool miniRanks) {
 
 #ifdef CONFIG_ASSERT
 
@@ -468,29 +501,51 @@ void Message::runAssertions(int size) {
 	assert(m_sourceActor >= 0);
 	assert(m_destinationActor >= 0);
 
-	if(!(m_miniRankSource >= 0 || m_miniRankSource == NO_VALUE)) {
-		print();
+	if(miniRanks) {
+		if(!(m_miniRankSource >= 0)) {
+			print();
+		}
+
+		assert(m_miniRankSource >= 0);
+
+		if(!(m_miniRankSource < size )) {
+
+			cout << "Error" << endl;
+			print();
+			cout << "m_miniRankSource " << m_miniRankSource;
+			cout << " size " << size << endl;
+
+		}
+		assert(m_miniRankSource < size );
+
+
+		assert(m_miniRankDestination >= 0);
+		assert(m_miniRankDestination < size);
+
+
+	} else {
+		assert(m_miniRankSource == NO_VALUE);
+		assert(m_miniRankDestination == NO_VALUE);
+		assert(m_miniRankDestination == NO_VALUE);
 	}
 
-	assert(m_miniRankSource >= 0 || m_miniRankSource == NO_VALUE);
-	if(!(m_miniRankSource < size || m_miniRankSource == NO_VALUE)) {
+	if(routing) {
+		assert(m_routingSource >= 0);
+		assert(m_routingSource < size );
 
-		cout << "Error" << endl;
-		print();
-		cout << "m_miniRankSource " << m_miniRankSource;
-		cout << " size " << size << endl;
+		assert(m_routingDestination >= 0 );
+		assert(m_routingDestination < size);
+	} else {
 
+		if(!(m_routingSource == NO_VALUE)) {
+			print();
+		}
+		assert( m_routingSource == ROUTING_NO_VALUE);
+		assert( m_routingSource == NO_VALUE);
+
+		assert( m_routingDestination == ROUTING_NO_VALUE);
+		assert( m_routingDestination == NO_VALUE);
 	}
-	assert(m_miniRankSource < size || m_miniRankSource == NO_VALUE);
-
-	assert(m_miniRankDestination >= 0 || m_miniRankDestination == NO_VALUE);
-	assert(m_miniRankDestination < size || m_miniRankDestination == NO_VALUE);
-
-	assert(m_routingSource >= 0 || m_routingSource == ROUTING_NO_VALUE);
-	assert(m_routingSource < size || m_routingSource == NO_VALUE);
-
-	assert(m_routingDestination >= 0 || m_routingDestination == ROUTING_NO_VALUE);
-	assert(m_routingDestination < size || m_routingDestination == NO_VALUE);
 
 #endif
 
