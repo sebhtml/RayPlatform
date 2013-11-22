@@ -1602,6 +1602,16 @@ void ComputeCore::setMessageTagSymbol(PluginHandle plugin,MessageTag tag,const c
 	m_registeredMessageTagSymbols.insert(tag);
 
 	m_messageTagSymbols[symbol]=tag;
+
+	if(debugModeIsEnabled()) {
+
+		cout << "DEBUG----- <MessageTag><Name>";
+		cout << symbol;
+		cout << "</Name><Value>";
+		cout << tag;
+		cout << "</Value></MessageTag>";
+		cout << endl;
+	}
 }
 
 PluginHandle ComputeCore::allocatePluginHandle(){
