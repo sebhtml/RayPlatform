@@ -1,6 +1,9 @@
 RayPlatform is a development framework to ease the creation of 
 massively distributed high performance computing applications.
 
+RayPlatform is free software distributed under the terms of the GNU
+Lesser General Public License, version 3 (LGPLv3).
+
 Content creation is done by creating plugins that can be 
 added on the RayPlatform compute engine.
 
