@@ -530,11 +530,21 @@ void Message::runAssertions(int size, bool routing, bool miniRanks) {
 	}
 
 	if(routing) {
-		assert(m_routingSource >= 0);
-		assert(m_routingSource < size );
 
-		assert(m_routingDestination >= 0 );
-		assert(m_routingDestination < size);
+		// m_routingSource and m_routingDestination are
+		// valued at NO_VALUE
+
+		if(m_routingSource == NO_VALUE) {
+		} else {
+			assert(m_routingSource >= 0);
+			assert(m_routingSource < size );
+		}
+
+		if(m_routingDestination == NO_VALUE) {
+		} else {
+			assert(m_routingDestination >= 0 );
+			assert(m_routingDestination < size);
+		}
 	} else {
 
 		if(!(m_routingSource == NO_VALUE)) {
