@@ -37,7 +37,7 @@ __CreateSlaveModeAdapter(SwitchMan,RAY_SLAVE_MODE_STOP);
 
 void SwitchMan::constructor(Rank rank,int numberOfCores){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(rank>=0);
 	assert(numberOfCores>=0);
 	#endif
@@ -46,7 +46,7 @@ void SwitchMan::constructor(Rank rank,int numberOfCores){
 	m_size=numberOfCores;
 	reset();
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	runAssertions();
 	#endif
 
@@ -55,13 +55,13 @@ void SwitchMan::constructor(Rank rank,int numberOfCores){
 /** reset the sole counter */
 void SwitchMan::reset(){
 	m_counter=0;
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	runAssertions();
 	#endif
 }
 
 bool SwitchMan::allRanksAreReady(){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	runAssertions();
 	#endif
 
@@ -76,7 +76,7 @@ void SwitchMan::closeSlaveMode(Rank source){
 
 	m_counter++;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	runAssertions();
 	#endif
 }
@@ -92,7 +92,7 @@ void SwitchMan::runAssertions(){
 
 
 MasterMode SwitchMan::getNextMasterMode(MasterMode currentMode){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_switches.count(currentMode)==0){
 		cout<<"CurrentMode= "<<MASTER_MODES[currentMode]<<endl;
 	}
@@ -107,7 +107,7 @@ MasterMode SwitchMan::getNextMasterMode(MasterMode currentMode){
 }
 
 void SwitchMan::addNextMasterMode(MasterMode a,MasterMode b){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_switches.count(a)==0);
 	#endif
 
@@ -120,7 +120,7 @@ void SwitchMan::openSlaveMode(MessageTag tag,StaticVector*outbox,Rank source,Ran
 	cout << " message on bus: " << MESSAGE_TAGS[tag] <<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(source == MASTER_RANK); // only master can do that
 	#endif
 
@@ -143,7 +143,7 @@ void SwitchMan::closeSlaveModeLocally(StaticVector*outbox,Rank source){
 
 void SwitchMan::openMasterMode(StaticVector*outbox,Rank source){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_masterModeToTagTable.count(m_masterMode)==0){
 		cout<<"Error, master mode is "<<MASTER_MODES[m_masterMode]<<endl;
 	}
@@ -158,7 +158,7 @@ void SwitchMan::openMasterMode(StaticVector*outbox,Rank source){
 	cout<<"[SwitchMan::openMasterMode] tag= "<<MESSAGE_TAGS[tag]<<" source= "<<source<<" Outbox= "<<outbox<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(source==MASTER_RANK);
 	assert(outbox!=NULL);
 	#endif
@@ -241,7 +241,7 @@ void SwitchMan::openSlaveModeLocally(MessageTag tag,Rank rank){
 }
 
 void SwitchMan::addSlaveSwitch(MessageTag tag,SlaveMode slaveMode){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_tagToSlaveModeTable.count(tag)==0);
 	#endif
 
@@ -287,7 +287,7 @@ int*SwitchMan::getMasterModePointer(){
 }
 
 void SwitchMan::addMasterSwitch(MasterMode masterMode,MessageTag tag){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_masterModeToTagTable.count(masterMode)==0);
 	#endif
 

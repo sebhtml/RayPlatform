@@ -33,7 +33,7 @@ void ReusableMemoryStore::constructor(){
  */
 bool ReusableMemoryStore::hasAddressesToReuse(int size){
 	bool test=m_toReuse.count(size)>0;
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(test){
 		assert(m_toReuse[size]!=NULL);
 	}
@@ -42,13 +42,13 @@ bool ReusableMemoryStore::hasAddressesToReuse(int size){
 }
 
 void*ReusableMemoryStore::reuseAddress(int size){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_toReuse.count(size)>0 && m_toReuse[size]!=NULL);
 	#endif
 
 	Element*tmp=m_toReuse[size];
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(tmp!=NULL);
 	#endif
 
@@ -58,7 +58,7 @@ void*ReusableMemoryStore::reuseAddress(int size){
 		m_toReuse.erase(size);
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_toReuse.count(size)>0){
 		assert(m_toReuse[size]!=NULL);
 	}
@@ -75,7 +75,7 @@ void ReusableMemoryStore::addAddressToReuse(void*p,int size){
 		return;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(p!=NULL);
 	#endif
 
@@ -84,7 +84,7 @@ void ReusableMemoryStore::addAddressToReuse(void*p,int size){
 	if(m_toReuse.count(size)>0){
 		Element*next=m_toReuse[size];
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(next!=NULL);
 		#endif
 
@@ -104,7 +104,7 @@ void ReusableMemoryStore::print(){
 		i!=m_toReuse.end();i++){
 		int bytes=i->first;
 		Element*ptr=i->second;
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(ptr!=NULL);
 		#endif
 		int count=0;

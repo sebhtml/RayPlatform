@@ -28,7 +28,7 @@
 
 #include <stdlib.h>
 #include <string.h> /* for strcpy */
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 #include <iostream>
@@ -90,7 +90,7 @@ void ComputeCore::setSlaveModeObjectHandler(PluginHandle plugin,SlaveMode mode,S
 	cout<<"setSlaveModeObjectHandler "<<SLAVE_MODES[mode]<<" to "<<object<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	assert(m_plugins[plugin].hasSlaveMode(mode));
 	#endif
@@ -114,7 +114,7 @@ void ComputeCore::setMasterModeObjectHandler(PluginHandle plugin,MasterMode mode
 	cout<<"setMasterModeObjectHandler "<<MASTER_MODES[mode]<<" to "<<object<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	assert(m_plugins[plugin].hasMasterMode(mode));
 	#endif
@@ -138,7 +138,7 @@ void ComputeCore::setMessageTagObjectHandler(PluginHandle plugin,MessageTag tag,
 	cout<<"setMessageTagObjectHandler "<<MESSAGE_TAGS[tag]<<" to "<<object<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	assert(m_plugins[plugin].hasMessageTag(tag));
 	#endif
@@ -581,7 +581,7 @@ void ComputeCore::runWithProfiler(){
 }
 
 void ComputeCore::processMessages(){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_inbox.size()>=0&&m_inbox.size()<=1);
 	#endif
 
@@ -638,7 +638,7 @@ void ComputeCore::processMessages(){
 	Message*message= importantMessage;
 	MessageTag messageTag=message->getTag();
 
-	#ifdef ASSERT2
+	#ifdef CONFIG_ASSERT2
 	assert(messageTag!=INVALID_HANDLE);
 	assert(m_allocatedMessageTags.count(messageTag)>0);
 	string symbol=MESSAGE_TAGS[messageTag];
@@ -657,7 +657,7 @@ void ComputeCore::sendMessages(){
 /*
  * Don't do anything when there are no messages
  * at all.
- * This statement needs to be after the ifdef ASSERT above
+ * This statement needs to be after the ifdef CONFIG_ASSERT above
  * otherwise the no resetCount call is performed on the
  * allocator, which will produce a run-time error.
  */
@@ -682,13 +682,13 @@ void ComputeCore::sendMessages(){
 		if(forceMemoryReallocation
 				|| ( aMessage->getBuffer()==NULL||numberOfMessages==m_size)) {
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(forceMemoryReallocation || aMessage->getCount()==0||numberOfMessages==m_size);
 			#endif
 
 			char * buffer=(char*)m_outboxAllocator.allocate(MAXIMUM_MESSAGE_SIZE_IN_BYTES);
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(buffer!=NULL);
 			#endif
 
@@ -712,7 +712,7 @@ void ComputeCore::sendMessages(){
  * of this method.
  */
 	// assert that we did not overflow the ring
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_outboxAllocator.getCount() > m_maximumAllocatedOutboxBuffers){
 		cout<<"Rank "<<m_rank<<" Error, allocated "<<m_outboxAllocator.getCount()<<" buffers, but maximum is ";
 		cout<<m_maximumAllocatedOutboxBuffers<<endl;
@@ -1020,7 +1020,7 @@ void ComputeCore::receiveMessages(){
 		m_tickLogger.logReceivedMessage(INVALID_HANDLE);
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	int receivedMessages=m_inbox.size();
 
 	if(receivedMessages>m_maximumNumberOfInboxMessages)
@@ -1082,7 +1082,7 @@ void ComputeCore::processData(){
 void ComputeCore::constructor(int argc,char**argv,int miniRankNumber,int numberOfMiniRanks,int miniRanksPerRank,
 		MessagesHandler*messagesHandler){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(miniRankNumber<numberOfMiniRanks);
 	assert(miniRanksPerRank<=numberOfMiniRanks);
 	assert(numberOfMiniRanks>=1);
@@ -1502,12 +1502,12 @@ void ComputeCore::setSlaveModeSymbol(PluginHandle plugin,SlaveMode mode,const ch
 	if(!validationSlaveModeRange(plugin,mode))
 		return;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(mode>=0);
 	assert(mode<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS);
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	assert(m_plugins[plugin].hasSlaveMode(mode));
 	#endif
@@ -1546,12 +1546,12 @@ void ComputeCore::setMasterModeSymbol(PluginHandle plugin,MasterMode mode,const 
 	if(!validationMasterModeRange(plugin,mode))
 		return;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(mode>=0);
 	assert(mode<MAXIMUM_NUMBER_OF_MASTER_HANDLERS);
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	assert(m_plugins[plugin].hasMasterMode(mode));
 	#endif
@@ -1585,12 +1585,12 @@ void ComputeCore::setMessageTagSymbol(PluginHandle plugin,MessageTag tag,const c
 	if(!validationMessageTagRange(plugin,tag))
 		return;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(tag>=0);
 	assert(tag<MAXIMUM_NUMBER_OF_TAG_HANDLERS);
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	assert(m_plugins[plugin].hasMessageTag(tag));
 	#endif
@@ -1634,7 +1634,7 @@ SlaveMode ComputeCore::allocateSlaveModeHandle(PluginHandle plugin){
 		return INVALID_HANDLE;
 
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	#endif
 
@@ -1650,7 +1650,7 @@ SlaveMode ComputeCore::allocateSlaveModeHandle(PluginHandle plugin){
 	if(!validationSlaveModeRange(plugin,handle))
 		return INVALID_HANDLE;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_allocatedSlaveModes.count(handle)==0);
 	#endif
 
@@ -1658,7 +1658,7 @@ SlaveMode ComputeCore::allocateSlaveModeHandle(PluginHandle plugin){
 
 	m_plugins[plugin].addAllocatedSlaveMode(handle);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_allocatedSlaveModes.count(handle)>0);
 	assert(m_plugins[plugin].hasSlaveMode(handle));
 	#endif
@@ -1671,7 +1671,7 @@ MasterMode ComputeCore::allocateMasterModeHandle(PluginHandle plugin){
 	if(!validationPluginAllocated(plugin))
 		return INVALID_HANDLE;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	#endif
 
@@ -1687,7 +1687,7 @@ MasterMode ComputeCore::allocateMasterModeHandle(PluginHandle plugin){
 	if(!validationMasterModeRange(plugin,handle))
 		return INVALID_HANDLE;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_allocatedMasterModes.count(handle)==0);
 	#endif
 
@@ -1695,7 +1695,7 @@ MasterMode ComputeCore::allocateMasterModeHandle(PluginHandle plugin){
 
 	m_plugins[plugin].addAllocatedMasterMode(handle);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_allocatedMasterModes.count(handle)>0);
 	assert(m_plugins[plugin].hasMasterMode(handle));
 	#endif
@@ -1708,7 +1708,7 @@ MessageTag ComputeCore::allocateMessageTagHandle(PluginHandle plugin){
 	if(!validationPluginAllocated(plugin))
 		return INVALID_HANDLE;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_plugins.count(plugin)>0);
 	#endif
 
@@ -1724,7 +1724,7 @@ MessageTag ComputeCore::allocateMessageTagHandle(PluginHandle plugin){
 	if(!validationMessageTagRange(plugin,handle))
 		return INVALID_HANDLE;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_allocatedMessageTags.count(handle)==0);
 	#endif
 
@@ -1732,7 +1732,7 @@ MessageTag ComputeCore::allocateMessageTagHandle(PluginHandle plugin){
 
 	m_plugins[plugin].addAllocatedMessageTag(handle);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_allocatedMessageTags.count(handle)>0);
 	assert(m_plugins[plugin].hasMessageTag(handle));
 	#endif

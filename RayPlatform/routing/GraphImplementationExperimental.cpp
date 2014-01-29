@@ -208,7 +208,7 @@ void GraphImplementationExperimental::computeRoute(Rank source,Rank destination,
 Rank GraphImplementationExperimental::getNextRankInRoute(Rank source,Rank destination,Rank rank){
 	#ifdef CONFIG_ROUTING_DE_KAUTZ_COMPUTE_ROUTES
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_routes[source][destination].count(rank)==1);
 	#endif
 

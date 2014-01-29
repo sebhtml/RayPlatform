@@ -49,7 +49,7 @@ void MyHashTableIterator<KEY,VALUE>::constructor(MyHashTable<KEY,VALUE>*a){
 	m_table=a;
 	getNext();
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(!a->needsToCompleteResizing());
 	#endif
 }
@@ -68,7 +68,7 @@ bool MyHashTableIterator<KEY,VALUE>::hasNext(){
 
 template<class KEY,class VALUE>
 VALUE*MyHashTableIterator<KEY,VALUE>::next(){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_i<m_table->capacity());
 	#endif
 	VALUE*a=m_table->at(m_i);

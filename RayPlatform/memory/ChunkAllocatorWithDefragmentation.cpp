@@ -21,7 +21,7 @@
 #include "ChunkAllocatorWithDefragmentation.h"
 #include "allocator.h"
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 #include <iostream>
@@ -42,7 +42,7 @@ void ChunkAllocatorWithDefragmentation::print(){
 
 	for(int i=0;i<m_numberOfLanes;i++){
 		DefragmentationLane*lane=m_defragmentationLanes[i];
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(lane!=NULL);
 		#endif
 		cout<<"DefragmentationGroup objects in DefragmentationLane # "<<lane->getNumber()<<endl;
@@ -142,7 +142,7 @@ void ChunkAllocatorWithDefragmentation::updateFastLane(int n){
 SmartPointer ChunkAllocatorWithDefragmentation::allocate(int n){ /** 64 is the number of buckets in a MyHashTableGroup */
 
 	// presently, this code only allocate things between 1 and 64 * sizeof(something)
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(!(n>=1 && n<=64))
 		cout<<"n= "<<n<<endl;
 	assert(n>=1&&n<=64);

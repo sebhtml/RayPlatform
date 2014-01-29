@@ -50,7 +50,7 @@ void MyAllocator::constructor(int chunkSize,const char*type,bool show){
 /**  add a chunk of memory */
 void MyAllocator::addChunk(){
 	void*currentChunk=(void*)__Malloc(m_CHUNK_SIZE,m_type,m_show);
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(currentChunk!=NULL);
 	#endif
 	m_chunks.push_back(currentChunk);
@@ -63,7 +63,7 @@ void MyAllocator::addChunk(){
  * a new one is created
  */
 void*MyAllocator::allocate(int s){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(s!=0);
 	#endif
 
@@ -81,12 +81,12 @@ void*MyAllocator::allocate(int s){
 	if(s%8!=0){
 		s=roundNumber(s,alignment);
 	}
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(s%8==0);
 	#endif
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(s>m_CHUNK_SIZE){
 		cout<<"Requested "<<s<<" -- only have "<<m_CHUNK_SIZE<<endl;
 	}
@@ -109,7 +109,7 @@ void*MyAllocator::allocate(int s){
 		return allocate(s);
 	}
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_currentChunkId>=(int)m_chunks.size()){
 		cout<<"ChunkId="<<m_currentChunkId<<" Chunks="<<m_chunks.size()<<endl;
 	}
@@ -128,7 +128,7 @@ void*MyAllocator::allocate(int s){
 	// increase the current position.
 	m_currentPosition+=s;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_currentPosition >= 0 && m_currentPosition <= m_CHUNK_SIZE);
 
 	/* make sure that we can dereference r and use s bytes */

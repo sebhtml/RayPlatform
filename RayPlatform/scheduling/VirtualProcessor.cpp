@@ -25,7 +25,7 @@
 #include <iostream>
 using namespace std;
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 
@@ -40,7 +40,7 @@ void VirtualProcessor::updateStates(){
 	for(int i=0;i<(int)m_workersDone.size();i++){
 		WorkerHandle workerId=m_workersDone[i];
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(m_activeWorkers.count(workerId)>0);
 		assert(m_aliveWorkers.count(workerId)>0);
 		#endif
@@ -60,7 +60,7 @@ void VirtualProcessor::updateStates(){
 	for(int i=0;i<(int)m_waitingWorkers.size();i++){
 		WorkerHandle workerId=m_waitingWorkers[i];
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(m_activeWorkers.count(workerId)>0);
 		#endif
 
@@ -133,7 +133,7 @@ bool VirtualProcessor::run(){
 		/** save the current worker identifier */
 		m_currentWorker=workerId;
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		if(m_aliveWorkers.count(workerId)==0){
 			cout<<"Error: "<<workerId<<" is not in alive workers "<<m_activeWorkers.size()<<endl;
 		}
@@ -208,7 +208,7 @@ bool VirtualProcessor::run(){
 
 /** get the current worker */
 Worker*VirtualProcessor::getCurrentWorker(){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_aliveWorkers.count(m_currentWorker) > 0);
 	#endif
 
@@ -222,13 +222,13 @@ bool VirtualProcessor::canAddWorker(){
 
 /** add a worker */
 void VirtualProcessor::addWorker(Worker*worker){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(worker != NULL);
 	#endif
 
 	WorkerHandle workerId=worker->getWorkerIdentifier();
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_aliveWorkers.count(workerId)>0)
 		cout<<"Worker "<<workerId<<" already here"<<endl;
 	assert(m_aliveWorkers.count(workerId) == 0);

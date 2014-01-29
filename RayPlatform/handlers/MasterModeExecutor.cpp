@@ -23,7 +23,7 @@
 #include <RayPlatform/core/types.h>
 
 #include <stdlib.h> /* for NULL */
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 
@@ -66,7 +66,7 @@ MasterModeExecutor::MasterModeExecutor(){
 
 void MasterModeExecutor::setObjectHandler(MasterMode mode,MasterModeHandlerReference object){
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 	assert(mode>=0);
 	assert(mode < MAXIMUM_NUMBER_OF_MASTER_HANDLERS);
 #endif

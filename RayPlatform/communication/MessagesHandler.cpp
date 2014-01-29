@@ -212,7 +212,7 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 		}
 #endif
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(destination>=0);
 		if(destination>=m_size){
 			cout<<"Tag="<<tag<<" Destination="<<destination<<endl;
@@ -275,7 +275,7 @@ void MessagesHandler::sendMessagesForMiniRank(MessageQueue*outbox,RingAllocator*
 
 		}
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(request!=NULL);
 		assert(bytes >=2);
 		#endif
@@ -411,7 +411,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	int count=-1;
 	MPI_Get_count(&status,datatype,&count);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count >= 0);
 	assert(count >= 2);// we need mini-rank numbers !
 	#endif
@@ -494,7 +494,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	if(count > 0){
 		incoming=(char*)core->getBufferedInboxAllocator()->allocate(count*sizeof(char));
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(incoming!=NULL);
 		#endif
 
@@ -534,7 +534,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
 	inbox->unlock();
 #endif /* CONFIG_USE_LOCKING */
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	// this assertion is not valid for mini-ranks.
 	//assert(aMessage.getDestination() == m_rank);
 	#endif
@@ -559,7 +559,7 @@ void MessagesHandler::receiveMessagesForMiniRanks(ComputeCore**cores,int miniRan
  */
 void MessagesHandler::startNonBlockingReception(int handle){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(handle<m_numberOfNonBlockingReceives);
 	assert(handle>=0);
 	#endif /* ASSERT */
@@ -568,7 +568,7 @@ void MessagesHandler::startNonBlockingReception(int handle){
 
 	MPI_Request*request=m_requests+handle;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(buffer!=NULL);
 	assert(request!=NULL);
 	#endif /* ASSERT */
@@ -587,7 +587,7 @@ void MessagesHandler::init_irecv_testany(RingAllocator*inboxAllocator){
 	m_receptionBuffers=(uint8_t*)__Malloc(m_bufferSize*m_numberOfNonBlockingReceives,
 		"CONFIG_COMM_IRECV_TESTANY",false);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_requests!=NULL);
 	#endif
 
@@ -621,14 +621,14 @@ void MessagesHandler::receiveMessages_irecv_testany(StaticVector*inbox,RingAlloc
 	int hasCompleted=0;
 	MPI_Status status;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	int returnValue=
 	#endif /* ASSERT */
 
 	MPI_Testany(m_numberOfNonBlockingReceives,m_requests,
 		&indexOfCompletedRequest,&hasCompleted,&status);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(returnValue==MPI_SUCCESS);
 	#endif /* ASSERT */
 
@@ -643,7 +643,7 @@ void MessagesHandler::receiveMessages_irecv_testany(StaticVector*inbox,RingAlloc
 
 	uint8_t*populatedBuffer=m_receptionBuffers+indexOfCompletedRequest*m_bufferSize;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count >= 0);
 	#endif
 
@@ -656,7 +656,7 @@ void MessagesHandler::receiveMessages_irecv_testany(StaticVector*inbox,RingAlloc
 	Message aMessage(incoming,count,m_rank,actualTag,actualSource);
 	inbox->push_back(aMessage);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(aMessage.getDestination() == m_rank);
 	#endif
 
@@ -747,7 +747,7 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 	int count=-1;
 	MPI_Get_count(&status,datatype,&count);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count >= 0);
 	#endif
 
@@ -789,7 +789,7 @@ void MessagesHandler::probeAndRead(Rank source,MessageTag tag,
 
 	core->getInbox()->push_back(&aMessage);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	// this assertion is not valid for mini-ranks.
 	//assert(aMessage.getDestination() == m_rank);
 	#endif
@@ -870,7 +870,7 @@ void MessagesHandler::constructor(int*argc,char***argv){
 		cout<<"MPI_THREAD_MULTIPLE";
 	cout<<endl;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(threads_ok);
 	#endif
 
@@ -1109,7 +1109,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 		int count=aMessage->getNumberOfBytes();
 		MessageTag tag=aMessage->getTag();
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(destination>=0);
 		if(destination>=m_size){
 			cout<<"Tag="<<tag<<" Destination="<<destination<<endl;
@@ -1143,7 +1143,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 					tag, outboxBufferAllocator);
 		}
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(request!=NULL);
 		#endif
 
@@ -1167,7 +1167,7 @@ void MessagesHandler::sendMessages(StaticVector*outbox,RingAllocator*outboxBuffe
 
 			MPI_Request_free(request);
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(*request==MPI_REQUEST_NULL);
 			#endif
 		}
@@ -1215,7 +1215,7 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 	int count=-1;
 	MPI_Get_count(&status,datatype,&count);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count >= 0);
 	#endif
 
@@ -1231,7 +1231,7 @@ void MessagesHandler::receiveMessages(StaticVector*inbox,RingAllocator*inboxAllo
 
 	inbox->push_back(&aMessage);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(aMessage.getDestination() == m_rank);
 	#endif
 

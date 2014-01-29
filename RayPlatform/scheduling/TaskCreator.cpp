@@ -22,7 +22,7 @@
 
 #include <stdlib.h> /* for NULL */
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 
@@ -48,7 +48,7 @@ void TaskCreator::mainLoop(){
 			cout<<"Adding worker to pool worker= "<<worker<<" processor="<<m_virtualProcessor<<endl;
 			#endif
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(worker != NULL);
 			assert(m_virtualProcessor != NULL);
 			#endif

@@ -68,7 +68,7 @@ int MyStack<TYPE>::size() const{
 
 template<class TYPE>
 void MyStack<TYPE>::push(TYPE a){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_size!=_MAX_STACK_SIZE);
 	#endif
 	m_array[m_size++]=a;

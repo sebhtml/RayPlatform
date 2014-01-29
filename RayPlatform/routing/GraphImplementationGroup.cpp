@@ -128,7 +128,7 @@ void GraphImplementationGroup::makeRoutes(){
 }
 
 Rank GraphImplementationGroup::getNextRankInRoute(Rank source,Rank destination,Rank rank){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_routes[source][destination].count(rank)==1);
 	#endif
 

@@ -35,7 +35,7 @@
 #include <iostream>
 using namespace std;
 
-#ifdef  ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 
@@ -55,7 +55,7 @@ bool DefragmentationGroup::canAllocate(int n){
 	/* we want fast allocation in the end...  
 	if a contiguous segment is not available, we can't handle it... 
 */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert((ELEMENTS_PER_GROUP-m_freeSliceStart)<=m_availableElements);
 	#endif
 
@@ -108,7 +108,7 @@ SmallSmartPointer DefragmentationGroup::allocate(int n,
 	m_operations[__OPERATION_ALLOCATE]++;
 
 	/* verify pre-conditions */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(n>0);
 	assert(canAllocate(n));
 	assert(n<=ELEMENTS_PER_GROUP);
@@ -126,7 +126,7 @@ SmallSmartPointer DefragmentationGroup::allocate(int n,
 	SmallSmartPointer returnValue=getAvailableSmallSmartPointer();
 
 	/* make sure that this handle is not used already */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_allocatedSizes[returnValue]==0);
 	#endif
 
@@ -135,7 +135,7 @@ SmallSmartPointer DefragmentationGroup::allocate(int n,
 	m_allocatedSizes[returnValue]=n;
 
 	/** make sure that the meta-data was stored correctly */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_allocatedSizes[returnValue]==n);
 	assert(m_allocatedOffsets[returnValue]==m_freeSliceStart);
 	#endif
@@ -161,7 +161,7 @@ SmallSmartPointer DefragmentationGroup::allocate(int n,
 	
 	// make sure that the number of available elements
 	// is valid
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_availableElements<0)
 		cout<<"m_availableElements "<<m_availableElements<<endl;
 	assert(m_availableElements>=0);
@@ -265,7 +265,7 @@ void DefragmentationGroup::deallocate(SmallSmartPointer a,int bytesPerElement,ui
 	}
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_allocatedSizes[a]==0)
 		cout<<__func__<<" SmallSmartPointer "<<(int)a<<" has size 0."<<endl;
 	assert(m_allocatedSizes[a]>0);
@@ -301,7 +301,7 @@ void DefragmentationGroup::deallocate(SmallSmartPointer a,int bytesPerElement,ui
 	/* we have more elements available now */
 	m_availableElements+=allocatedSize;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_availableElements<=ELEMENTS_PER_GROUP);
 	assert(m_availableElements>=0);
 	if(!((ELEMENTS_PER_GROUP-m_freeSliceStart)<=m_availableElements))
@@ -323,13 +323,13 @@ void DefragmentationGroup::constructor(int bytesPerElement,bool show){
 	m_operations[__OPERATION_DEALLOCATE]=0;
 	m_operations[__OPERATION_DEFRAGMENT]=0;
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_block==NULL);
 	#endif
 
 	m_availableElements=ELEMENTS_PER_GROUP;
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_availableElements<=ELEMENTS_PER_GROUP);
 	assert(m_availableElements>=0);
 	#endif
@@ -350,7 +350,7 @@ void DefragmentationGroup::constructor(int bytesPerElement,bool show){
 		m_allocatedOffsets[i]=0;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert((ELEMENTS_PER_GROUP-m_freeSliceStart)<=m_availableElements);
 	#endif
 }
@@ -371,7 +371,7 @@ void DefragmentationGroup::destructor(bool show){
  * Resolvee a SmallSmartPointer
  */
 void*DefragmentationGroup::getPointer(SmallSmartPointer a,int bytesPerElement){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_allocatedSizes[a]==0)
 		cout<<"this= "<<this<<" can not getPointer on SmallSmartPointer "<<(int)a<<" because it is not allocated."<<endl;
 	assert(m_allocatedSizes[a]!=0);
@@ -401,7 +401,7 @@ bool DefragmentationGroup::isOnline(){
  * Get the number of available elements
  */
 int DefragmentationGroup::getAvailableElements(){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_block!=NULL);
 	assert(m_availableElements<=ELEMENTS_PER_GROUP);
 	assert(m_availableElements>=0);
@@ -457,7 +457,7 @@ bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,
 		}
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert((ELEMENTS_PER_GROUP-m_freeSliceStart)<=m_availableElements);
 	#endif
 
@@ -489,7 +489,7 @@ bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,
 
 		/* at this point, source points to a offset where a SmallSmartPointer starts */
 		/* and destination is an empty space. */
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		if(!(source>destination)){
 			cout<<"destination "<<destination<<" source "<<source<<endl;
 			print();
@@ -497,7 +497,7 @@ bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,
 		assert(source>destination);
 		#endif
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(cellOccupancies[destination]==0);
 		assert(cellOccupancies[source]==1);
 		#endif
@@ -506,7 +506,7 @@ bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,
 		/* copy the data */
 		SmallSmartPointer smartPointer=cellContents[source];
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(cellOccupancies[source-1]==0);
 		if(!(m_allocatedSizes[smartPointer]!=0)){
 			cout<<"SmallSmartPointer "<<smartPointer<<" must move, but is has size 0 and bit is 1"<<endl;
@@ -562,7 +562,7 @@ bool DefragmentationGroup::defragment(int bytesPerElement,uint16_t*cellContents,
 	
 	m_freeSliceStart=destination;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert((ELEMENTS_PER_GROUP-m_freeSliceStart)<=m_availableElements);
 	#endif
 

@@ -24,7 +24,7 @@
 #include <iostream>
 using namespace std;
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif /* ASSERT */
 
@@ -171,7 +171,7 @@ void Polytope::configureGraph(int n){
 		digits++;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(n==getPower(base,digits));
 	#endif
 
@@ -189,7 +189,7 @@ void Polytope::setLoad(int position,int symbol,uint64_t value){
 
 uint64_t Polytope::getLoad(int position,int symbol){
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(position<m_wordLength);
 	assert(symbol<m_alphabetSize);
 	#endif /* ASSERT */
@@ -328,7 +328,7 @@ void Polytope::makeRoutes(){
  */
 Rank Polytope::computeNextRankInRoute(Rank source,Rank destination,Rank current){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(destination!=current); // we don't need any routing...
 	assert(source>=0);
 	assert(destination>=0);
@@ -394,7 +394,7 @@ Rank Polytope::computeNextRankInRoute(Rank source,Rank destination,Rank current)
 
 	Rank nextRank=convertToBase10(&next);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(current!=nextRank);
 	#endif
 
@@ -501,7 +501,7 @@ void Polytope::start(){
 
 Rank Polytope::computeNextRankInRouteWithRoundRobin(Rank source,Rank destination,Rank current){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(destination!=current); // we don't need any routing...
 	assert(source>=0);
 	assert(destination>=0);
@@ -511,7 +511,7 @@ Rank Polytope::computeNextRankInRouteWithRoundRobin(Rank source,Rank destination
 	assert(current<m_size);
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	Tuple*sourceVertex=&(m_graphToVertex[source]);
 	#endif
 
@@ -598,7 +598,7 @@ Rank Polytope::computeNextRankInRouteWithRoundRobin(Rank source,Rank destination
 
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(bestPosition==NO_VALUE){
 		cout<<"Error: found no eligible position."<<endl;
 		cout<<"m_currentPosition: "<<m_currentPosition<<endl;
@@ -644,7 +644,7 @@ Rank Polytope::computeNextRankInRouteWithRoundRobin(Rank source,Rank destination
 
 	Rank nextRank=convertToBase10(&next);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(current!=nextRank);
 	#endif
 

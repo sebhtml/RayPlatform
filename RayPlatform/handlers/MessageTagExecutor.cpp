@@ -23,7 +23,7 @@
 
 #include <RayPlatform/communication/mpi_tags.h>
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 #include <stdlib.h> /* for NULL */
@@ -64,7 +64,7 @@ MessageTagExecutor::MessageTagExecutor(){
 
 void MessageTagExecutor::setObjectHandler(MessageTag messageTag,MessageTagHandlerReference object){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(messageTag>=0);
 	assert(messageTag < MAXIMUM_NUMBER_OF_TAG_HANDLERS);
 	#endif

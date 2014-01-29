@@ -248,7 +248,7 @@ VALUE*MyHashTable<KEY,VALUE>::at(uint64_t bucket){
 	int group=bucket/m_numberOfBucketsInGroup;
 	int bucketInGroup=bucket%m_numberOfBucketsInGroup;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_groups[group].getBit(bucketInGroup)==1);
 	#endif
 
@@ -294,7 +294,7 @@ void MyHashTable<KEY,VALUE>::growIfNecessary(){
 		printProbeStatistics();
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_auxiliaryTableForIncrementalResize==NULL);
 	#endif
 
@@ -307,7 +307,7 @@ void MyHashTable<KEY,VALUE>::growIfNecessary(){
 	//cout<<"Rank "<<m_rank<<" MyHashTable must grow now "<<m_totalNumberOfBuckets<<" -> "<<newSize<<endl;
 	//printStatistics();
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(newSize>m_totalNumberOfBuckets);
 	#endif
 }
@@ -317,7 +317,7 @@ void MyHashTable<KEY,VALUE>::growIfNecessary(){
  */
 template<class KEY,class VALUE>
 void MyHashTable<KEY,VALUE>::resize(){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_resizing==true);
 	assert(m_utilisedBuckets>0);
 	#endif
@@ -388,14 +388,14 @@ void MyHashTable<KEY,VALUE>::resize(){
 		if(!isAvailable(m_currentBucketToTransfer)){
 			VALUE*entry=at(m_currentBucketToTransfer);
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(entry!=NULL);
 			#endif
 
 			KEY keyValue=entry->getKey();
 			KEY*key=&keyValue;
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			uint64_t probe;
 			int group;
 			int bucketInGroup;
@@ -416,7 +416,7 @@ void MyHashTable<KEY,VALUE>::resize(){
  * 			fails */
 
 			/** save the size before for further use */
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			uint64_t sizeBefore=m_auxiliaryTableForIncrementalResize->m_utilisedBuckets;
 
 			/* the auxiliary should not contain the key already . */
@@ -432,7 +432,7 @@ void MyHashTable<KEY,VALUE>::resize(){
 			(*insertedEntry)=*entry;
 	
 			/** assert that we inserted something somewhere */
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			if(m_auxiliaryTableForIncrementalResize->m_utilisedBuckets!=sizeBefore+1)
 				cout<<"Expected: "<<sizeBefore+1<<" Actual: "<<m_auxiliaryTableForIncrementalResize->m_utilisedBuckets<<endl;
 			assert(m_auxiliaryTableForIncrementalResize->m_utilisedBuckets==sizeBefore+1);
@@ -446,7 +446,7 @@ void MyHashTable<KEY,VALUE>::resize(){
 	if(m_currentBucketToTransfer==capacity()){
 		//cout<<"Rank "<<m_rank<<": MyHashTable incremental resizing is complete."<<endl;
 		/* make sure the old table is now empty */
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		//assert(size()==0);
 		//the old table still has its stuff.
 		#endif
@@ -462,7 +462,7 @@ void MyHashTable<KEY,VALUE>::resize(){
 		m_utilisedBuckets=m_auxiliaryTableForIncrementalResize->m_utilisedBuckets;
 		m_size=m_auxiliaryTableForIncrementalResize->m_size;
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(m_size == m_utilisedBuckets);
 		assert(m_auxiliaryTableForIncrementalResize->m_resizing == false);
 		assert(m_size == m_utilisedBuckets);
@@ -571,7 +571,7 @@ void MyHashTable<KEY,VALUE>::constructor(uint64_t buckets,const char*mallocType,
 	int requiredBytes=m_numberOfGroups*sizeof(MyHashTableGroup<KEY,VALUE>);
 
 	/** sanity check */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(requiredBytes<=0)
 		cout<<"Groups="<<m_numberOfGroups<<" RequiredBytes="<<requiredBytes<<"  BucketsPower2: "<<m_totalNumberOfBuckets<<endl;
 	assert(requiredBytes>=0);
@@ -581,7 +581,7 @@ void MyHashTable<KEY,VALUE>::constructor(uint64_t buckets,const char*mallocType,
 	m_groups=(MyHashTableGroup<KEY,VALUE>*)__Malloc(requiredBytes,
 		mallocType,showMalloc);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_groups!=NULL);
 	#endif
 
@@ -600,7 +600,7 @@ bool MyHashTable<KEY,VALUE>::isAvailable(uint64_t bucket){
 	int group=bucket/m_numberOfBucketsInGroup;
 	int bucketInGroup=bucket%m_numberOfBucketsInGroup;
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(bucket<m_totalNumberOfBuckets);
 	assert(group<m_numberOfGroups);
 	assert(bucketInGroup<m_numberOfBucketsInGroup);
@@ -662,7 +662,7 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 	(*group)=bucket/m_numberOfBucketsInGroup;
 	(*bucketInGroup)=bucket%m_numberOfBucketsInGroup;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(bucket<m_totalNumberOfBuckets);
 	assert(*group<m_numberOfGroups);
 	assert(*bucketInGroup<m_numberOfBucketsInGroup);
@@ -678,7 +678,7 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 			number of buckets = M = 2^m
 		and the stride is 1 <= s <= M-1 and is odd thus does not share factor with 2^m */
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		/** issue a warning for an unexpected large probe depth */
 		/** each bucket should be probed in exactly NumberOfBuckets probing events */
 		if((*probe)>=m_totalNumberOfBuckets){
@@ -706,7 +706,7 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 				h2--; 
 
 			/** check boundaries */
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(h2!=0);
 			assert(h2%2!=0);
 			assert(h2%2 == 1);
@@ -721,7 +721,7 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 			#endif
 		}
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(h2!=0);
 		#endif
 		
@@ -737,7 +737,7 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 		(*bucketInGroup)=bucket%m_numberOfBucketsInGroup;
 
 		/** sanity checks */
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(bucket<m_totalNumberOfBuckets);
 		assert(*group<m_numberOfGroups);
 		assert(*bucketInGroup<m_numberOfBucketsInGroup);
@@ -745,7 +745,7 @@ void MyHashTable<KEY,VALUE>::findBucketWithKey(KEY*key,uint64_t*probe,int*group,
 	}
 
 	/** sanity checks */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(bucket<m_totalNumberOfBuckets);
 	assert(*group<m_numberOfGroups);
 	assert(*bucketInGroup<m_numberOfBucketsInGroup);
@@ -771,7 +771,7 @@ VALUE*MyHashTable<KEY,VALUE>::findKey(KEY*key,bool checkAuxiliary){ /* for verbo
 	int bucketInGroup;
 	findBucketWithKey(key,&probe,&group,&bucketInGroup);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(group<m_numberOfGroups);
 	assert(bucketInGroup<m_numberOfBucketsInGroup);
 	#endif
@@ -803,7 +803,7 @@ VALUE*MyHashTable<KEY,VALUE>::findKey(KEY*key,bool checkAuxiliary){ /* for verbo
  */
 template<class KEY,class VALUE>
 VALUE*MyHashTable<KEY,VALUE>::find(KEY*key){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(key!=NULL);
 	#endif
 
@@ -851,7 +851,7 @@ VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
 	// Case 3. Otherwise, the old one is responsible. 
 	//
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	uint64_t beforeSize=m_utilisedBuckets;
 	#endif
 
@@ -861,7 +861,7 @@ VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
 	int bucketInGroup;
 	findBucketWithKey(key,&probe,&group,&bucketInGroup);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(group<m_numberOfGroups);
 	assert(bucketInGroup<m_numberOfBucketsInGroup);
 	#endif
@@ -871,7 +871,7 @@ VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
 	VALUE*entry=m_groups[group].insert(m_numberOfBucketsInGroup,bucketInGroup,key,&m_allocator,&inserted);
 
 	/* check that nothing failed elsewhere */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(entry!=NULL);
 	if(entry->getKey()!=*key)
 		cout<<"Pointer: "<<entry<<endl;
@@ -890,7 +890,7 @@ VALUE*MyHashTable<KEY,VALUE>::insert(KEY*key){
 		m_probes[probe]++;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(find(key)!=NULL);
 	assert(find(key)->getKey()==*key);
 	if(inserted)
@@ -952,7 +952,7 @@ void MyHashTable<KEY,VALUE>::completeResizing(){
 	while(m_resizing)
 		resize();
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_auxiliaryTableForIncrementalResize == NULL);
 	#endif
 

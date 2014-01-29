@@ -20,7 +20,7 @@
 
 #include "SlaveModeExecutor.h"
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 #include <stdlib.h> /* for NULL */
@@ -61,7 +61,7 @@ SlaveModeExecutor::SlaveModeExecutor(){
 
 void SlaveModeExecutor::setObjectHandler(SlaveMode mode,SlaveModeHandlerReference object){
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 	assert(mode>=0);
 	assert(mode<MAXIMUM_NUMBER_OF_SLAVE_HANDLERS);
 #endif

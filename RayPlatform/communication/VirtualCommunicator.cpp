@@ -35,7 +35,7 @@ using namespace std;
 
 /** set the number of elements per message for a given tag */
 void VirtualCommunicator::setElementsPerQuery(int tag,int size){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_elementSizes.count(tag)==0);
 	assert(tag!=INVALID_HANDLE);
 	#endif
@@ -45,7 +45,7 @@ void VirtualCommunicator::setElementsPerQuery(int tag,int size){
 
 /** get the number of elements per message for a given tag */
 int VirtualCommunicator::getElementsPerQuery(int tag){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_elementSizes.count(tag)!=0);
 	#endif
 
@@ -54,13 +54,13 @@ int VirtualCommunicator::getElementsPerQuery(int tag){
 
 /**  associate the reply message tag to a message tag */
 void VirtualCommunicator::setReplyType(int query,int reply){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_replyTagToQueryTag.count(reply)==0);
 	#endif
 
 	m_replyTagToQueryTag[reply]=query;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_reverseReplyMap.count(query) == 0);
 	#endif
 
@@ -68,7 +68,7 @@ void VirtualCommunicator::setReplyType(int query,int reply){
 }
 
 int VirtualCommunicator::getReplyType(int tag){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_reverseReplyMap.count(tag) == 0){
 		cout<<"Error: "<<MESSAGE_TAGS[tag]<<" is not in the reverse-map"<<endl;
 	}
@@ -85,14 +85,14 @@ int VirtualCommunicator::getReplyType(int tag){
 void VirtualCommunicator::pushMessage(WorkerHandle workerId,Message*message){
 	int tag=message->getTag();
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_elementSizes.count(tag)>0);
 	#endif
 
 	int period=m_elementSizes[tag];
 	int count=message->getCount();
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(count > period){
 		cout<<"Error, count= "<<count<<" but period is "<<period<<endl;
 		cout<<"Tag= "<<MESSAGE_TAGS[tag]<<endl;
@@ -101,7 +101,7 @@ void VirtualCommunicator::pushMessage(WorkerHandle workerId,Message*message){
 	#endif
 
 	m_pushedMessages++;
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_elementsForWorkers.count(workerId)>0){
 		cout<<"Error: there is already a pending message for worker "<<workerId<<", will not add message with tag="<<MESSAGE_TAGS[message->getTag()]<<endl;
 		cout<<"Did you forget to pull a reply with isMessageProcessed and getMessageResponseElements ?"<<endl;
@@ -114,14 +114,14 @@ void VirtualCommunicator::pushMessage(WorkerHandle workerId,Message*message){
 
 	int destination=message->getDestination();
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(!(destination>=0&&destination<m_size)){
 		cout<<"Error: tag="<<message->getTag()<<" destination="<<destination<<" (INVALID)"<<endl;
 	}
 	assert(destination>=0&&destination<m_size);
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_elementSizes.count(tag)>0);
 	#endif
 
@@ -141,7 +141,7 @@ void VirtualCommunicator::pushMessage(WorkerHandle workerId,Message*message){
 	int newPriority=oldPriority+count;
 	m_priorityQueue[newPriority].insert(elementId);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count>0);
 	#endif
 
@@ -156,7 +156,7 @@ void VirtualCommunicator::pushMessage(WorkerHandle workerId,Message*message){
  */
 	m_workerCurrentIdentifiers[tag][destination].push_back(workerId);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_elementSizes.count(tag)>0);
 	#endif
 
@@ -169,7 +169,7 @@ void VirtualCommunicator::pushMessage(WorkerHandle workerId,Message*message){
 	int threshold=MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)/period;
 
 	/** this whole block makes sure that the communicator is not overloaded */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_elementSizes.count(tag)>0);
 	assert(period>=1);
 	assert(threshold<=(int)(MAXIMUM_MESSAGE_SIZE_IN_BYTES/sizeof(MessageUnit)));
@@ -195,7 +195,7 @@ void VirtualCommunicator::flushMessage(int tag,int destination){
 
 	m_flushedMessages++;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_messageContent.count(tag)>0&&m_messageContent[tag].count(destination)>0);
 	#endif
 
@@ -211,7 +211,7 @@ void VirtualCommunicator::flushMessage(int tag,int destination){
 	m_activeTag=tag;
 	int currentSize=priority;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(currentSize==0){
 		cout<<"Cannot flush empty buffer!"<<endl;
 	}
@@ -242,7 +242,7 @@ bool VirtualCommunicator::isMessageProcessed(WorkerHandle workerId){
 }
 
 void VirtualCommunicator::getMessageResponseElements(WorkerHandle workerId,vector<MessageUnit>*out){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(isMessageProcessed(workerId));
 	#endif
 
@@ -251,7 +251,7 @@ void VirtualCommunicator::getMessageResponseElements(WorkerHandle workerId,vecto
 
 	m_elementsForWorkers.erase(workerId);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(!isMessageProcessed(workerId));
 	#endif
 }
@@ -291,7 +291,7 @@ void VirtualCommunicator::processInbox(vector<WorkerHandle>*activeWorkers){
 			return;
 		}
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(m_replyTagToQueryTag.count(incomingTag)>0);
 		#endif
 
@@ -305,7 +305,7 @@ void VirtualCommunicator::processInbox(vector<WorkerHandle>*activeWorkers){
 			cout.flush();
 			MessageUnit*buffer=(MessageUnit*)message->getBuffer();
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(m_elementSizes.count(queryTag)>0);
 			#endif
 
@@ -313,7 +313,7 @@ void VirtualCommunicator::processInbox(vector<WorkerHandle>*activeWorkers){
 			vector<WorkerHandle> workers=m_workerCurrentIdentifiers[m_activeTag][m_activeDestination];
 			m_workerCurrentIdentifiers[m_activeTag][m_activeDestination].clear();
 			
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(workers.size()>0);
 			assert(elementsPerWorker>0);
 			int count=message->getCount();
@@ -339,7 +339,7 @@ void VirtualCommunicator::processInbox(vector<WorkerHandle>*activeWorkers){
 
 				int basePosition=i*elementsPerWorker;
 
-				#ifdef ASSERT
+				#ifdef CONFIG_ASSERT
 				if(m_elementsForWorkers.count(workerId)>0){
 					cout<<"there already are elements for "<<workerId<<endl;
 				}
@@ -355,14 +355,14 @@ void VirtualCommunicator::processInbox(vector<WorkerHandle>*activeWorkers){
 				// make sure that is someone 
 				// asks if workerId can fetch its thing,
 				// it will return true.
-				#ifdef ASSERT
+				#ifdef CONFIG_ASSERT
 				assert(isMessageProcessed(workerId));
 				#endif
 			}
 		}
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_pendingMessages>=0);
 	#endif
 }
@@ -406,7 +406,7 @@ void VirtualCommunicator::forceFlush(){
 	// and there are no message
 	// the thing will crash 
 	// it is designed like that
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(!m_priorityQueue.rbegin()->second.empty());
 	#endif
 
@@ -414,7 +414,7 @@ void VirtualCommunicator::forceFlush(){
 	int selectedDestination=getDestinationFromMessageUniqueId(elementId);
 	int selectedTag=getTagFromMessageUniqueId(elementId);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_messageContent.count(selectedTag)>0&&m_messageContent[selectedTag].count(selectedDestination)>0);
 	assert(!m_messageContent[selectedTag][selectedDestination].empty());
 	#endif

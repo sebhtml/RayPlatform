@@ -29,7 +29,7 @@
 void StaticVector::constructor(int size,const char* type,bool show){
 	strcpy(m_type,type);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(size!=0);
 	#endif
 
@@ -43,7 +43,7 @@ Message*StaticVector::operator[](int i){
 }
 
 Message*StaticVector::at(int i){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(i<m_size);
 	#endif
 	return m_messages+i;

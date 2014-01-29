@@ -56,7 +56,7 @@ void BufferedData::constructor(int numberOfRanks,int capacity,const char*type,bo
 }
 
 void BufferedData::clear(){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(isEmpty());
 	#endif
 
@@ -71,7 +71,7 @@ void BufferedData::clear(){
 }
 
 int BufferedData::size(int i)const{
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(i>=m_ranks){
 		cout<<"i="<<i<<" m_ranks="<<m_ranks<<endl;
 	}
@@ -97,7 +97,7 @@ void BufferedData::addAt(int i,MessageUnit k){
 
 void BufferedData::reset(int i){
 	m_sizes[i]=0;
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_sizes[i]==0);
 	#endif
 }
@@ -133,7 +133,7 @@ int BufferedData::flushAll(int tag,RingAllocator*outboxAllocator,StaticVector*ou
 			flushed++;
 			return flushed;
 		}
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(size(i)==0);
 		#endif
 	}
@@ -141,7 +141,7 @@ int BufferedData::flushAll(int tag,RingAllocator*outboxAllocator,StaticVector*ou
 }
 
 bool BufferedData::flush(int destination,int period,int tag,RingAllocator*outboxAllocator,StaticVector*outbox,int rank,bool force){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(!force){
 		assert(period!=0);
 	}
@@ -152,7 +152,7 @@ bool BufferedData::flush(int destination,int period,int tag,RingAllocator*outbox
 		threshold=(m_capacity/period)*period;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(threshold<=m_capacity);
 	#endif
 
@@ -163,7 +163,7 @@ bool BufferedData::flush(int destination,int period,int tag,RingAllocator*outbox
 	if(amount==0){
 		return false;
 	}
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(amount>0);
 	if(!force && amount>threshold){
 		cout<<"Threshold is exceeded "<<amount<<" & "<<threshold<<" tag="<<tag<<endl;

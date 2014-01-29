@@ -274,13 +274,13 @@ void createDirectory(const char*directory){
  *     */
 	mode_t mode=S_IRWXU | S_IRWXG;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	int status=
 	#endif
 
 	mkdir(directory,mode);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(status!=0){
 		cout<<"mkdir returned status "<<status<<" with directory= "<<directory<<endl;
 	}

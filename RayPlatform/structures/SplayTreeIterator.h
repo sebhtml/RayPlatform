@@ -67,7 +67,7 @@ SplayTreeIterator<TREE_KEY_TYPE,TREE_VALUE_TYPE>::SplayTreeIterator(SplayTree<TR
 
 template<class TREE_KEY_TYPE,class TREE_VALUE_TYPE>
 void SplayTreeIterator<TREE_KEY_TYPE,TREE_VALUE_TYPE>::constructor(SplayTree<TREE_KEY_TYPE,TREE_VALUE_TYPE>*tree){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_stack.size()==0);
 	#endif
 	m_tree=tree;

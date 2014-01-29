@@ -33,7 +33,7 @@ using namespace std;
  * wrapper around malloc
  */
 void*__Malloc(int c,const char*description,bool show){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(c==0){
 		cout<<"Requested "<<c<<" bytes of type "<<description<<endl;
 	}

@@ -124,7 +124,7 @@ void MessageRouter::routeOutcomingMessages(){
 		aMessage->setCount(newCount);
 		*/
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(buffer!=NULL);
 		#endif
 
@@ -136,7 +136,7 @@ void MessageRouter::routeOutcomingMessages(){
 		setDestinationInBuffer(buffer,newCount,trueDestination);
 		*/
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(aMessage->getRoutingSource() ==trueSource);
 		assert(aMessage->getRoutingDestination() ==trueDestination);
 		assert(trueSource >= 0);
@@ -163,7 +163,7 @@ void MessageRouter::routeOutcomingMessages(){
 	}
 
 	// check that all messages are routable
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	for(int i=0;i<numberOfMessages;i++){
 		Message*aMessage=m_outbox->at(i);
 		if(!m_graph.isConnected(aMessage->getSource(),aMessage->getDestination()))
@@ -248,7 +248,7 @@ bool MessageRouter::routeIncomingMessages(){
 		aMessage->setSource(trueSource);
 
 		// the original destination is already OK
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(aMessage->getDestination()==m_rank);
 		#endif
 
@@ -262,7 +262,7 @@ bool MessageRouter::routeIncomingMessages(){
 		// remove the routing stuff
 		//int newCount=aMessage->getCount();
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		//assert(newCount>=0);
 		#endif
 
@@ -275,7 +275,7 @@ bool MessageRouter::routeIncomingMessages(){
 		return false;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_rank!=trueDestination);
 	#endif
 
@@ -323,7 +323,7 @@ void MessageRouter::relayMessage(Message*message,Rank destination){
 
 	// routed messages always have a payload
 	// but the metadata is saved later.
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count>=0);
 	#endif
 
@@ -343,7 +343,7 @@ void MessageRouter::relayMessage(Message*message,Rank destination){
 	message->setSource(m_rank);
 	message->setDestination(destination);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_graph.isConnected(m_rank,destination));
 	#endif
 
@@ -409,7 +409,7 @@ bool MessageRouter::hasCompletedRelayEvents(){
  * just add a magic number
  */
 MessageTag MessageRouter::getRoutingTag(MessageTag tag){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(tag>=0);
 	assert(tag<32768);
 	#endif
@@ -427,14 +427,14 @@ bool MessageRouter::isRoutingTag(MessageTag tag){
 
 MessageTag MessageRouter::getMessageTagFromRoutingTag(MessageTag tag){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(isRoutingTag(tag));
 	assert(tag>=__ROUTING_TAG_BASE);
 	#endif
 
 	tag-=__ROUTING_TAG_BASE;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(tag>=0);
 	#endif
 
@@ -442,7 +442,7 @@ MessageTag MessageRouter::getMessageTagFromRoutingTag(MessageTag tag){
 }
 
 Rank MessageRouter::getSourceFromBuffer(MessageUnit*buffer,int count){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count>=1);
 	assert(buffer!=NULL);
 	#endif
@@ -451,7 +451,7 @@ Rank MessageRouter::getSourceFromBuffer(MessageUnit*buffer,int count){
 
 	Rank rank=routingInformation[__ROUTING_SOURCE];
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(rank>=0);
 	assert(rank<m_size);
 	#endif
@@ -461,7 +461,7 @@ Rank MessageRouter::getSourceFromBuffer(MessageUnit*buffer,int count){
 
 Rank MessageRouter::getDestinationFromBuffer(MessageUnit*buffer,int count){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count>=1);
 	assert(buffer!=NULL);
 	#endif
@@ -484,7 +484,7 @@ Rank MessageRouter::getDestinationFromBuffer(MessageUnit*buffer,int count){
 	}
 	*/
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(rank>=0);
 	assert(rank<m_size);
 	#endif
@@ -498,7 +498,7 @@ void MessageRouter::setSourceInBuffer(MessageUnit*buffer,int count,Rank source){
 	cout<<"[setSourceInBuffer] buffer="<<buffer<<" source="<<source<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count>=1);
 	assert(buffer!=NULL);
 	assert(source>=0);
@@ -516,7 +516,7 @@ void MessageRouter::setDestinationInBuffer(MessageUnit*buffer,int count,Rank des
 	cout<<"[setDestinationInBuffer] buffer="<<buffer<<" destination="<<destination<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(count>=1);
 	assert(buffer!=NULL);
 	assert(destination>=0);

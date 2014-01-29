@@ -75,7 +75,7 @@ void DefragmentationLane::getFastGroup(int n,int bytesPerElement,bool show){
 	/* no more group can be created and therefore the DefragmentationLane is too busy */
 	if(m_numberOfActiveGroups==GROUPS_PER_LANE){
 		m_fastGroup=INVALID_GROUP;
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(m_numberOfFastGroups==0);
 		#endif
 		return;
@@ -90,7 +90,7 @@ void DefragmentationLane::getFastGroup(int n,int bytesPerElement,bool show){
 	m_numberOfActiveGroups++;
 	m_numberOfFastGroups++;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_numberOfFastGroups==1);
 	#endif
 
@@ -118,7 +118,7 @@ SmallSmartPointer DefragmentationLane::allocate(int n,int bytesPerElement,int*gr
 uint16_t*cellContents,
 	uint8_t*cellOccupancies ){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_fastGroup!=-1);
 	if(!(m_fastGroup<GROUPS_PER_LANE))
 		cout<<"m_fastGroup= "<<m_fastGroup<<endl;
@@ -151,7 +151,7 @@ int DefragmentationLane::getNumber(){
  * Time complexity: O(1)
  */
 DefragmentationGroup*DefragmentationLane::getGroup(int i){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(i<GROUPS_PER_LANE);
 	#endif
 	return m_groups+i;

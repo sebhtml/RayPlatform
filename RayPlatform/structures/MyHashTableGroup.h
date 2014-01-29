@@ -123,7 +123,7 @@ void MyHashTableGroup<KEY,VALUE>::setBit(int bit,uint64_t value){
 /**
  * 	just set the bit to value in m_bitmap
  */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(value==1||value==0);
 	#endif
 	
@@ -142,7 +142,7 @@ void MyHashTableGroup<KEY,VALUE>::setBit(int bit,uint64_t value){
 	}
 
 	/** make sure the bit is OK */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(getBit(bit)!=(int)value)
 		cout<<"Bit="<<bit<<" Expected="<<value<<" Actual="<<getBit(bit)<<endl;
 	assert(getBit(bit)==(int)value);
@@ -168,7 +168,7 @@ int MyHashTableGroup<KEY,VALUE>::getBit(int bit){
 	int bitValue=(m_bitmap<<(63-bit))>>63;
 
 	/**  just a sanity check here */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(bitValue==0||bitValue==1);
 	#endif
 
@@ -183,7 +183,7 @@ void MyHashTableGroup<KEY,VALUE>::constructor(int numberOfBucketsInGroup,ChunkAl
 
 	/* the number of buckets in a group must be a multiple of 8 */
 	/* why ? => to save memory -- not to waste memory */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	//assert(numberOfBucketsInGroup%8==0);
 	// this is not necessary.
 	#endif
@@ -203,7 +203,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 
 	/* the bucket can not be used by another key than key */
 	/* if it would be the case, then MyHashTable would not have sent key here */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(bucketIsUtilisedBySomeoneElse(bucket,key,allocator)){
 		cout<<"Error, bucket "<<bucket<<" is utilised by another key numberOfBucketsInGroup "<<numberOfBucketsInGroup<<" utilised buckets in group: "<<getUsedBuckets()<<endl;
 	}
@@ -216,7 +216,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 	/* if the bucket is occupied, then it is returned immediately */
 	if(getBit(bucket)==1){
 		VALUE*vectorPointer=(VALUE*)allocator->getPointer(m_vector);
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		VALUE*value=vectorPointer+bucketsBefore;
 		assert(value->getKey()==*key);
 		#endif
@@ -224,18 +224,18 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 	}
 
 	/* make sure that it is not occupied by some troll already */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(getBit(bucket)==0);
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	int usedBucketsBefore=getUsedBuckets();
 	#endif
 
 	/* the bucket is not occupied */
 	setBit(bucket,1);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(getUsedBuckets()==usedBucketsBefore+1);
 	#endif
 
@@ -270,7 +270,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 	m_vector=newVector;
 
 	/* check that everything is OK now ! */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(getBit(bucket)==1);
 	if(getBucket(bucket,allocator)->getKey()!=*key){
 		cout<<"Expected"<<endl;
@@ -285,7 +285,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::insert(int numberOfBucketsInGroup,int bucket,
 	#endif
 
 	/** check that we inserted something somewhere actually */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(find(bucket,key,allocator)!=NULL);
 	assert(find(bucket,key,allocator)->getKey()==*key);
 	#endif
@@ -319,7 +319,7 @@ bool MyHashTableGroup<KEY,VALUE>::bucketIsUtilisedBySomeoneElse(int bucket,KEY*k
 template<class KEY,class VALUE>
 VALUE*MyHashTableGroup<KEY,VALUE>::getBucket(int bucket,ChunkAllocatorWithDefragmentation*allocator){
 	/*  the bucket is not occupied therefore the key does not exist */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(getBit(bucket)!=0);
 	if(m_vector==SmartPointer_NULL)
 		cout<<"bucket: "<<bucket<<endl;
@@ -332,7 +332,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::getBucket(int bucket,ChunkAllocatorWithDefrag
 	/* return the bucket */
 	VALUE*vectorPointer=(VALUE*)allocator->getPointer(m_vector);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(vectorPointer!=NULL);
 	#endif
 
@@ -364,7 +364,7 @@ VALUE*MyHashTableGroup<KEY,VALUE>::find(int bucket,KEY*key,ChunkAllocatorWithDef
 	}
 
 	/** the bucket should contains key at this point */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(!bucketIsUtilisedBySomeoneElse(bucket,key,allocator));
 	#endif
 

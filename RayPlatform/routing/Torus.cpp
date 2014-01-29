@@ -24,7 +24,7 @@
 #include <iostream>
 using namespace std;
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif /* ASSERT */
 
@@ -112,7 +112,7 @@ void Torus::configureGraph(int vertices){
 		dimension++;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(vertices ==getPower(theRadix,dimension));
 	#endif
 
@@ -141,7 +141,7 @@ void Torus::setLoad(int position,int symbol,uint64_t value){
 
 uint64_t Torus::getLoad(int position,int symbol){
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(position<m_dimension);
 	assert(symbol<m_radix);
 	#endif /* ASSERT */
@@ -221,7 +221,7 @@ Rank Torus::getNextRankInRoute(Rank source,Rank destination,Rank current){
 	cout<<"[DEVEL] getNextRankInRoute source="<<source<<" destination="<<destination<<" current="<<current<<endl;
 #endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(destination!=current); // we don't need any routing...
 	assert(source>=0);
 	assert(destination>=0);
@@ -258,7 +258,7 @@ Rank Torus::getNextRankInRoute(Rank source,Rank destination,Rank current){
  */
 		int leftDistance=getDistance(currentSymbol,destinationSymbol);
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(leftDistance!=0);
 		assert(leftDistance>0);
 		assert(leftDistance>=1);
@@ -269,7 +269,7 @@ Rank Torus::getNextRankInRoute(Rank source,Rank destination,Rank current){
  */
 		int rightDistance=getDistance(destinationSymbol,currentSymbol);
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(rightDistance!=0);
 		assert(rightDistance>0);
 		assert(rightDistance>=1);
@@ -279,7 +279,7 @@ Rank Torus::getNextRankInRoute(Rank source,Rank destination,Rank current){
 
 			int nextSymbol=decrementSymbol(currentSymbol);
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(getMinimumDistance(currentSymbol,nextSymbol)==1);
 			assert(getMinimumDistance(nextSymbol,currentSymbol)==1);
 			#endif
@@ -300,7 +300,7 @@ Rank Torus::getNextRankInRoute(Rank source,Rank destination,Rank current){
 
 			int nextSymbol=incrementSymbol(currentSymbol);
 
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			assert(getMinimumDistance(currentSymbol,nextSymbol)==1);
 			assert(getMinimumDistance(nextSymbol,currentSymbol)==1);
 			#endif
@@ -318,7 +318,7 @@ Rank Torus::getNextRankInRoute(Rank source,Rank destination,Rank current){
 		}
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(bestPosition!=NO_VALUE);
 	assert(bestPosition>=0);
 	assert(bestPosition<m_dimension);
@@ -357,7 +357,7 @@ Rank Torus::getNextRankInRoute(Rank source,Rank destination,Rank current){
 
 	Rank nextRank=convertToBase10(&next);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(current!=nextRank);
 	assert(computeConnection(current,nextRank) == true);
 	#endif
@@ -532,7 +532,7 @@ void Torus::printStatus(Rank rank){
 			cout<<" ("<<other<<")";
 			cout<<" Load: "<<load<<endl;
 			
-			#ifdef ASSERT
+			#ifdef CONFIG_ASSERT
 			if(computeConnection(rank,other)!=true){
 				cout<<"Error: position="<<position<<" otherSymbol= "<<otherSymbol<<", load="<<load<<" but the edge does not exist."<<endl;
 			}
@@ -547,7 +547,7 @@ void Torus::start(){
 		for(int j=0;j<m_radix;j++)
 			setLoad(i,j,0);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 
 	for(int i=0;i<m_dimension;i++)
 		for(int j=0;j<m_radix;j++)

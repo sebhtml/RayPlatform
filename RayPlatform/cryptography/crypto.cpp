@@ -24,7 +24,7 @@
 #include "crypto.h"
 
 #include <string.h>
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif
 
@@ -174,7 +174,7 @@ uint32_t computeCyclicRedundancyCode32(uint8_t*bytes,uint32_t numberOfBytes){
 
 		uint8_t position=(byte ^ checksum) & 0xff;
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(position>=0);
 		assert(position<256);
 		#endif

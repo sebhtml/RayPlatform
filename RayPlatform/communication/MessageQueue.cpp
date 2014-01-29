@@ -24,7 +24,7 @@
 #include <iostream>
 using namespace std;
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif /* ASSERT */
 
@@ -45,7 +45,7 @@ using namespace std;
 
 void MessageQueue::constructor(uint32_t bins){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(bins);
 	assert(bins>0);
 	#endif /* ASSERT */
@@ -61,7 +61,7 @@ void MessageQueue::constructor(uint32_t bins){
 
 	m_dead=false;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_ring!=NULL);
 	assert(m_headForPopOperations<m_size);
 	assert(m_tailForPushOperations<m_size);
@@ -151,7 +151,7 @@ void MessageQueue::destructor(){
 	if(m_size==0)
 		return;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_size>0);
 	assert(m_ring!=NULL);
 	#endif /* ASSERT */
@@ -162,7 +162,7 @@ void MessageQueue::destructor(){
 	__Free(m_ring,"/MessageQueue",false);
 	m_ring=NULL;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_size==0);
 	assert(m_ring==NULL);
 	#endif /* ASSERT */
@@ -223,7 +223,7 @@ void MessageQueue::sendKillSignal(){
 
 uint32_t MessageQueue::increment(uint32_t index){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(index<m_size);
 	assert(m_size!=0);
 	assert(index>=0);

@@ -35,7 +35,7 @@ using namespace std;
 #ifdef CONFIG_DEBUG_MPI_RANK
 #endif /* CONFIG_DEBUG_MPI_RANK */
 
-#ifdef ASSERT
+#ifdef CONFIG_ASSERT
 #include <assert.h>
 #endif /* ASSERT */
 
@@ -187,7 +187,7 @@ void RankProcess<Application>::addMiniRank(MiniRank*miniRank){
 	cout<<"Adding mini-rank"<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_numberOfInstalledMiniRanks<m_numberOfMiniRanksPerRank);
 	#endif
 
@@ -196,7 +196,7 @@ void RankProcess<Application>::addMiniRank(MiniRank*miniRank){
 
 	m_numberOfInstalledMiniRanks++;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_numberOfInstalledMiniRanks<=m_numberOfMiniRanksPerRank);
 	#endif
 
@@ -213,7 +213,7 @@ void*Rank_startMiniRank(void*object){
 template<class Application>
 void RankProcess<Application>::run(){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_numberOfMiniRanksPerRank!=m_numberOfInstalledMiniRanks){
 		cout<<"Error: "<<m_numberOfInstalledMiniRanks<<" installed mini-ranks, but need "<<m_numberOfMiniRanksPerRank<<endl;
 	}

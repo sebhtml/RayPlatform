@@ -91,7 +91,7 @@ void GraphImplementationRandom::computeRoute(Rank a,Rank b,vector<Rank>*route){
 }
 
 Rank GraphImplementationRandom::getNextRankInRoute(Rank source,Rank destination,Rank rank){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_routes[source][destination].count(rank)==1);
 	#endif
 

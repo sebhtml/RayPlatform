@@ -46,7 +46,7 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 	resetCount();
 
 	/* m_max should never be 0 */
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(size>0);
 	assert(chunks>0);
 	#endif /* ASSERT */
@@ -55,7 +55,7 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 
 	m_max=size;// maximum buffer size in bytes
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_chunks==chunks);
 	assert(m_max==size);
 	#endif /* ASSERT */
@@ -64,17 +64,17 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 
 	m_numberOfBytes=m_chunks*m_max;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_numberOfBytes>0);
 	#endif /* ASSERT */
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_memory==NULL);
 	#endif
 
 	m_memory=(uint8_t*)__Malloc(sizeof(uint8_t)*m_numberOfBytes,m_type,show);
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_memory!=NULL);
 	#endif
 
@@ -98,7 +98,7 @@ void RingAllocator::constructor(int chunks,int size,const char*type,bool show){
 	cout<<"[RingAllocator] m_chunks: "<<m_chunks<<" m_max: "<<m_max<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(size>0);
 	assert(chunks>0);
 
@@ -146,7 +146,7 @@ void*RingAllocator::allocate(int a){
 
 	m_count++;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_chunks>0);
 	
 	if(m_memory==NULL)
@@ -187,7 +187,7 @@ void*RingAllocator::allocate(int a){
 	}
 
 	// if all buffers are dirty, we throw a runtime error
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	if(m_current==origin && m_bufferStates[m_current]==BUFFER_STATE_DIRTY){
 		cout<<"Error: all buffers are dirty !, chunks: "<<m_chunks<<endl;
 		assert(m_current!=origin);
@@ -206,7 +206,7 @@ void*RingAllocator::allocate(int a){
 		m_current=0;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(address!=NULL);
 	#endif
 
@@ -224,7 +224,7 @@ void RingAllocator::salvageBuffer(void*buffer){
 
 	m_availableBuffers++;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_availableBuffers>=1);
 	#endif
 
@@ -239,13 +239,13 @@ void RingAllocator::markBufferAsDirty(void*buffer){
 	cout<<"[RingAllocator::markBufferAsDirty] "<<bufferNumber<<" -> BUFFER_STATE_DIRTY"<<endl;
 	#endif
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_availableBuffers>=1);
 	#endif
 
 	m_availableBuffers--;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_availableBuffers>=0);
 	#endif
 }
@@ -339,7 +339,7 @@ DirtyBuffer*RingAllocator::getDirtyBuffers(){
  */
 void RingAllocator::checkDirtyBuffer(int index){
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_numberOfDirtyBuffers>0);
 	#endif
 
@@ -357,7 +357,7 @@ void RingAllocator::checkDirtyBuffer(int index){
 	if(!flag)// this slot is not ready
 		return;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert( flag );
 	#endif /* ASSERT */
 
@@ -369,7 +369,7 @@ void RingAllocator::checkDirtyBuffer(int index){
 	cout<<"From checkDirtyBuffer flag= "<<flag<<endl;
 	#endif /* COMMUNICATION_IS_VERBOSE */
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(*request == MPI_REQUEST_NULL);
 	#endif /* ASSERT */
 
@@ -384,7 +384,7 @@ void RingAllocator::cleanDirtyBuffers(){
 	if(m_numberOfDirtyBuffers<m_minimumNumberOfDirtyBuffersForSweep)
 		return;
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_numberOfDirtyBuffers>0);
 	#endif
 
@@ -496,14 +496,14 @@ MPI_Request * RingAllocator::registerBuffer(void*buffer){
 		mustRegister=true;
 	}
 
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(handle >= 0 && handle < m_dirtyBufferSlots);
 	assert(m_dirtyBuffers[handle].getBuffer() == NULL);
 	#endif
 
 	/* register the buffer for processing */
 	if(mustRegister){
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(m_dirtyBuffers[handle].getBuffer() == NULL);
 		#endif
 
@@ -515,7 +515,7 @@ MPI_Request * RingAllocator::registerBuffer(void*buffer){
 		m_dirtyBuffers[handle].m_messageTag=tag;
 		#endif
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(m_dirtyBuffers[handle].getBuffer() != NULL);
 		assert(m_dirtyBuffers[handle].getBuffer() == buffer);
 		#endif

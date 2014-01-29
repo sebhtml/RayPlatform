@@ -31,7 +31,7 @@ using namespace std;
 #define CONFIG_TICK_STEPPING 1000000
 
 void TickLogger::logSlaveTick(SlaveMode i){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(i!=INVALID_HANDLE);
 	#endif
 
@@ -76,7 +76,7 @@ void TickLogger::logSlaveTick(SlaveMode i){
 }
 
 void TickLogger::logMasterTick(MasterMode i){
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(i!=INVALID_HANDLE);
 	#endif
 
@@ -133,7 +133,7 @@ void TickLogger::printSlaveTicks(ofstream*file){
 
 	// print stuff
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_slaveModes.size()==m_slaveCounts.size());
 	assert(m_slaveModes.size()==m_slaveStarts.size());
 	assert(m_slaveModes.size()==m_slaveEnds.size());
@@ -173,7 +173,7 @@ void TickLogger::printSlaveTicks(ofstream*file){
 		uint64_t granularity=delta;
 		granularity*=1000*1000;
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(ticks!=0);
 		#endif
 
@@ -224,7 +224,7 @@ void TickLogger::printMasterTicks(ofstream*file){
 
 	// print stuff
 	
-	#ifdef ASSERT
+	#ifdef CONFIG_ASSERT
 	assert(m_masterModes.size()==m_masterCounts.size());
 	assert(m_masterModes.size()==m_masterStarts.size());
 	assert(m_masterModes.size()==m_masterEnds.size());
@@ -264,7 +264,7 @@ void TickLogger::printMasterTicks(ofstream*file){
 		uint64_t granularity=delta;
 		granularity*=1000*1000;
 
-		#ifdef ASSERT
+		#ifdef CONFIG_ASSERT
 		assert(ticks!=0);
 		#endif
 
