@@ -108,7 +108,6 @@ void MessageRouter::routeOutcomingMessages(){
 		MessageTag routingTag=getRoutingTag(communicationTag);
 		aMessage->setTag(routingTag);
 
-		MessageUnit*buffer=aMessage->getBuffer();
 
 		// routing information is stored in 64 bits
 		// avoid touching this because getCount return the number of MessageUnit whereas
@@ -125,6 +124,7 @@ void MessageRouter::routeOutcomingMessages(){
 		*/
 
 		#ifdef CONFIG_ASSERT
+		MessageUnit*buffer=aMessage->getBuffer();
 		assert(buffer!=NULL);
 		#endif
 
